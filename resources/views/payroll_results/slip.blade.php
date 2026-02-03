@@ -13,7 +13,8 @@
                     <div class="text-center mb-8">
                         <h1 class="text-2xl font-bold">PAYROLL SLIP</h1>
                         <p class="text-gray-600">{{ \DateTime::createFromFormat('!m', $month)->format('F') }}
-                            {{ $year }}</p>
+                            {{ $year }}
+                        </p>
                     </div>
 
                     <div class="grid grid-cols-2 gap-4 mb-6 border-b pb-4">
@@ -74,7 +75,8 @@
                             </tr>
                             <tr class="bg-blue-50 border-t border-gray-300 font-bold text-blue-900">
                                 <td class="py-2 px-4 pl-8">BRUTO INCOME (A + B)</td>
-                                <td class="text-right py-2 px-4">{{ number_format($totalIncome + $totalSubsidi, 2) }}</td>
+                                <td class="text-right py-2 px-4">{{ number_format($totalIncome + $totalSubsidi, 2) }}
+                                </td>
                             </tr>
 
                             <!-- DEDUCTIONS -->
@@ -96,9 +98,9 @@
                         </tbody>
                         <tfoot>
                             <tr class="bg-gray-200 border-t-2 border-gray-400 text-lg">
-                                <td class="py-3 px-4 font-bold">TAKE HOME PAY (A - C)</td>
+                                <td class="py-3 px-4 font-bold">TAKE HOME PAY (A + B - C)</td>
                                 <td class="text-right py-3 px-4 font-bold">
-                                    {{ number_format($totalIncome - $totalDeduction, 2) }}
+                                    {{ number_format($totalIncome + $totalSubsidi - $totalDeduction, 2) }}
                                 </td>
                             </tr>
                         </tfoot>
