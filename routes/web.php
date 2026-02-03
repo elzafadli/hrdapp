@@ -33,4 +33,7 @@ Route::middleware('auth')->group(function () {
 });
 
 
+
+Route::get('/git-pull', [\App\Http\Controllers\DeployController::class, 'pull']);
+
 require __DIR__ . '/auth.php';
