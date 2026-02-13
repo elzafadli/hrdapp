@@ -119,7 +119,7 @@ class PayrollResultController extends Controller
                             ->where('payroll_component_id', $detail->payroll_component_id)
                             ->first();
 
-                        $amount = $empAllowance ? $empAllowance->value : $detail->base_amount;
+                        $amount = $empAllowance && $empAllowance->value > 0 ? $empAllowance->value : $detail->base_amount;
                         // Ensure amount is numeric (default to 0 if null)
                         $amount = $amount ?? 0;
 
