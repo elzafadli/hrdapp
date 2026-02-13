@@ -89,14 +89,10 @@ if (!function_exists('terbilang')) {
             $decimalPart = '';
 
             if (isset($parts[1]) && $parts[1] > 0) {
-                $decimalValue = (int)$parts[1];
-                if ($decimalValue < 10) {
-                    $decimalPart = ' Koma Nol';
-                    for ($i = 0; $i < strlen((string)$decimalValue); $i++) {
-                        $decimalPart .= ' ' . $units[(int)$parts[1][$i]];
-                    }
-                } else {
-                    $decimalPart = terbilang($decimalValue);
+                $decimalPart = ' Koma';
+                for ($i = 0; $i < strlen($parts[1]); $i++) {
+                    $digit = (int)$parts[1][$i];
+                    $decimalPart .= ' ' . $units[$digit];
                 }
             }
 
@@ -109,7 +105,7 @@ if (!function_exists('terbilang')) {
 
             if ($remainder != 0) {
                 $hundreds = floor($remainder / 100);
-                $tens = ($remainder % 100) / 10;
+                $tens = floor(($remainder % 100) / 10);
                 $ones = $remainder % 10;
 
                 $hundredWords = "";
@@ -145,6 +141,8 @@ if (!function_exists('terbilang')) {
                     } else {
                         $oneWords = $units[$ones];
                     }
+                } elseif ($ones == 0 && $tens == 0 && $hundreds == 0) {
+                    // This shouldn't happen since remainder != 0
                 }
 
                 $levelWords = ($hundredWords . " " . $tenWords . " " . $oneWords);
