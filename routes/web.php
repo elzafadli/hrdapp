@@ -22,10 +22,12 @@ Route::middleware('auth')->group(function () {
     Route::resource('payroll-components', \App\Http\Controllers\PayrollComponentController::class);
     Route::resource('emp-allowance', \App\Http\Controllers\EmpAllowanceController::class)->only(['index', 'edit', 'update']);
     Route::resource('emp-loans', \App\Http\Controllers\EmpLoanController::class);
+    Route::resource('potongan-karyawan', \App\Http\Controllers\PotonganKaryawanController::class);
 
+    Route::resource('payroll-results', \App\Http\Controllers\PayrollResultController::class)->only(['index', 'create']);
     Route::post('/payroll-results/process', [\App\Http\Controllers\PayrollResultController::class, 'process'])->name('payroll-results.process');
-    Route::resource('payroll-results', \App\Http\Controllers\PayrollResultController::class)->only(['index']);
     Route::get('/payroll-results/{emp_id}/{month}/{year}/slip', [\App\Http\Controllers\PayrollResultController::class, 'slip'])->name('payroll-results.slip');
+    Route::get('/payroll-results/export', [\App\Http\Controllers\PayrollResultController::class, 'export'])->name('payroll-results.export');
 
     Route::resource('emp-bpjs', \App\Http\Controllers\EmpBpjsController::class)
         ->only(['index', 'edit', 'update'])

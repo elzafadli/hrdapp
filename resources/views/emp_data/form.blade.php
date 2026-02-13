@@ -36,6 +36,16 @@
                                 <x-input-error class="mt-2" :messages="$errors->get('jabatan_id')" />
                             </div>
 
+                            <!-- Project Select -->
+                            <div class="col-span-12 sm:col-span-6 my-2">
+                                <x-input-label for="project_id" :value="__('Project')" />
+
+                                <x-select-input id="project_id" name="project_id" class="mt-1 block w-full"
+                                    :options="$projectOptions" :selected="old('project_id', $empData->project_id)"
+                                    placeholder="{{ __('Select Project') }}" />
+                                <x-input-error class="mt-2" :messages="$errors->get('project_id')" />
+                            </div>
+
                             <!-- Status PTKP Select -->
                             <div class="col-span-12 sm:col-span-6 my-2">
                                 <x-input-label for="status_ptkp" :value="__('Status PTKP')" />

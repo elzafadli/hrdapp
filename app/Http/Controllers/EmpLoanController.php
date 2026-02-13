@@ -14,10 +14,6 @@ class EmpLoanController extends Controller
         if ($request->ajax()) {
             $query = EmpLoan::with('employee');
 
-            if ($request->has('emp_id') && $request->emp_id) {
-                $query->where('emp_id', $request->emp_id);
-            }
-
             return DataTables::of($query)
                 ->addIndexColumn()
                 ->addColumn('employee_name', function ($row) {
@@ -26,13 +22,25 @@ class EmpLoanController extends Controller
                 ->addColumn('formatted_amount', function ($row) {
                     return number_format($row->amount, 2);
                 })
+                ->addColumn('formatted_installment', function ($row) {
+                    return number_format($row->installment_amount, 2);
+                })
+                ->addColumn('start_date', function ($row) {
+                    return $row->start_date ? $row->start_date->format('Y-m-d') : '-';
+                })
+                ->addColumn('end_date', function ($row) {
+                    return $row->end_date ? $row->end_date->format('Y-m-d') : '-';
+                })
+                ->addColumn('status', function ($row) {
+                    return view('components.status-badge', ['status' => $row->status])->render();
+                })
                 ->addColumn('action', function ($row) {
                     return view('components.datatable-actions', [
                         'editRoute' => route('emp-loans.edit', $row->id),
                         'deleteRoute' => route('emp-loans.destroy', $row->id),
                     ])->render();
                 })
-                ->rawColumns(['action'])
+                ->rawColumns(['status', 'action'])
                 ->make(true);
         }
 
@@ -61,18 +69,50 @@ class EmpLoanController extends Controller
         $request->validate([
             'emp_id' => 'required|exists:emp_data,id',
             'amount' => 'required|numeric|min:0',
+            'duration' => 'required|integer|min:1',
             'installment_amount' => 'nullable|numeric|min:0',
             'loan_date' => 'required|date',
-            'start_date' => 'nullable|date',
-            'end_date' => 'nullable|date',
+            'start_month' => 'required|integer|between:1,12',
+            'start_year' => 'required|integer|min:2020|max:2030',
             'description' => 'nullable|string',
             'status' => 'required|in:open,closed',
         ]);
 
-        EmpLoan::create($request->all());
+        try {
+            \DB::beginTransaction();
 
-        return redirect()->route('emp-loans.index', ['emp_id' => $request->emp_id])
-            ->with('success', 'Loan created successfully.');
+            $data = $request->all();
+
+            // Convert month/year to dates
+            // Start date: first day of the month
+            $data['start_date'] = sprintf('%04d-%02d-01', $data['start_year'], $data['start_month']);
+
+            // Auto-calculate end date based on duration
+            if (!empty($data['duration'])) {
+                $startDate = \Carbon\Carbon::parse($data['start_date']);
+                $endDate = $startDate->copy()->addMonths((int)$data['duration'])->subDay()->endOfMonth();
+                $data['end_date'] = $endDate->format('Y-m-d');
+            } else {
+                $data['end_date'] = null;
+            }
+
+            // Auto-calculate installment_amount if duration provided
+            if (isset($data['amount']) && isset($data['duration']) && $data['duration'] > 0) {
+                $data['installment_amount'] = $data['amount'] / $data['duration'];
+            }
+
+            EmpLoan::create($data);
+
+            \DB::commit();
+
+            return redirect()->route('emp-loans.index', ['emp_id' => $request->emp_id])
+                ->with('success', 'Loan created successfully.');
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['error' => 'Failed to create loan: ' . $e->getMessage()]);
+        }
     }
 
     public function edit(EmpLoan $empLoan)
@@ -90,18 +130,50 @@ class EmpLoanController extends Controller
         $request->validate([
             'emp_id' => 'required|exists:emp_data,id',
             'amount' => 'required|numeric|min:0',
+            'duration' => 'required|integer|min:1',
             'installment_amount' => 'nullable|numeric|min:0',
             'loan_date' => 'required|date',
-            'start_date' => 'nullable|date',
-            'end_date' => 'nullable|date',
+            'start_month' => 'required|integer|between:1,12',
+            'start_year' => 'required|integer|min:2020|max:2030',
             'description' => 'nullable|string',
             'status' => 'required|in:open,closed',
         ]);
 
-        $empLoan->update($request->all());
+        try {
+            \DB::beginTransaction();
 
-        return redirect()->route('emp-loans.index', ['emp_id' => $empLoan->emp_id])
-            ->with('success', 'Loan updated successfully.');
+            $data = $request->all();
+
+            // Convert month/year to dates
+            // Start date: first day of the month
+            $data['start_date'] = sprintf('%04d-%02d-01', $data['start_year'], $data['start_month']);
+
+            // Auto-calculate end date based on duration
+            if (!empty($data['duration'])) {
+                $startDate = \Carbon\Carbon::parse($data['start_date']);
+                $endDate = $startDate->copy()->addMonths((int)$data['duration'])->subDay()->endOfMonth();
+                $data['end_date'] = $endDate->format('Y-m-d');
+            } else {
+                $data['end_date'] = null;
+            }
+
+            // Auto-calculate installment_amount if duration provided
+            if (isset($data['amount']) && isset($data['duration']) && $data['duration'] > 0) {
+                $data['installment_amount'] = $data['amount'] / $data['duration'];
+            }
+
+            $empLoan->update($data);
+
+            \DB::commit();
+
+            return redirect()->route('emp-loans.index', ['emp_id' => $empLoan->emp_id])
+                ->with('success', 'Loan updated successfully.');
+        } catch (\Exception $e) {
+            \DB::rollBack();
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['error' => 'Failed to update loan: ' . $e->getMessage()]);
+        }
     }
 
     public function destroy(EmpLoan $empLoan)

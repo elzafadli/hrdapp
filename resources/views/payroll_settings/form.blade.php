@@ -48,6 +48,8 @@
                                         <th class="px-4 py-3">Component *</th>
                                         <th class="px-4 py-3">Base Amount</th>
                                         <th class="px-4 py-3">Value (%)</th>
+                                        <th class="px-4 py-3 text-center">Is THR</th>
+                                        <th class="px-4 py-3 text-center">Is Variable</th>
                                         <th class="px-4 py-3">Order</th>
                                     </tr>
                                 </thead>
@@ -122,6 +124,12 @@
                     <x-text-input name="details[__INDEX__][value]" type="number" step="0.01" class="w-full"
                         placeholder="%" />
                 </td>
+                <td class="px-4 py-2 text-center">
+                    <input type="checkbox" name="details[__INDEX__][is_thr]" value="1" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
+                </td>
+                <td class="px-4 py-2 text-center">
+                    <input type="checkbox" name="details[__INDEX__][is_variable]" value="1" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500">
+                </td>
                 <td class="px-4 py-2">
                     <x-text-input name="details[__INDEX__][urutan]" type="number" class="w-full" />
                 </td>
@@ -164,10 +172,14 @@
                     const componentSelect = tr.querySelector(`[name="details[${idx}][payroll_component_id]"]`);
                     const baseAmountInput = tr.querySelector(`[name="details[${idx}][base_amount]"]`);
                     const valueInput = tr.querySelector(`[name="details[${idx}][value]"]`);
+                    const isThrCheckbox = tr.querySelector(`[name="details[${idx}][is_thr]"]`);
+                    const isVariableCheckbox = tr.querySelector(`[name="details[${idx}][is_variable]"]`);
                     const urutanInput = tr.querySelector(`[name="details[${idx}][urutan]"]`);
 
                     if (data.payroll_component_id) componentSelect.value = data.payroll_component_id;
                     if (baseAmountInput) baseAmountInput.value = data.base_amount || '';
+                    if (isThrCheckbox) isThrCheckbox.checked = data.is_thr || false;
+                    if (isVariableCheckbox) isVariableCheckbox.checked = data.is_variable || false;
 
                     detailsBody.appendChild(tr);
 

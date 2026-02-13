@@ -48,6 +48,8 @@ class PayrollSettingController extends Controller
             'details.*.payroll_component_id' => 'required|exists:payroll_components,id',
             'details.*.base_amount' => 'nullable|numeric',
             'details.*.value' => 'nullable|numeric',
+            'details.*.is_thr' => 'boolean',
+            'details.*.is_variable' => 'boolean',
             'details.*.urutan' => 'integer',
         ]);
 
@@ -84,6 +86,8 @@ class PayrollSettingController extends Controller
             'details.*.payroll_component_id' => 'required|exists:payroll_components,id',
             'details.*.base_amount' => 'nullable|numeric',
             'details.*.value' => 'nullable|numeric',
+            'details.*.is_thr' => 'boolean',
+            'details.*.is_variable' => 'boolean',
             'details.*.urutan' => 'integer',
         ]);
 

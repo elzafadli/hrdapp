@@ -11,7 +11,7 @@ class EmpData extends Model
     use HasFactory;
 
     protected $table = 'emp_data';
-    protected $fillable = ['name', 'jabatan_id', 'status_ptkp'];
+    protected $fillable = ['name', 'jabatan_id', 'status_ptkp', 'project_id'];
 
     /**
      * Get the jabatan that owns the EmpData.
@@ -19,6 +19,22 @@ class EmpData extends Model
     public function jabatan(): BelongsTo
     {
         return $this->belongsTo(EmpJabatan::class, 'jabatan_id');
+    }
+
+    /**
+     * Get the project that owns the EmpData.
+     */
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class, 'project_id');
+    }
+
+    /**
+     * Get the company through project.
+     */
+    public function company()
+    {
+        return $this->hasOneThrough(Company::class, Project::class, 'id', 'id', 'project_id', 'company_id');
     }
 
     public function allowances()

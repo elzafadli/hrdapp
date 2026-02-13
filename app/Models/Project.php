@@ -4,36 +4,33 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class EmpLoan extends Model
+class Project extends Model
 {
     use HasFactory;
 
-    protected $table = 'emp_loans';
+    protected $table = 'projects';
 
     protected $fillable = [
-        'emp_id',
-        'amount',
-        'installment_amount',
-        'duration',
-        'loan_date',
+        'company_id',
+        'name',
+        'vendor',
+        'no_project',
         'start_date',
         'end_date',
+        'amount',
         'description',
         'status',
     ];
 
     protected $casts = [
-        'loan_date' => 'date',
         'start_date' => 'date',
         'end_date' => 'date',
         'amount' => 'decimal:2',
-        'installment_amount' => 'decimal:2',
     ];
 
-    public function employee(): BelongsTo
+    public function company()
     {
-        return $this->belongsTo(EmpData::class, 'emp_id');
+        return $this->belongsTo(Company::class);
     }
 }

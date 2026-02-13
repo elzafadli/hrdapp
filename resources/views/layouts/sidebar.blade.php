@@ -20,11 +20,11 @@
             </li>
 
             <li
-                x-data="{ open: {{ request()->routeIs('employee.*') || request()->routeIs('emp-allowance.*') || request()->routeIs('emp-loans.*') || request()->routeIs('emp-bpjs.*') ? 'true' : 'false' }} }">
+                x-data="{ open: {{ request()->routeIs('employee.*') || request()->routeIs('emp-allowance.*') || request()->routeIs('emp-loans.*') || request()->routeIs('emp-bpjs.*') || request()->routeIs('potongan-karyawan.*') ? 'true' : 'false' }} }">
                 <button type="button" @click="open = !open"
-                    class="flex items-center w-full p-2 rounded-lg group transition duration-75 {{ request()->routeIs('employee.*') || request()->routeIs('emp-allowance.*') || request()->routeIs('emp-loans.*') || request()->routeIs('emp-bpjs.*') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white' }}">
+                    class="flex items-center w-full p-2 rounded-lg group transition duration-75 {{ request()->routeIs('employee.*') || request()->routeIs('emp-allowance.*') || request()->routeIs('emp-loans.*') || request()->routeIs('emp-bpjs.*') || request()->routeIs('potongan-karyawan.*') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white' }}">
                     <i
-                        class="fa-solid fa-users w-5 h-4 transition duration-75 {{ request()->routeIs('employee.*') || request()->routeIs('emp-allowance.*') || request()->routeIs('emp-loans.*') || request()->routeIs('emp-bpjs.*') ? 'text-white' : 'text-gray-400 group-hover:text-white' }}"></i>
+                        class="fa-solid fa-users w-5 h-4 transition duration-75 {{ request()->routeIs('employee.*') || request()->routeIs('emp-allowance.*') || request()->routeIs('emp-loans.*') || request()->routeIs('emp-bpjs.*') || request()->routeIs('potongan-karyawan.*') ? 'text-white' : 'text-gray-400 group-hover:text-white' }}"></i>
                     <span class="flex-1 ms-3 text-left whitespace-nowrap">Employees</span>
                     <i class="fa-solid fa-chevron-down w-3 h-3 transition duration-75"
                         :class="{ 'rotate-180': open }"></i>
@@ -32,7 +32,7 @@
                 <ul x-show="open" x-collapse class="py-2 space-y-2">
                     <li>
                         <a href="{{ route('employee.index') }}"
-                            class="flex items-center w-full p-2 transition duration-75 rounded-lg pl-10 group {{ request()->routeIs('employee.*') && !request()->routeIs('emp-allowance.*') && !request()->routeIs('emp-loans.*') && !request()->routeIs('emp-bpjs.*') ? 'text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800' }}">
+                            class="flex items-center w-full p-2 transition duration-75 rounded-lg pl-10 group {{ request()->routeIs('employee.*') && !request()->routeIs('emp-allowance.*') && !request()->routeIs('emp-loans.*') && !request()->routeIs('emp-bpjs.*') && !request()->routeIs('potongan-karyawan.*') ? 'text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800' }}">
                             Data Karyawan
                         </a>
                     </li>
@@ -49,11 +49,17 @@
                         </a>
                     </li>
                     <li>
+                        <a href="{{ route('potongan-karyawan.index') }}"
+                            class="flex items-center w-full p-2 transition duration-75 rounded-lg pl-10 group {{ request()->routeIs('potongan-karyawan.*') ? 'text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800' }}">
+                            Potongan Karyawan
+                        </a>
+                    </li>
+                    <!-- <li>
                         <a href="{{ route('emp-bpjs.index') }}"
                             class="flex items-center w-full p-2 transition duration-75 rounded-lg pl-10 group {{ request()->routeIs('emp-bpjs.*') ? 'text-white' : 'text-gray-400 hover:text-white hover:bg-gray-800' }}">
                             BPJS Karyawan
                         </a>
-                    </li>
+                    </li> -->
                 </ul>
             </li>
 
@@ -93,16 +99,19 @@
             <li class="pt-4 pb-2">
                 <span class="px-2 text-xs font-semibold text-gray-500 uppercase">Payroll</span>
             </li>
-
-
-
-
-
+            <li>
+                <a href="{{ route('payroll-results.create') }}"
+                    class="flex items-center p-2 rounded-lg group {{ request()->routeIs('payroll-results.create') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white' }}">
+                    <i
+                        class="fa-solid fa-calculator w-5 h-4 transition duration-75 {{ request()->routeIs('payroll-results.create') ? 'text-white' : 'text-gray-400 group-hover:text-white' }}"></i>
+                    <span class="ms-3">Payroll Process</span>
+                </a>
+            </li>
             <li>
                 <a href="{{ route('payroll-results.index') }}"
-                    class="flex items-center p-2 rounded-lg group {{ request()->routeIs('payroll-results.*') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white' }}">
+                    class="flex items-center p-2 rounded-lg group {{ request()->routeIs('payroll-results.index') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white' }}">
                     <i
-                        class="fa-solid fa-file-invoice-dollar w-5 h-4 transition duration-75 {{ request()->routeIs('payroll-results.*') ? 'text-white' : 'text-gray-400 group-hover:text-white' }}"></i>
+                        class="fa-solid fa-file-invoice-dollar w-5 h-4 transition duration-75 {{ request()->routeIs('payroll-results.index') ? 'text-white' : 'text-gray-400 group-hover:text-white' }}"></i>
                     <span class="ms-3">Payroll Results</span>
                 </a>
             </li>

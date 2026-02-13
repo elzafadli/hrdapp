@@ -28,7 +28,7 @@
                         </div>
                     @endif
 
-                    <x-data-table id="emp-loan-table" :headers="['No', 'Employee', 'Amount', 'Loan Date', 'Status', 'Action']" />
+                    <x-data-table id="emp-loan-table" :headers="['No', 'Employee', 'Amount', 'Cicilan Per Bulan', 'Start Date', 'End Date', 'Status', 'Action']" />
                 </div>
             </div>
         </div>
@@ -45,7 +45,9 @@
                         { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
                         { data: 'employee_name', name: 'employee.name' },
                         { data: 'formatted_amount', name: 'amount' },
-                        { data: 'loan_date', name: 'loan_date' },
+                        { data: 'formatted_installment', name: 'installment_amount' },
+                        { data: 'start_date', name: 'start_date' },
+                        { data: 'end_date', name: 'end_date' },
                         { data: 'status', name: 'status' },
                         { data: 'action', name: 'action', orderable: false, searchable: false },
                     ],

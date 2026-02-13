@@ -23,7 +23,7 @@
                         </div>
                     @endif
 
-                    <x-data-table id="emp-data-table" :headers="['No', 'Name', 'Jabatan', 'Status PTKP', 'Action']" />
+                    <x-data-table id="emp-data-table" :headers="['No', 'Name', 'Jabatan', 'Project', 'Status PTKP', 'Action']" />
                 </div>
             </div>
         </div>
@@ -42,6 +42,7 @@
                         { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
                         { data: 'name', name: 'name' },
                         { data: 'jabatan_name', name: 'jabatan.jabatan' },
+                        { data: 'project_name', name: 'project.name', orderable: true, searchable: true },
                         {
                             data: 'status_ptkp',
                             name: 'status_ptkp',
