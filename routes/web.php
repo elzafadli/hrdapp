@@ -28,6 +28,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/payroll-results/process', [\App\Http\Controllers\PayrollResultController::class, 'process'])->name('payroll-results.process');
     Route::get('/payroll-results/{emp_id}/{month}/{year}/slip', [\App\Http\Controllers\PayrollResultController::class, 'slip'])->name('payroll-results.slip');
     Route::get('/payroll-results/export', [\App\Http\Controllers\PayrollResultController::class, 'export'])->name('payroll-results.export');
+    Route::get('/payroll-results-deductions', [\App\Http\Controllers\PayrollResultController::class, 'deductions'])->name('payroll-results.deductions');
+    Route::get('/payroll-results-deductions/export', [\App\Http\Controllers\PayrollResultController::class, 'exportDeductions'])->name('payroll-results.export-deductions');
 
     Route::resource('emp-bpjs', \App\Http\Controllers\EmpBpjsController::class)
         ->only(['index', 'edit', 'update'])

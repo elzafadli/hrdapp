@@ -115,6 +115,14 @@
                     <span class="ms-3">Payroll Results</span>
                 </a>
             </li>
+            <li>
+                <a href="{{ route('payroll-results.deductions') }}"
+                    class="flex items-center p-2 rounded-lg group {{ request()->routeIs('payroll-results.deductions') ? 'bg-gray-800 text-white' : 'text-gray-400 hover:bg-gray-800 hover:text-white' }}">
+                    <i
+                        class="fa-solid fa-receipt w-5 h-4 transition duration-75 {{ request()->routeIs('payroll-results.deductions') ? 'text-white' : 'text-gray-400 group-hover:text-white' }}"></i>
+                    <span class="ms-3">Payroll BPJS</span>
+                </a>
+            </li>
         </ul>
     </div>
 </aside>

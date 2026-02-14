@@ -130,6 +130,12 @@
             </div>
 
             <!-- Payroll Results Table -->
+            @php
+                // Split payroll columns by type
+                $allowanceColumns = $payrollColumns->whereIn('type', ['allowance', 'thr']);
+                $deductionColumns = $payrollColumns->where('type', 'deduction');
+            @endphp
+
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900">
                     <div class="overflow-x-auto max-h-[600px] overflow-y-auto">
@@ -144,18 +150,38 @@
                                         class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Employee
                                     </th>
-                                    @foreach($payrollColumns as $column)
+                                    @foreach($allowanceColumns as $column)
                                         <th scope="col"
-                                            class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             {{ $column->name }}
                                         </th>
                                     @endforeach
+                                    <th scope="col"
+                                        class="px-6 py-3 text-right text-xs font-medium text-green-700 uppercase tracking-wider bg-green-50">
+                                        Total Gaji
+                                    </th>
+                                    @foreach($deductionColumns as $column)
+                                        <th scope="col"
+                                            class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            {{ $column->name }}
+                                        </th>
+                                    @endforeach
+                                    <th scope="col"
+                                        class="px-6 py-3 text-right text-xs font-medium text-red-700 uppercase tracking-wider bg-red-50">
+                                        Total Potongan
+                                    </th>
+                                    <th scope="col"
+                                        class="px-6 py-3 text-right text-xs font-medium text-blue-700 uppercase tracking-wider bg-blue-50">
+                                        Take Home Pay
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 @forelse ($groupedResults as $empId => $empResults)
                                     @php
                                         $employee = $empResults->first()->employee;
+                                        $totalGaji = 0;
+                                        $totalPotongan = 0;
                                     @endphp
                                     <tr>
                                         <td class="px-6 py-4 whitespace-nowrap">
@@ -168,24 +194,99 @@
                                         <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
                                             {{ $employee->name ?? 'N/A' }}
                                         </td>
-                                        @foreach($payrollColumns as $column)
+                                        @foreach($allowanceColumns as $column)
                                             @php
                                                 $result = $empResults->firstWhere('payroll_component_id', $column->id);
+                                                $amount = $result ? $result->amount : 0;
+                                                $totalGaji += $amount;
                                             @endphp
-                                            <td class="px-6 py-4 whitespace-nowrap">
+                                            <td class="px-6 py-4 whitespace-nowrap text-right">
                                                 {{ $result ? number_format($result->amount, 2) : '-' }}
                                             </td>
                                         @endforeach
+                                        <td class="px-6 py-4 whitespace-nowrap text-right font-semibold text-green-700 bg-green-50">
+                                            {{ number_format($totalGaji, 2) }}
+                                        </td>
+                                        @foreach($deductionColumns as $column)
+                                            @php
+                                                $result = $empResults->firstWhere('payroll_component_id', $column->id);
+                                                $amount = $result ? $result->amount : 0;
+                                                $totalPotongan += $amount;
+                                            @endphp
+                                            <td class="px-6 py-4 whitespace-nowrap text-right">
+                                                {{ $result ? number_format($result->amount, 2) : '-' }}
+                                            </td>
+                                        @endforeach
+                                        <td class="px-6 py-4 whitespace-nowrap text-right font-semibold text-red-700 bg-red-50">
+                                            {{ number_format($totalPotongan, 2) }}
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-right font-semibold text-blue-700 bg-blue-50">
+                                            {{ number_format($totalGaji - $totalPotongan, 2) }}
+                                        </td>
                                     </tr>
                                 @empty
                                     <tr>
                                         <td class="px-6 py-4 whitespace-nowrap text-center"
-                                            colspan="{{ $payrollColumns->count() + 2 }}">
+                                            colspan="{{ 2 + $allowanceColumns->count() + $deductionColumns->count() + 3 }}">
                                             No data available for selected month and year
                                         </td>
                                     </tr>
                                 @endforelse
                             </tbody>
+                            <tfoot class="bg-gray-100 font-semibold">
+                                @php
+                                    // Calculate totals for each column type
+                                    $allowanceTotals = [];
+                                    $deductionTotals = [];
+                                    $grandTotalGaji = 0;
+                                    $grandTotalPotongan = 0;
+
+                                    foreach($allowanceColumns as $column) {
+                                        $allowanceTotals[$column->id] = 0;
+                                    }
+                                    foreach($deductionColumns as $column) {
+                                        $deductionTotals[$column->id] = 0;
+                                    }
+
+                                    // Calculate totals from all employee results
+                                    foreach($groupedResults as $empResults) {
+                                        foreach($empResults as $result) {
+                                            if(isset($allowanceTotals[$result->payroll_component_id])) {
+                                                $allowanceTotals[$result->payroll_component_id] += $result->amount;
+                                                $grandTotalGaji += $result->amount;
+                                            }
+                                            if(isset($deductionTotals[$result->payroll_component_id])) {
+                                                $deductionTotals[$result->payroll_component_id] += $result->amount;
+                                                $grandTotalPotongan += $result->amount;
+                                            }
+                                        }
+                                    }
+                                @endphp
+                                <tr class="border-t-2 border-gray-300">
+                                    <td colspan="2" class="px-6 py-4 whitespace-nowrap text-gray-900">
+                                        Total
+                                    </td>
+                                    @foreach($allowanceColumns as $column)
+                                        <td class="px-6 py-4 whitespace-nowrap text-right text-gray-900">
+                                            {{ number_format($allowanceTotals[$column->id], 2) }}
+                                        </td>
+                                    @endforeach
+                                    <td class="px-6 py-4 whitespace-nowrap text-right font-bold text-green-700 bg-green-100">
+                                        {{ number_format($grandTotalGaji, 2) }}
+                                    </td>
+                                    @foreach($deductionColumns as $column)
+                                        <td class="px-6 py-4 whitespace-nowrap text-right text-gray-900">
+                                            {{ number_format($deductionTotals[$column->id], 2) }}
+                                        </td>
+                                    @endforeach
+                                    <td class="px-6 py-4 whitespace-nowrap text-right font-bold text-red-700 bg-red-100">
+                                        {{ number_format($grandTotalPotongan, 2) }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-right font-bold text-blue-700 bg-blue-100">
+                                        {{ number_format($grandTotalGaji - $grandTotalPotongan, 2) }}
+                                    </td>
+                                </tr>
+                            </tfoot>
                         </table>
                     </div>
                 </div>

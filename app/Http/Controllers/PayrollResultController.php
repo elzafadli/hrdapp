@@ -35,6 +35,17 @@ class PayrollResultController extends Controller
         $payrollColumns = collect();
         if ($groupedResults->isNotEmpty()) {
             $payrollColumns = $groupedResults->first()->map(fn($d) => $d->payrollComponent);
+
+            // Filter columns: keep all allowances, keep THR only if has non-zero values
+            $payrollColumns = $payrollColumns->filter(function ($column) use ($results) {
+                if ($column->type !== 'thr') {
+                    return true; // Keep all non-THR columns (allowances shown even if 0)
+                }
+                // For THR columns, check if there's any non-zero value
+                return $results->contains(function ($result) use ($column) {
+                    return $result->payroll_component_id == $column->id && $result->amount > 0;
+                });
+            });
         }
 
         return view('payroll_results.index', compact('results', 'month', 'year', 'payrollColumns', 'groupedResults'));
@@ -55,6 +66,17 @@ class PayrollResultController extends Controller
         $payrollColumns = collect();
         if ($groupedResults->isNotEmpty()) {
             $payrollColumns = $groupedResults->first()->map(fn($d) => $d->payrollComponent);
+
+            // Filter columns: keep all allowances, keep THR only if has non-zero values
+            $payrollColumns = $payrollColumns->filter(function ($column) use ($results) {
+                if ($column->type !== 'thr') {
+                    return true; // Keep all non-THR columns (allowances shown even if 0)
+                }
+                // For THR columns, check if there's any non-zero value
+                return $results->contains(function ($result) use ($column) {
+                    return $result->payroll_component_id == $column->id && $result->amount > 0;
+                });
+            });
         }
 
         return view('payroll_results.process', compact('month', 'year', 'payrollColumns', 'groupedResults'));
@@ -161,7 +183,7 @@ class PayrollResultController extends Controller
                             'payroll_setting_id' => $setting->id,
                             'payroll_component_id' => $detail->payroll_component_id,
                             'amount' => $totalThr,
-                            'type' => 'allowance',
+                            'type' => 'thr',
                             'created_at' => now(),
                             'updated_at' => now(),
                         ];
@@ -177,20 +199,9 @@ class PayrollResultController extends Controller
                 $subsidiBpjsResults = [];
                 foreach ($setting->details as $detail) {
                     if ($detail->component->type == 'subsidi') {
-                        $empBpjs = EmpBpjs::where('employee_id', $employee->id)
-                            ->where('payroll_component_id', $detail->payroll_component_id)
-                            ->first();
 
-                        $amount = 0;
-
-                        if (!empty($empBpjs->value)) {
-                            if ($totalAllowance > $detail->base_amount) {
-                                $amount = $totalAllowance * (($detail->value / 100) ?? 0);
-                            } else {
-                                $amount = $detail->base_amount * (($detail->value / 100) ?? 0);
-                            }
-                        }
-
+                        $amount = $detail->base_amount * (($detail->value / 100) ?? 0);
+                        
                         $totalSubsidiBpjs += $amount;
                         $subsidiBpjsResults[] = [
                             'month' => $month,
@@ -392,12 +403,16 @@ class PayrollResultController extends Controller
         }
 
         // Group by type for the view
-        $allowances = $results->where('type', 'allowance');
-        $subsidies = $results->where('type', 'subsidi');
-        // Assuming BPJS can be grouped or handled separately if needed, but for now let's see.
-        // The process method uses 'bpjs' as type too.
-        $bpjs = collect(); // Empty collection if needed elsewhere, but moving to deductions
-        $deductions = $results->whereIn('type', ['deduction']);
+        $allowances = $results->filter(fn($r) =>
+            $r->payrollComponent &&
+            (
+                $r->payrollComponent->type === 'allowance' ||
+                ($r->payrollComponent->type === 'thr' && $r->amount > 0)
+            )
+        );
+        $subsidies = collect(); // Remove subsidi from payslip
+        $bpjs = collect(); // Move BPJS to deductions
+        $deductions = $results->filter(fn($r) => $r->payrollComponent && in_array($r->payrollComponent->type, ['deduction', 'bpjs']));
 
         return view('payroll_results.slip', compact('employee', 'month', 'year', 'results', 'allowances', 'subsidies', 'bpjs', 'deductions'));
     }
@@ -420,14 +435,22 @@ class PayrollResultController extends Controller
 
         $payrollColumns = $groupedResults->first()->map(fn($d) => $d->payrollComponent);
 
+        // Split columns by type
+        $allowanceColumns = $payrollColumns->whereIn('type', ['allowance', 'thr']);
+        $deductionColumns = $payrollColumns->whereIn('type', ['deduction', 'bpjs']);
+
+        // Calculate total columns: 4 (No,Company,Project,Employee) + allowances + 1 (TotalGaji) + deductions + 2 (TotalPotongan + TakeHomePay)
+        $totalColumns = 4 + $allowanceColumns->count() + 1 + $deductionColumns->count() + 2;
+
         // Create new Spreadsheet
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
 
         // Set document title
         $monthName = \DateTime::createFromFormat('!m', $month)->format('F');
+        $lastColumnLetter = $this->getColumnLetter($totalColumns);
         $sheet->setCellValue('A1', "Payroll Results - {$monthName} {$year}");
-        $sheet->mergeCells('A1:' . $this->getColumnLetter($payrollColumns->count() + 3) . '1');
+        $sheet->mergeCells('A1:' . $lastColumnLetter . '1');
         $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
         $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
@@ -436,20 +459,55 @@ class PayrollResultController extends Controller
         $sheet->setCellValue('B3', 'Company');
         $sheet->setCellValue('C3', 'Project');
         $sheet->setCellValue('D3', 'Employee Name');
+
         $column = 'E';
-        foreach ($payrollColumns as $col) {
+        // Allowance columns
+        foreach ($allowanceColumns as $col) {
             $sheet->setCellValue($column . '3', $col->name);
             $column++;
         }
+        // Total Gaji column
+        $totalGajiCol = $column;
+        $sheet->setCellValue($column . '3', 'Total Gaji');
+        $column++;
+
+        // Deduction columns
+        foreach ($deductionColumns as $col) {
+            $sheet->setCellValue($column . '3', $col->name);
+            $column++;
+        }
+        // Total Potongan column
+        $totalPotonganCol = $column;
+        $sheet->setCellValue($column . '3', 'Total Potongan');
+        $column++;
+        // Take Home Pay column
+        $takeHomePayCol = $column;
+        $sheet->setCellValue($column . '3', 'Take Home Pay');
 
         // Style header row
-        $lastColumn = $this->getColumnLetter($payrollColumns->count() + 4);
-        $sheet->getStyle('A3:' . $lastColumn . '3')->getFont()->setBold(true);
-        $sheet->getStyle('A3:' . $lastColumn . '3')->getFill()
+        $sheet->getStyle('A3:' . $lastColumnLetter . '3')->getFont()->setBold(true);
+        $sheet->getStyle('A3:' . $lastColumnLetter . '3')->getFill()
             ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
             ->getStartColor()->setRGB('E2EFDA');
-        $sheet->getStyle('A3:' . $lastColumn . '3')->getBorders()->getAllBorders()
+        $sheet->getStyle('A3:' . $lastColumnLetter . '3')->getBorders()->getAllBorders()
             ->setBorderStyle(Border::BORDER_THIN);
+
+        // Apply right alignment to numeric columns (from E onwards)
+        $sheet->getStyle('E3:' . $lastColumnLetter . '3')->getAlignment()
+            ->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+
+        // Calculate totals for footer
+        $grandTotalGaji = 0;
+        $grandTotalPotongan = 0;
+        $allowanceTotals = [];
+        $deductionTotals = [];
+
+        foreach ($allowanceColumns as $col) {
+            $allowanceTotals[$col->id] = 0;
+        }
+        foreach ($deductionColumns as $col) {
+            $deductionTotals[$col->id] = 0;
+        }
 
         // Fill data
         $row = 4;
@@ -462,25 +520,158 @@ class PayrollResultController extends Controller
             $sheet->setCellValue('C' . $row, $employee->project->name ?? 'N/A');
             $sheet->setCellValue('D' . $row, $employee->name ?? 'N/A');
 
+            $totalGaji = 0;
+            $totalPotongan = 0;
+
+            // Fill allowance columns
             $column = 'E';
-            foreach ($payrollColumns as $col) {
+            foreach ($allowanceColumns as $col) {
                 $result = $empResults->firstWhere('payroll_component_id', $col->id);
-                $sheet->setCellValue($column . $row, $result ? $result->amount : 0);
+                $amount = $result ? $result->amount : 0;
+                $sheet->setCellValue($column . $row, $amount);
                 $sheet->getStyle($column . $row)->getNumberFormat()
                     ->setFormatCode('#,##0.00');
+                $sheet->getStyle($column . $row)->getAlignment()
+                    ->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+
+                $totalGaji += $amount;
+                $allowanceTotals[$col->id] += $amount;
                 $column++;
             }
 
+            // Total Gaji
+            $sheet->setCellValue($column . $row, $totalGaji);
+            $sheet->getStyle($column . $row)->getNumberFormat()
+                ->setFormatCode('#,##0.00');
+            $sheet->getStyle($column . $row)->getAlignment()
+                ->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+            $sheet->getStyle($column . $row)->getFont()->setBold(true);
+            $sheet->getStyle($column . $row)->getFill()
+                ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                ->getStartColor()->setRGB('E2EFDA');
+            $column++;
+
+            // Fill deduction columns
+            foreach ($deductionColumns as $col) {
+                $result = $empResults->firstWhere('payroll_component_id', $col->id);
+                $amount = $result ? $result->amount : 0;
+                $sheet->setCellValue($column . $row, $amount);
+                $sheet->getStyle($column . $row)->getNumberFormat()
+                    ->setFormatCode('#,##0.00');
+                $sheet->getStyle($column . $row)->getAlignment()
+                    ->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+
+                $totalPotongan += $amount;
+                $deductionTotals[$col->id] += $amount;
+                $column++;
+            }
+
+            // Total Potongan
+            $sheet->setCellValue($column . $row, $totalPotongan);
+            $sheet->getStyle($column . $row)->getNumberFormat()
+                ->setFormatCode('#,##0.00');
+            $sheet->getStyle($column . $row)->getAlignment()
+                ->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+            $sheet->getStyle($column . $row)->getFont()->setBold(true);
+            $sheet->getStyle($column . $row)->getFill()
+                ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                ->getStartColor()->setRGB('FCE4D6');
+            $column++;
+
+            // Take Home Pay
+            $takeHomePay = $totalGaji - $totalPotongan;
+            $sheet->setCellValue($column . $row, $takeHomePay);
+            $sheet->getStyle($column . $row)->getNumberFormat()
+                ->setFormatCode('#,##0.00');
+            $sheet->getStyle($column . $row)->getAlignment()
+                ->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+            $sheet->getStyle($column . $row)->getFont()->setBold(true);
+            $sheet->getStyle($column . $row)->getFill()
+                ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                ->getStartColor()->setRGB('D9E1F2');
+
             // Style data row
-            $sheet->getStyle('A' . $row . ':' . $lastColumn . $row)->getBorders()
+            $sheet->getStyle('A' . $row . ':' . $lastColumnLetter . $row)->getBorders()
                 ->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+
+            $grandTotalGaji += $totalGaji;
+            $grandTotalPotongan += $totalPotongan;
 
             $row++;
             $no++;
         }
 
+        // Add totals row
+        $sheet->setCellValue('A' . $row, 'Total');
+        $sheet->mergeCells('A' . $row . ':D' . $row);
+        $sheet->getStyle('A' . $row . ':D' . $row)->getAlignment()
+            ->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('A' . $row)->getFont()->setBold(true);
+
+        $column = 'E';
+        // Fill allowance totals
+        foreach ($allowanceColumns as $col) {
+            $sheet->setCellValue($column . $row, $allowanceTotals[$col->id]);
+            $sheet->getStyle($column . $row)->getNumberFormat()
+                ->setFormatCode('#,##0.00');
+            $sheet->getStyle($column . $row)->getAlignment()
+                ->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+            $sheet->getStyle($column . $row)->getFont()->setBold(true);
+            $column++;
+        }
+
+        // Grand Total Gaji
+        $sheet->setCellValue($column . $row, $grandTotalGaji);
+        $sheet->getStyle($column . $row)->getNumberFormat()
+            ->setFormatCode('#,##0.00');
+        $sheet->getStyle($column . $row)->getAlignment()
+            ->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+        $sheet->getStyle($column . $row)->getFont()->setBold(true);
+        $sheet->getStyle($column . $row)->getFill()
+            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+            ->getStartColor()->setRGB('E2EFDA');
+        $column++;
+
+        // Fill deduction totals
+        foreach ($deductionColumns as $col) {
+            $sheet->setCellValue($column . $row, $deductionTotals[$col->id]);
+            $sheet->getStyle($column . $row)->getNumberFormat()
+                ->setFormatCode('#,##0.00');
+            $sheet->getStyle($column . $row)->getAlignment()
+                ->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+            $sheet->getStyle($column . $row)->getFont()->setBold(true);
+            $column++;
+        }
+
+        // Grand Total Potongan
+        $sheet->setCellValue($column . $row, $grandTotalPotongan);
+        $sheet->getStyle($column . $row)->getNumberFormat()
+            ->setFormatCode('#,##0.00');
+        $sheet->getStyle($column . $row)->getAlignment()
+            ->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+        $sheet->getStyle($column . $row)->getFont()->setBold(true);
+        $sheet->getStyle($column . $row)->getFill()
+            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+            ->getStartColor()->setRGB('FCE4D6');
+        $column++;
+
+        // Grand Take Home Pay
+        $sheet->setCellValue($column . $row, $grandTotalGaji - $grandTotalPotongan);
+        $sheet->getStyle($column . $row)->getNumberFormat()
+            ->setFormatCode('#,##0.00');
+        $sheet->getStyle($column . $row)->getAlignment()
+            ->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+        $sheet->getStyle($column . $row)->getFont()->setBold(true);
+        $sheet->getStyle($column . $row)->getFill()
+            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+            ->getStartColor()->setRGB('D9E1F2');
+
+        // Style totals row
+        $sheet->getStyle('A' . $row . ':' . $lastColumnLetter . $row)->getBorders()
+            ->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+
         // Auto size columns
-        foreach (range('A', $lastColumn) as $col) {
+        foreach (range('A', $lastColumnLetter) as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 
@@ -488,6 +679,280 @@ class PayrollResultController extends Controller
         $filename = "payroll_results_{$month}_{$year}.xlsx";
 
         // Stream the file
+        return new StreamedResponse(
+            function () use ($spreadsheet) {
+                $writer = new Xlsx($spreadsheet);
+                $writer->save('php://output');
+            },
+            200,
+            [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'Content-Disposition' => 'attachment;filename="' . $filename . '"',
+                'Cache-Control' => 'max-age=0',
+            ]
+        );
+    }
+
+    public function deductions(Request $request)
+    {
+        $month = $request->input('month', now()->month);
+        $year = $request->input('year', now()->year);
+
+        $results = PayrollResult::with(['employee.project.company', 'payrollComponent', 'payrollSetting'])
+            ->where('month', $month)
+            ->where('year', $year)
+            ->whereHas('payrollComponent', fn($q) => $q->whereIn('type', ['subsidi', 'bpjs']))
+            ->get();
+        $groupedResults = $results->groupBy('emp_id');
+
+        $payrollColumns = collect();
+        if ($groupedResults->isNotEmpty()) {
+            $payrollColumns = $groupedResults->first()->map(fn($d) => $d->payrollComponent);
+        }
+
+        return view('payroll_results.deductions', compact('results', 'month', 'year', 'payrollColumns', 'groupedResults'));
+    }
+
+    public function exportDeductions(Request $request)
+    {
+        $month = $request->input('month', now()->month);
+        $year = $request->input('year', now()->year);
+
+        $results = PayrollResult::with(['employee.project.company', 'payrollComponent', 'payrollSetting'])
+            ->where('month', $month)
+            ->where('year', $year)
+            ->whereHas('payrollComponent', fn($q) => $q->whereIn('type', ['subsidi', 'bpjs']))
+            ->get();
+
+        $groupedResults = $results->groupBy('emp_id');
+
+        if ($groupedResults->isEmpty()) {
+            return redirect()->back()->with('error', 'No data to export.');
+        }
+
+        $payrollColumns = $groupedResults->first()->map(fn($d) => $d->payrollComponent);
+
+        // Split columns by type
+        $subsidiColumns = $payrollColumns->where('type', 'subsidi');
+        $bpjsColumns = $payrollColumns->where('type', 'bpjs');
+
+        // Calculate total columns
+        $totalColumns = 4 + $subsidiColumns->count() + ($subsidiColumns->isNotEmpty() ? 1 : 0) + $bpjsColumns->count() + 1;
+
+        // Create new Spreadsheet
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+
+        // Set document title
+        $monthName = \DateTime::createFromFormat('!m', $month)->format('F');
+        $lastColumnLetter = $this->getColumnLetter($totalColumns);
+        $sheet->setCellValue('A1', "Payroll BPJS - {$monthName} {$year}");
+        $sheet->mergeCells('A1:' . $lastColumnLetter . '1');
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+        $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+
+        // Set header row
+        $sheet->setCellValue('A3', 'No');
+        $sheet->setCellValue('B3', 'Company');
+        $sheet->setCellValue('C3', 'Project');
+        $sheet->setCellValue('D3', 'Employee Name');
+
+        $column = 'E';
+        // Subsidi columns
+        foreach ($subsidiColumns as $col) {
+            $sheet->setCellValue($column . '3', $col->name);
+            $column++;
+        }
+        // Total Subsidi column
+        if ($subsidiColumns->isNotEmpty()) {
+            $totalSubsidiCol = $column;
+            $sheet->setCellValue($column . '3', 'Total Subsidi');
+            $column++;
+        }
+
+        // BPJS columns
+        foreach ($bpjsColumns as $col) {
+            $sheet->setCellValue($column . '3', $col->name);
+            $column++;
+        }
+        // Total Potongan column
+        $totalPotonganCol = $column;
+        $sheet->setCellValue($column . '3', 'Total Potongan');
+
+        // Style header row
+        $sheet->getStyle('A3:' . $lastColumnLetter . '3')->getFont()->setBold(true);
+        $sheet->getStyle('A3:' . $lastColumnLetter . '3')->getFill()
+            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+            ->getStartColor()->setRGB('E2EFDA');
+        $sheet->getStyle('A3:' . $lastColumnLetter . '3')->getBorders()->getAllBorders()
+            ->setBorderStyle(Border::BORDER_THIN);
+
+        // Apply right alignment to numeric columns (from E onwards)
+        $sheet->getStyle('E3:' . $lastColumnLetter . '3')->getAlignment()
+            ->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+
+        // Calculate totals for footer
+        $grandTotalSubsidi = 0;
+        $grandTotalPotongan = 0;
+        $subsidiTotals = [];
+        $bpjsTotals = [];
+
+        foreach ($subsidiColumns as $col) {
+            $subsidiTotals[$col->id] = 0;
+        }
+        foreach ($bpjsColumns as $col) {
+            $bpjsTotals[$col->id] = 0;
+        }
+
+        // Fill data
+        $row = 4;
+        $no = 1;
+        foreach ($groupedResults as $empId => $empResults) {
+            $employee = $empResults->first()->employee;
+
+            $sheet->setCellValue('A' . $row, $no);
+            $sheet->setCellValue('B' . $row, $employee->project->company->code ?? 'N/A');
+            $sheet->setCellValue('C' . $row, $employee->project->name ?? 'N/A');
+            $sheet->setCellValue('D' . $row, $employee->name ?? 'N/A');
+
+            $totalSubsidi = 0;
+            $totalPotongan = 0;
+
+            // Fill subsidi columns
+            $column = 'E';
+            foreach ($subsidiColumns as $col) {
+                $result = $empResults->firstWhere('payroll_component_id', $col->id);
+                $amount = $result ? $result->amount : 0;
+                $sheet->setCellValue($column . $row, $amount);
+                $sheet->getStyle($column . $row)->getNumberFormat()
+                    ->setFormatCode('#,##0.00');
+                $sheet->getStyle($column . $row)->getAlignment()
+                    ->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+
+                $totalSubsidi += $amount;
+                $subsidiTotals[$col->id] += $amount;
+                $column++;
+            }
+
+            // Total Subsidi
+            if ($subsidiColumns->isNotEmpty()) {
+                $sheet->setCellValue($column . $row, $totalSubsidi);
+                $sheet->getStyle($column . $row)->getNumberFormat()
+                    ->setFormatCode('#,##0.00');
+                $sheet->getStyle($column . $row)->getAlignment()
+                    ->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+                $sheet->getStyle($column . $row)->getFont()->setBold(true);
+                $sheet->getStyle($column . $row)->getFill()
+                    ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                    ->getStartColor()->setRGB('FFF2CC');
+                $column++;
+            }
+
+            // Fill BPJS columns
+            foreach ($bpjsColumns as $col) {
+                $result = $empResults->firstWhere('payroll_component_id', $col->id);
+                $amount = $result ? $result->amount : 0;
+                $sheet->setCellValue($column . $row, $amount);
+                $sheet->getStyle($column . $row)->getNumberFormat()
+                    ->setFormatCode('#,##0.00');
+                $sheet->getStyle($column . $row)->getAlignment()
+                    ->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+
+                $totalPotongan += $amount;
+                $bpjsTotals[$col->id] += $amount;
+                $column++;
+            }
+
+            // Total Potongan
+            $sheet->setCellValue($column . $row, $totalPotongan);
+            $sheet->getStyle($column . $row)->getNumberFormat()
+                ->setFormatCode('#,##0.00');
+            $sheet->getStyle($column . $row)->getAlignment()
+                ->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+            $sheet->getStyle($column . $row)->getFont()->setBold(true);
+            $sheet->getStyle($column . $row)->getFill()
+                ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                ->getStartColor()->setRGB('FCE4D6');
+
+            // Style data row
+            $sheet->getStyle('A' . $row . ':' . $lastColumnLetter . $row)->getBorders()
+                ->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+
+            $grandTotalSubsidi += $totalSubsidi;
+            $grandTotalPotongan += $totalPotongan;
+
+            $row++;
+            $no++;
+        }
+
+        // Add totals row
+        $sheet->setCellValue('A' . $row, 'Total');
+        $sheet->mergeCells('A' . $row . ':D' . $row);
+        $sheet->getStyle('A' . $row . ':D' . $row)->getAlignment()
+            ->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle('A' . $row)->getFont()->setBold(true);
+
+        $column = 'E';
+        // Fill subsidi totals
+        foreach ($subsidiColumns as $col) {
+            $sheet->setCellValue($column . $row, $subsidiTotals[$col->id]);
+            $sheet->getStyle($column . $row)->getNumberFormat()
+                ->setFormatCode('#,##0.00');
+            $sheet->getStyle($column . $row)->getAlignment()
+                ->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+            $sheet->getStyle($column . $row)->getFont()->setBold(true);
+            $column++;
+        }
+
+        // Grand Total Subsidi
+        if ($subsidiColumns->isNotEmpty()) {
+            $sheet->setCellValue($column . $row, $grandTotalSubsidi);
+            $sheet->getStyle($column . $row)->getNumberFormat()
+                ->setFormatCode('#,##0.00');
+            $sheet->getStyle($column . $row)->getAlignment()
+                ->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+            $sheet->getStyle($column . $row)->getFont()->setBold(true);
+            $sheet->getStyle($column . $row)->getFill()
+                ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                ->getStartColor()->setRGB('FFF2CC');
+            $column++;
+        }
+
+        // Fill BPJS totals
+        foreach ($bpjsColumns as $col) {
+            $sheet->setCellValue($column . $row, $bpjsTotals[$col->id]);
+            $sheet->getStyle($column . $row)->getNumberFormat()
+                ->setFormatCode('#,##0.00');
+            $sheet->getStyle($column . $row)->getAlignment()
+                ->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+            $sheet->getStyle($column . $row)->getFont()->setBold(true);
+            $column++;
+        }
+
+        // Grand Total Potongan
+        $sheet->setCellValue($column . $row, $grandTotalPotongan);
+        $sheet->getStyle($column . $row)->getNumberFormat()
+            ->setFormatCode('#,##0.00');
+        $sheet->getStyle($column . $row)->getAlignment()
+            ->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+        $sheet->getStyle($column . $row)->getFont()->setBold(true);
+        $sheet->getStyle($column . $row)->getFill()
+            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+            ->getStartColor()->setRGB('FCE4D6');
+
+        // Style totals row
+        $sheet->getStyle('A' . $row . ':' . $lastColumnLetter . $row)->getBorders()
+            ->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+
+        // Auto size columns
+        foreach (range('A', $lastColumnLetter) as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        // Set filename
+        $filename = "payroll_deductions_{$month}_{$year}.xlsx";
+
+        // Stream file
         return new StreamedResponse(
             function () use ($spreadsheet) {
                 $writer = new Xlsx($spreadsheet);

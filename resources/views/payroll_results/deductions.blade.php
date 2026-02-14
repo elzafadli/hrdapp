@@ -2,12 +2,12 @@
     <x-slot name="header">
         <div class="flex justify-between items-center">
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                {{ __('Payroll Results') }}
+                {{ __('Payroll BPJS') }}
             </h2>
             <div class="flex gap-2">
-                <a href="{{ route('payroll-results.deductions') }}"
-                    class="bg-orange-500 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded">
-                    View BPJSs
+                <a href="{{ route('payroll-results.index') }}"
+                    class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
+                    Back to Full Results
                 </a>
                 <a href="{{ route('payroll-results.create') }}"
                     class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
@@ -22,7 +22,7 @@
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-6 text-gray-900">
                     <div class="mb-4 flex gap-4 items-end">
-                        <form method="GET" action="{{ route('payroll-results.index') }}" class="flex gap-4 items-end flex-1">
+                        <form method="GET" action="{{ route('payroll-results.deductions') }}" class="flex gap-4 items-end flex-1">
                             <div>
                                 <label for="month" class="block text-sm font-medium text-gray-700">Month</label>
                                 <select id="month" name="month"
@@ -44,7 +44,7 @@
                                 Filter
                             </button>
                         </form>
-                        <a href="{{ route('payroll-results.export', ['month' => $month, 'year' => $year]) }}"
+                        <a href="{{ route('payroll-results.export-deductions', ['month' => $month, 'year' => $year]) }}"
                             class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded flex items-center gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
@@ -54,115 +54,131 @@
                     </div>
 
                     @php
-                        // Split payroll columns by type
-                        $allowanceColumns = $payrollColumns->whereIn('type', ['allowance', 'thr']);
-                        $deductionColumns = $payrollColumns->whereIn('type', ['deduction', 'bpjs']);
+                        // Split payroll columns by type - subsidi and bpjs
+                        $subsidiColumns = $payrollColumns->where('type', 'subsidi');
+                        $bpjsColumns = $payrollColumns->where('type', 'bpjs');
                     @endphp
 
                     <div class="overflow-x-auto max-h-[600px] overflow-y-auto">
                         <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50 sticky top-0 z-10">
+                            <thead class="bg-gray-50 sticky top-0 z-10 text-xs">
                                 <tr>
                                     <th scope="col"
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Action
                                     </th>
                                     <th scope="col"
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Company
                                     </th>
                                     <th scope="col"
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Project
                                     </th>
                                     <th scope="col"
-                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Employee
                                     </th>
-                                    @foreach($allowanceColumns as $column)
+                                    @if($subsidiColumns->isNotEmpty())
                                         <th scope="col"
-                                            class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            colspan="{{ $subsidiColumns->count() + 1 }}"
+                                            class="px-2 py-2 text-center text-xs font-bold text-yellow-800 uppercase tracking-wider bg-yellow-100">
+                                            Dibayar Perusahaan
+                                        </th>
+                                    @endif
+                                    @if($bpjsColumns->isNotEmpty())
+                                        <th scope="col"
+                                            colspan="{{ $bpjsColumns->count() + 1 }}"
+                                            class="px-2 py-2 text-center text-xs font-bold text-red-800 uppercase tracking-wider bg-red-100">
+                                            Dibayar Karyawan
+                                        </th>
+                                    @endif
+                                </tr>
+                                <tr>
+                                    <th colspan="4"></th>
+                                    @foreach($subsidiColumns as $column)
+                                        <th scope="col"
+                                            class="px-2 py-2 text-right text-xs font-medium text-yellow-700 uppercase tracking-wider bg-yellow-50">
                                             {{ $column->name }}
                                         </th>
                                     @endforeach
-                                    <th scope="col"
-                                        class="px-6 py-3 text-right text-xs font-medium text-green-700 uppercase tracking-wider bg-green-50">
-                                        Total Gaji
-                                    </th>
-                                    @foreach($deductionColumns as $column)
+                                    @if($subsidiColumns->isNotEmpty())
                                         <th scope="col"
-                                            class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            class="px-2 py-2 text-right text-xs font-medium text-yellow-700 uppercase tracking-wider bg-yellow-100">
+                                            Total Subsidi
+                                        </th>
+                                    @endif
+                                    @foreach($bpjsColumns as $column)
+                                        <th scope="col"
+                                            class="px-2 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                                             {{ $column->name }}
                                         </th>
                                     @endforeach
-                                    <th scope="col"
-                                        class="px-6 py-3 text-right text-xs font-medium text-red-700 uppercase tracking-wider bg-red-50">
-                                        Total Potongan
-                                    </th>
-                                    <th scope="col"
-                                        class="px-6 py-3 text-right text-xs font-medium text-blue-700 uppercase tracking-wider bg-blue-50">
-                                        Take Home Pay
-                                    </th>
+                                    @if($bpjsColumns->isNotEmpty())
+                                        <th scope="col"
+                                            class="px-2 py-2 text-right text-xs font-medium text-red-700 uppercase tracking-wider bg-red-50">
+                                            Total Potongan
+                                        </th>
+                                    @endif
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 @forelse ($groupedResults as $empId => $empResults)
                                     @php
                                         $employee = $empResults->first()->employee;
-                                        $totalGaji = 0;
+                                        $totalSubsidi = 0;
                                         $totalPotongan = 0;
                                     @endphp
                                     <tr>
-                                        <td class="px-6 py-4 whitespace-nowrap">
+                                        <td class="px-2 py-2 whitespace-nowrap">
                                             <a href="{{ route('payroll-results.slip', ['emp_id' => $employee->id, 'month' => $month, 'year' => $year]) }}"
                                                 target="_blank"
                                                 class="inline-flex items-center px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-md transition duration-150 ease-in-out">
                                                 View Slip
                                             </a>
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-gray-900">
+                                        <td class="px-2 py-2 whitespace-nowrap text-gray-900">
                                             {{ $employee->project->company->code ?? 'N/A' }}
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-gray-900">
+                                        <td class="px-2 py-2 whitespace-nowrap text-gray-900">
                                             {{ $employee->project->name ?? 'N/A' }}
                                         </td>
-                                        <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
+                                        <td class="px-2 py-2 whitespace-nowrap font-medium text-gray-900">
                                             {{ $employee->name ?? 'N/A' }}
                                         </td>
-                                        @foreach($allowanceColumns as $column)
+                                        @foreach($subsidiColumns as $column)
                                             @php
                                                 $result = $empResults->firstWhere('payroll_component_id', $column->id);
                                                 $amount = $result ? $result->amount : 0;
-                                                $totalGaji += $amount;
+                                                $totalSubsidi += $amount;
                                             @endphp
-                                            <td class="px-6 py-4 whitespace-nowrap text-right">
+                                            <td class="px-2 py-2 whitespace-nowrap text-right">
                                                 {{ $result ? number_format($result->amount, 2) : '-' }}
                                             </td>
                                         @endforeach
-                                        <td class="px-6 py-4 whitespace-nowrap text-right font-semibold text-green-700 bg-green-50">
-                                            {{ number_format($totalGaji, 2) }}
-                                        </td>
-                                        @foreach($deductionColumns as $column)
+                                        @if($subsidiColumns->isNotEmpty())
+                                            <td class="px-2 py-2 whitespace-nowrap text-right font-semibold text-yellow-700 bg-yellow-50">
+                                                {{ number_format($totalSubsidi, 2) }}
+                                            </td>
+                                        @endif
+                                        @foreach($bpjsColumns as $column)
                                             @php
                                                 $result = $empResults->firstWhere('payroll_component_id', $column->id);
                                                 $amount = $result ? $result->amount : 0;
                                                 $totalPotongan += $amount;
                                             @endphp
-                                            <td class="px-6 py-4 whitespace-nowrap text-right">
+                                            <td class="px-2 py-2 whitespace-nowrap text-right">
                                                 {{ $result ? number_format($result->amount, 2) : '-' }}
                                             </td>
                                         @endforeach
-                                        <td class="px-6 py-4 whitespace-nowrap text-right font-semibold text-red-700 bg-red-50">
+                                        <td class="px-2 py-2 whitespace-nowrap text-right font-semibold text-red-700 bg-red-50">
                                             {{ number_format($totalPotongan, 2) }}
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-right font-semibold text-blue-700 bg-blue-50">
-                                            {{ number_format($totalGaji - $totalPotongan, 2) }}
                                         </td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td class="px-6 py-4 whitespace-nowrap text-center"
-                                            colspan="{{ 4 + $allowanceColumns->count() + $deductionColumns->count() + 3 }}">
+                                        <td class="px-2 py-2 whitespace-nowrap text-center"
+                                            colspan="{{ 4 + $subsidiColumns->count() + ($subsidiColumns->isNotEmpty() ? 1 : 0) + $bpjsColumns->count() + ($bpjsColumns->isNotEmpty() ? 1 : 0) }}">
                                             No data available
                                         </td>
                                     </tr>
@@ -171,24 +187,24 @@
                             <tfoot class="bg-gray-100 font-semibold">
                                 @php
                                     // Calculate totals for each column type
-                                    $allowanceTotals = [];
+                                    $subsidiTotals = [];
                                     $deductionTotals = [];
-                                    $grandTotalGaji = 0;
+                                    $grandTotalSubsidi = 0;
                                     $grandTotalPotongan = 0;
 
-                                    foreach($allowanceColumns as $column) {
-                                        $allowanceTotals[$column->id] = 0;
+                                    foreach($subsidiColumns as $column) {
+                                        $subsidiTotals[$column->id] = 0;
                                     }
-                                    foreach($deductionColumns as $column) {
+                                    foreach($bpjsColumns as $column) {
                                         $deductionTotals[$column->id] = 0;
                                     }
 
                                     // Calculate totals from all employee results
                                     foreach($groupedResults as $empResults) {
                                         foreach($empResults as $result) {
-                                            if(isset($allowanceTotals[$result->payroll_component_id])) {
-                                                $allowanceTotals[$result->payroll_component_id] += $result->amount;
-                                                $grandTotalGaji += $result->amount;
+                                            if(isset($subsidiTotals[$result->payroll_component_id])) {
+                                                $subsidiTotals[$result->payroll_component_id] += $result->amount;
+                                                $grandTotalSubsidi += $result->amount;
                                             }
                                             if(isset($deductionTotals[$result->payroll_component_id])) {
                                                 $deductionTotals[$result->payroll_component_id] += $result->amount;
@@ -198,27 +214,26 @@
                                     }
                                 @endphp
                                 <tr class="border-t-2 border-gray-300">
-                                    <td colspan="4" class="px-6 py-4 whitespace-nowrap text-gray-900">
+                                    <td colspan="4" class="px-2 py-2 whitespace-nowrap text-gray-900">
                                         Total
                                     </td>
-                                    @foreach($allowanceColumns as $column)
-                                        <td class="px-6 py-4 whitespace-nowrap text-right text-gray-900">
-                                            {{ number_format($allowanceTotals[$column->id], 2) }}
+                                    @foreach($subsidiColumns as $column)
+                                        <td class="px-2 py-2 whitespace-nowrap text-right text-gray-900">
+                                            {{ number_format($subsidiTotals[$column->id], 2) }}
                                         </td>
                                     @endforeach
-                                    <td class="px-6 py-4 whitespace-nowrap text-right font-bold text-green-700 bg-green-100">
-                                        {{ number_format($grandTotalGaji, 2) }}
-                                    </td>
-                                    @foreach($deductionColumns as $column)
-                                        <td class="px-6 py-4 whitespace-nowrap text-right text-gray-900">
+                                    @if($subsidiColumns->isNotEmpty())
+                                        <td class="px-2 py-2 whitespace-nowrap text-right font-bold text-yellow-700 bg-yellow-100">
+                                            {{ number_format($grandTotalSubsidi, 2) }}
+                                        </td>
+                                    @endif
+                                    @foreach($bpjsColumns as $column)
+                                        <td class="px-2 py-2 whitespace-nowrap text-right text-gray-900">
                                             {{ number_format($deductionTotals[$column->id], 2) }}
                                         </td>
                                     @endforeach
-                                    <td class="px-6 py-4 whitespace-nowrap text-right font-bold text-red-700 bg-red-100">
+                                    <td class="px-2 py-2 whitespace-nowrap text-right font-bold text-red-700 bg-red-100">
                                         {{ number_format($grandTotalPotongan, 2) }}
-                                    </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-right font-bold text-blue-700 bg-blue-100">
-                                        {{ number_format($grandTotalGaji - $grandTotalPotongan, 2) }}
                                     </td>
                                 </tr>
                             </tfoot>
