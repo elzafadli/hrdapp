@@ -56,7 +56,7 @@ class PayrollResultController extends Controller
         $month = $request->input('month', now()->month);
         $year = $request->input('year', now()->year);
 
-        $results = PayrollResult::with(['employee', 'payrollComponent', 'payrollSetting'])
+        $results = PayrollResult::with(['employee.project.company', 'payrollComponent', 'payrollSetting'])
             ->where('month', $month)
             ->where('year', $year)
             ->get();
@@ -296,20 +296,34 @@ class PayrollResultController extends Controller
                     ->where('year', $year)
                     ->first();
 
+                // Get all potongan details for this employee if header exists
+                $potonganDetails = collect();
                 if ($potonganHeader) {
                     $potonganDetails = PotonganKaryawanDetail::where('header_id', $potonganHeader->id)
                         ->where('employee_id', $employee->id)
-                        ->get();
+                        ->get()
+                        ->keyBy('payroll_component_id');
+                }
 
-                    foreach ($potonganDetails as $detail) {
-                        // Only add if value is greater than 0
+                // Loop through deduction components and check if potongan exists
+                foreach ($setting->details as $detail) {
+                    // Skip pinjaman (handled in section 4) and pph21 (handled in section 6)
+                    $componentName = strtolower($detail->component->name);
+                    if ($detail->component->type == 'deduction' &&
+                        stripos($componentName, 'pinjaman') === false &&
+                        $componentName != 'pph21') {
+
+                        // Check if potongan exists for this component
+                        $potonganDetail = $potonganDetails->get($detail->payroll_component_id);
+                        $amount = $potonganDetail ? $potonganDetail->value : 0;
+
                         $potonganKaryawanResults[] = [
                             'month' => $month,
                             'year' => $year,
                             'emp_id' => $employee->id,
                             'payroll_setting_id' => $setting->id,
                             'payroll_component_id' => $detail->payroll_component_id,
-                            'amount' => $detail->value,
+                            'amount' => $amount,
                             'type' => 'deduction',
                             'created_at' => now(),
                             'updated_at' => now(),

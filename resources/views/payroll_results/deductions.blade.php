@@ -64,19 +64,15 @@
                             <thead class="bg-gray-50 sticky top-0 z-10 text-xs">
                                 <tr>
                                     <th scope="col"
-                                        class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Action
-                                    </th>
-                                    <th scope="col"
-                                        class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Company
                                     </th>
                                     <th scope="col"
-                                        class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Project
                                     </th>
                                     <th scope="col"
-                                        class="px-2 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        class="px-2 py-2 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Employee
                                     </th>
                                     @if($subsidiColumns->isNotEmpty())
@@ -130,20 +126,13 @@
                                         $totalPotongan = 0;
                                     @endphp
                                     <tr>
-                                        <td class="px-2 py-2 whitespace-nowrap">
-                                            <a href="{{ route('payroll-results.slip', ['emp_id' => $employee->id, 'month' => $month, 'year' => $year]) }}"
-                                                target="_blank"
-                                                class="inline-flex items-center px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-md transition duration-150 ease-in-out">
-                                                View Slip
-                                            </a>
-                                        </td>
-                                        <td class="px-2 py-2 whitespace-nowrap text-gray-900">
+                                        <td class="px-2 py-2 whitespace-nowrap text-center text-gray-900">
                                             {{ $employee->project->company->code ?? 'N/A' }}
                                         </td>
-                                        <td class="px-2 py-2 whitespace-nowrap text-gray-900">
+                                        <td class="px-2 py-2 whitespace-nowrap text-center text-gray-900">
                                             {{ $employee->project->name ?? 'N/A' }}
                                         </td>
-                                        <td class="px-2 py-2 whitespace-nowrap font-medium text-gray-900">
+                                        <td class="px-2 py-2 whitespace-nowrap text-center font-medium text-gray-900">
                                             {{ $employee->name ?? 'N/A' }}
                                         </td>
                                         @foreach($subsidiColumns as $column)

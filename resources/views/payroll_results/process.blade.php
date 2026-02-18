@@ -133,7 +133,7 @@
             @php
                 // Split payroll columns by type
                 $allowanceColumns = $payrollColumns->whereIn('type', ['allowance', 'thr']);
-                $deductionColumns = $payrollColumns->where('type', 'deduction');
+                $deductionColumns = $payrollColumns->whereIn('type', ['deduction', 'bpjs']);
             @endphp
 
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
@@ -145,6 +145,14 @@
                                     <th scope="col"
                                         class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Action
+                                    </th>
+                                    <th scope="col"
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Company
+                                    </th>
+                                    <th scope="col"
+                                        class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Project
                                     </th>
                                     <th scope="col"
                                         class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -191,6 +199,12 @@
                                                 View Slip
                                             </a>
                                         </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-gray-900">
+                                            {{ $employee->project->company->code ?? 'N/A' }}
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-gray-900">
+                                            {{ $employee->project->name ?? 'N/A' }}
+                                        </td>
                                         <td class="px-6 py-4 whitespace-nowrap font-medium text-gray-900">
                                             {{ $employee->name ?? 'N/A' }}
                                         </td>
@@ -227,7 +241,7 @@
                                 @empty
                                     <tr>
                                         <td class="px-6 py-4 whitespace-nowrap text-center"
-                                            colspan="{{ 2 + $allowanceColumns->count() + $deductionColumns->count() + 3 }}">
+                                            colspan="{{ 4 + $allowanceColumns->count() + $deductionColumns->count() + 3 }}">
                                             No data available for selected month and year
                                         </td>
                                     </tr>
@@ -263,7 +277,7 @@
                                     }
                                 @endphp
                                 <tr class="border-t-2 border-gray-300">
-                                    <td colspan="2" class="px-6 py-4 whitespace-nowrap text-gray-900">
+                                    <td colspan="4" class="px-6 py-4 whitespace-nowrap text-gray-900">
                                         Total
                                     </td>
                                     @foreach($allowanceColumns as $column)
