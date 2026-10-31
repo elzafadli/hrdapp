@@ -1,8 +1,8 @@
 <x-app-layout>
     <div class="py-6" x-data="overtimeForm()">
         <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-            <form action="{{ route('overtime.store') }}" method="POST" enctype="multipart/form-data" 
-                  @submit="if(isSubmitting) { $event.preventDefault(); return false; } isSubmitting = true;" 
+            <form action="{{ route('overtime.store') }}" method="POST" enctype="multipart/form-data"
+                  @submit="if(isSubmitting) { $event.preventDefault(); return false; } isSubmitting = true;"
                   class="space-y-5">
                 @csrf
 
@@ -184,7 +184,7 @@
                             class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 font-semibold text-sm hover:bg-gray-50 transition shadow-sm">
                             Batal
                         </a>
-                        <button type="submit" 
+                        <button type="submit"
                             x-bind:disabled="isSubmitting || isLoading || totalHours <= 0 || hasConflict"
                             class="inline-flex items-center justify-center gap-2 px-7 py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-sm rounded-xl shadow-md shadow-blue-500/20 transition ease-in-out duration-150 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-300">
                             <span x-show="isSubmitting" style="display: none;">
@@ -225,6 +225,7 @@
                     this.$nextTick(() => {
                         if (typeof flatpickr !== 'undefined') {
                             flatpickr('#date', {
+                                disableMobile: true,
                                 locale: (window.flatpickr && flatpickr.l10ns && flatpickr.l10ns.id) ? flatpickr.l10ns.id : 'default',
                                 dateFormat: 'Y-m-d',
                                 altInput: true,

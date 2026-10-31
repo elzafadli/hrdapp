@@ -359,6 +359,7 @@
 
                         if (startEl) {
                             self.fpStart = flatpickr(startEl, {
+                                disableMobile: true,
                                 locale: (window.flatpickr && flatpickr.l10ns && flatpickr.l10ns.id) ? flatpickr.l10ns.id : 'default',
                                 dateFormat: 'Y-m-d',
                                 altInput: true,
@@ -387,6 +388,7 @@
 
                         if (endEl) {
                             self.fpEnd = flatpickr(endEl, {
+                                disableMobile: true,
                                 locale: (window.flatpickr && flatpickr.l10ns && flatpickr.l10ns.id) ? flatpickr.l10ns.id : 'default',
                                 dateFormat: 'Y-m-d',
                                 altInput: true,

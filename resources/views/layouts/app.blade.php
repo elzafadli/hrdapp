@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="notranslate" translate="no">
 
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="google" content="notranslate">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <title>{{ config('app.name', 'Laravel') }}</title>
@@ -24,6 +25,13 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/id.js"></script>
+    <script>
+        if (typeof flatpickr !== 'undefined') {
+            flatpickr.setDefaults({
+                disableMobile: true
+            });
+        }
+    </script>
     <style>
         /* Minimal overrides to blend with Tailwind if needed */
         .dataTables_wrapper .dataTables_length select {
@@ -75,8 +83,8 @@
             padding: 0 1.5rem 0 0.5rem !important;
             font-weight: 700 !important;
         }
-        .flatpickr-day.selected, 
-        .flatpickr-day.startRange, 
+        .flatpickr-day.selected,
+        .flatpickr-day.startRange,
         .flatpickr-day.endRange {
             background: #2563eb !important;
             border-color: #2563eb !important;
@@ -120,7 +128,7 @@
     </style>
 </head>
 
-<body class="font-sans antialiased bg-gray-100">
+<body class="font-sans antialiased bg-gray-100 notranslate" translate="no">
     <div class="flex h-screen overflow-hidden bg-gray-100">
         <!-- Sidebar -->
         @include('layouts.sidebar')

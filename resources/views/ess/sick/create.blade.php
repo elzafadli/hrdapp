@@ -178,6 +178,7 @@
 
                         if (startEl) {
                             self.fpStart = flatpickr(startEl, {
+                                disableMobile: true,
                                 dateFormat: "Y-m-d",
                                 altInput: true,
                                 altFormat: "l, d F Y",
@@ -203,6 +204,7 @@
 
                         if (endEl) {
                             self.fpEnd = flatpickr(endEl, {
+                                disableMobile: true,
                                 dateFormat: "Y-m-d",
                                 altInput: true,
                                 altFormat: "l, d F Y",

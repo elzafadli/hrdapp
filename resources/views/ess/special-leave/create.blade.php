@@ -9,8 +9,8 @@
     @endphp
     <div class="py-6" x-data="specialLeaveForm()">
         <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
-            <form action="{{ route('special-leave.store') }}" method="POST" enctype="multipart/form-data" 
-                  @submit="if(isSubmitting) { $event.preventDefault(); return false; } isSubmitting = true;" 
+            <form action="{{ route('special-leave.store') }}" method="POST" enctype="multipart/form-data"
+                  @submit="if(isSubmitting) { $event.preventDefault(); return false; } isSubmitting = true;"
                   class="space-y-5">
                 @csrf
 
@@ -36,7 +36,7 @@
 
                 <!-- Formulir Input -->
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-5">
-                    
+
                     <!-- Pilihan Kategori Cuti Khusus (Dropdown dengan Jatah Hari) -->
                     <div>
                         <x-input-label for="special_leave_type_id" :value="__('Jenis Cuti Khusus')" />
@@ -47,7 +47,7 @@
                             x-model="selectedTypeId"
                             @change="onTypeSelected()" />
                         <x-input-error class="mt-1.5" :messages="$errors->get('special_leave_type_id')" />
-                        
+
                         <!-- Info Card Keterangan Cuti Terpilih -->
                         <div class="mt-2.5 p-3.5 rounded-xl bg-blue-50/70 border border-blue-100 flex items-start gap-2.5 text-xs text-blue-900">
                             <i class="fa-solid fa-circle-info text-blue-600 mt-0.5 text-sm shrink-0"></i>
@@ -123,7 +123,7 @@
                             class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 font-semibold text-sm hover:bg-gray-50 transition shadow-sm">
                             Batal
                         </a>
-                        <button type="submit" 
+                        <button type="submit"
                             x-bind:disabled="isSubmitting"
                             class="inline-flex items-center justify-center gap-2 px-7 py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-sm rounded-xl shadow-md shadow-blue-500/20 transition ease-in-out duration-150 disabled:opacity-50 disabled:cursor-not-allowed">
                             <span x-show="isSubmitting" style="display: none;">
@@ -210,6 +210,7 @@
 
                         if (startEl) {
                             self.fpStart = flatpickr(startEl, {
+                                disableMobile: true,
                                 dateFormat: "Y-m-d",
                                 altInput: true,
                                 altFormat: "l, d F Y",
