@@ -184,6 +184,8 @@ class DocumentApproval extends Model
             if ($nextApproval) {
                 SendEssApprovalNotification::dispatch($approvable, 'next_level', $nextApproval);
             }
+            // Notifikasi ke pemohon bahwa pengajuan telah disetujui pada tahapan ini
+            SendEssApprovalNotification::dispatch($approvable, 'step_approved', $this);
         }
 
         return true;

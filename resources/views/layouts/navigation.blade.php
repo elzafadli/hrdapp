@@ -2,7 +2,13 @@
     <!-- Primary Navigation Menu -->
     <div class="w-full px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
-            <div class="flex">
+            <div class="flex items-center">
+                <!-- Mobile Logo & Brand (visible on mobile only) -->
+                <a href="{{ route('dashboard') }}" class="flex items-center gap-2 sm:hidden">
+                    <x-application-logo class="block h-7 w-auto fill-current text-blue-600" />
+                    <span class="font-bold text-gray-900 tracking-tight text-sm">HRD System</span>
+                </a>
+
                 <!-- Navigation Links -->
                 <div class="hidden space-x-4 sm:-my-px sm:flex sm:items-center">
                     <a href="{{ route('leave.index') }}"
@@ -10,21 +16,6 @@
                         <i class="fa-solid fa-umbrella-beach mr-2 text-blue-500"></i>
                         ESS - Cuti Tahunan
                     </a>
-                </div>
-
-                <!-- Hamburger (visible on mobile only, but we keep the flex structure) -->
-                <div class="-me-2 flex items-center sm:hidden">
-                    <button @click="open = ! open"
-                        class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 focus:text-gray-500 transition duration-150 ease-in-out">
-                        <svg class="h-6 w-6" stroke="currentColor" fill="none" viewBox="0 0 24 24">
-                            <path :class="{'hidden': open, 'inline-flex': ! open }" class="inline-flex"
-                                stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M4 6h16M4 12h16M4 18h16" />
-                            <path :class="{'hidden': ! open, 'inline-flex': open }" class="hidden"
-                                stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
                 </div>
             </div>
 
@@ -120,6 +111,19 @@
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
+            @php
+                $navShowApprovalMenu = false;
+                try {
+                    if ($navEmp?->jabatan_id) {
+                        $navShowApprovalMenu = \App\Models\ApprovalSetting::isJabatanAnApprover((int) $navEmp->jabatan_id);
+                    }
+                } catch (\Exception $e) {}
+            @endphp
+            @if($navShowApprovalMenu)
+            <x-responsive-nav-link :href="route('approval-inbox.index')" :active="request()->routeIs('approval-inbox.*')">
+                {{ __('Approval Inbox') }}
+            </x-responsive-nav-link>
+            @endif
             <x-responsive-nav-link :href="route('attendance.check-in')" :active="request()->routeIs('attendance.check-in')">
                 {{ __('Presensi Masuk (ESS)') }}
             </x-responsive-nav-link>

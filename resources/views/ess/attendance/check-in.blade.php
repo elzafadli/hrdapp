@@ -1,6 +1,6 @@
 <x-app-layout>
     <div class="py-6" x-data="checkInApp()">
-        <div class="max-w-xl mx-auto sm:px-6 lg:px-8 space-y-5">
+        <div class="max-w-xl mx-auto px-4 sm:px-6 lg:px-8 space-y-5">
 
             <!-- Top Bar Navigasi -->
             <div class="flex items-center justify-between">

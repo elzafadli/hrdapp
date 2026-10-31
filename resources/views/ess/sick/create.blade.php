@@ -1,6 +1,6 @@
 <x-app-layout>
     <div class="py-6" x-data="sickForm()">
-        <div class="max-w-2xl mx-auto sm:px-6 lg:px-8">
+        <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
             <form action="{{ route('sick.store') }}" method="POST" enctype="multipart/form-data"
                 @submit="if(isSubmitting) { $event.preventDefault(); return false; } isSubmitting = true;"
                 class="space-y-5">

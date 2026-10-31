@@ -48,7 +48,7 @@ class SendEssApprovalNotification implements ShouldQueue
     public function handle(): void
     {
         try {
-            $this->approvable->loadMissing(['employee.jabatan', 'user']);
+            $this->approvable->loadMissing(['employee.jabatan', 'employee.user', 'user']);
 
             // 1. Tentukan deskripsi dokumen dan URL link
             $docInfo = $this->resolveDocumentInfo();
@@ -70,14 +70,13 @@ class SendEssApprovalNotification implements ShouldQueue
                 // Simpan log ke tabel ess_notification_logs bila tabel sudah di-migrate
                 if (Schema::hasTable('ess_notification_logs')) {
                     EssNotificationLog::create([
-                        'approvable_type' => get_class($this->approvable),
-                        'approvable_id' => $this->approvable->id,
-                        'event' => $this->event,
-                        'receiver_name' => $receiver['name'] ?? null,
-                        'receiver_phone' => "6282245833986",
-                        // 'receiver_phone'   => $receiver['phone'],
-                        'message' => $message,
-                        'status' => $result['success'] ? 'success' : 'failed',
+                        'approvable_type'  => get_class($this->approvable),
+                        'approvable_id'    => $this->approvable->id,
+                        'event'            => $this->event,
+                        'receiver_name'    => $receiver['name'] ?? null,
+                        'receiver_phone'   => $receiver['phone'],
+                        'message'          => $message,
+                        'status'           => $result['success'] ? 'success' : 'failed',
                         'response_payload' => json_encode($result['response'] ?? $result['error']),
                     ]);
                 }
@@ -121,14 +120,14 @@ class SendEssApprovalNotification implements ShouldQueue
             $duration = ($this->approvable->total_days ?? 1) . ' Hari Kerja';
             $reason = $this->approvable->reason ?? '-';
 
-            $routeName = match ($this->approvable->leave_type) {
-                'special' => 'special-leave.show',
-                'permit' => 'permit.show',
-                'sick' => 'sick.show',
-                default => 'leave.show',
+            $path = match ($this->approvable->leave_type) {
+                'special' => "/special-leave/{$this->approvable->id}",
+                'permit'  => "/permit/{$this->approvable->id}",
+                'sick'    => "/sick/{$this->approvable->id}",
+                default   => "/leave/{$this->approvable->id}",
             };
 
-            $link = route($routeName, $this->approvable->id);
+            $link = "https://hrd.fincontrol.my.id" . $path;
 
         } elseif ($this->approvable instanceof OvertimeRequest) {
             $typeLabel = 'Lembur Kerja';
@@ -138,14 +137,14 @@ class SendEssApprovalNotification implements ShouldQueue
             $dateRange = "{$date} ({$startTime} - {$endTime})";
             $duration = ($this->approvable->total_hours ?? 0) . ' Jam';
             $reason = $this->approvable->reason ?? $this->approvable->task_description ?? '-';
-            $link = route('overtime.show', $this->approvable->id);
+            $link = "https://hrd.fincontrol.my.id/overtime/{$this->approvable->id}";
 
         } else {
             $typeLabel = 'Permohonan ESS';
             $dateRange = '-';
             $duration = '-';
             $reason = '-';
-            $link = url('/');
+            $link = 'https://hrd.fincontrol.my.id';
         }
 
         return [
@@ -206,26 +205,30 @@ class SendEssApprovalNotification implements ShouldQueue
             return $receivers->unique('phone');
         }
 
-        // Kasus 2: Notifikasi ke Pemohon (completed / auto_completed / rejected)
-        if (in_array($this->event, ['completed', 'auto_completed', 'rejected'])) {
+        // Kasus 2: Notifikasi ke Pemohon (completed / auto_completed / rejected / step_approved)
+        if (in_array($this->event, ['completed', 'auto_completed', 'rejected', 'step_approved'])) {
             $user = $this->approvable->user ?? $this->approvable->employee?->user;
-            $applicantPhone = $user?->phone ?? null;
+            $applicantPhone = $user?->phone ?: config('services.kirimi.override_phone');
             $formattedPhone = KirimiService::formatPhoneNumber($applicantPhone);
 
             if ($formattedPhone) {
-                $rejectorName = $this->approvalStep?->approver_name
+                $approverName = $this->approvalStep?->approver_name
                     ?? $this->approvable->approver?->name
+                    ?? auth()->user()?->name
                     ?? 'Atasan Berwenang';
 
-                $rejectorJabatan = $this->approvalStep?->jabatan_name ?? 'Atasan';
+                $approverJabatan = $this->approvalStep?->jabatan_name ?? 'Atasan';
 
                 $receivers->push([
-                    'role' => 'applicant',
-                    'name' => $this->approvable->employee?->name ?? $user?->name ?? 'Karyawan',
-                    'phone' => $formattedPhone,
-                    'rejector_name' => $rejectorName,
-                    'rejector_jabatan' => $rejectorJabatan,
-                    'notes' => $this->extra['notes']
+                    'role'             => 'applicant',
+                    'name'             => $this->approvable->employee?->name ?? $user?->name ?? 'Karyawan',
+                    'phone'            => $formattedPhone,
+                    'approver_name'    => $approverName,
+                    'approver_jabatan' => $approverJabatan,
+                    'rejector_name'    => $approverName,
+                    'rejector_jabatan' => $approverJabatan,
+                    'level'            => $this->approvalStep?->level ?? 1,
+                    'notes'            => $this->extra['notes']
                         ?? $this->approvalStep?->notes
                         ?? $this->approvable->rejection_reason
                         ?? '-',
@@ -247,6 +250,7 @@ class SendEssApprovalNotification implements ShouldQueue
 
         if ($role === 'approver') {
             $levelText = "Level " . ($receiver['level'] ?? 1) . " (" . ($receiver['approver_jabatan'] ?? 'Atasan') . ")";
+            $approverLink = "https://hrd.fincontrol.my.id/approval-inbox";
 
             return "📢 *HRD NOTIFIKASI - PERSETUJUAN PERMOHONAN*\n\n"
                 . "Halo Bapak/Ibu *{$receiver['name']}*,\n"
@@ -259,6 +263,24 @@ class SendEssApprovalNotification implements ShouldQueue
                 . "📝 *Keperluan:* {$doc['reason']}\n"
                 . "⚡ *Tahap Approval:* {$levelText}\n\n"
                 . "Silakan klik link berikut untuk meninjau dan menyetujui pengajuan:\n\n"
+                . "{$approverLink}";
+        }
+
+        if ($this->event === 'step_approved') {
+            $approverName = $receiver['approver_name'] ?? 'Atasan';
+            $approverJabatan = $receiver['approver_jabatan'] ?? 'Approver';
+            $level = $receiver['level'] ?? 1;
+
+            return "ℹ️ *HRD NOTIFIKASI - PERSETUJUAN TAHAP L{$level}*\n\n"
+                . "Halo Kak *{$receiver['name']}*,\n"
+                . "Pengajuan Anda telah *DISETUJUI* pada tahap *Level {$level}*:\n\n"
+                . "📋 *Jenis:* {$doc['type_label']}\n"
+                . "📄 *No. Pengajuan:* {$doc['number']}\n"
+                . "👤 *Disetujui Oleh:* {$approverName} ({$approverJabatan})\n"
+                . "📅 *Waktu/Tanggal:* {$doc['date_range']}\n"
+                . "⏳ *Durasi:* {$doc['duration']}\n"
+                . "⏳ *Status:* Sedang diproses oleh tahapan approval berikutnya.\n\n"
+                . "Detail pengajuan dapat dilihat melalui tautan berikut:\n\n"
                 . "{$doc['link']}";
         }
 
