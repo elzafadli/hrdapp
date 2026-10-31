@@ -1,0 +1,308 @@
+<x-app-layout>
+        <div class="py-6"
+        x-data="{
+            cancelModal: false,
+            cancelUrl: '',
+            requestNumber: '',
+            submitting: false,
+            openCancel(url, num) {
+                this.cancelUrl = url;
+                this.requestNumber = num;
+                this.submitting = false;
+                this.cancelModal = true;
+            }
+        }">
+
+    {{-- Modal Konfirmasi Batal Pengajuan --}}
+    <div
+        x-show="cancelModal"
+        x-cloak
+        class="fixed inset-0 z-50 flex items-center justify-center"
+        @keydown.escape.window="cancelModal = false"
+    >
+        <div
+            class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
+            @click="cancelModal = false"
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0"
+            x-transition:enter-end="opacity-100"
+            x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+        ></div>
+
+        <div
+            class="relative z-10 bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden"
+            x-transition:enter="transition ease-out duration-200"
+            x-transition:enter-start="opacity-0 scale-95 translate-y-4"
+            x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+            x-transition:leave="transition ease-in duration-150"
+            x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+            x-transition:leave-end="opacity-0 scale-95 translate-y-4"
+            @click.stop
+        >
+            <div class="h-1.5 bg-gradient-to-r from-rose-400 via-rose-500 to-red-600"></div>
+
+            <div class="px-6 pt-6 pb-5">
+                <div class="flex items-start gap-4">
+                    <div class="w-12 h-12 rounded-xl bg-rose-100 flex items-center justify-center shrink-0">
+                        <i class="fa-solid fa-triangle-exclamation text-xl text-rose-600"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <h3 class="text-base font-bold text-gray-900">Batalkan Pengajuan?</h3>
+                        <p class="text-xs text-gray-500 mt-0.5">Pengajuan yang dibatalkan tidak dapat diproses lagi.</p>
+                    </div>
+                    <button type="button" @click="cancelModal = false" class="text-gray-400 hover:text-gray-600 transition p-1 rounded-lg hover:bg-gray-100 shrink-0">
+                        <i class="fa-solid fa-xmark text-sm"></i>
+                    </button>
+                </div>
+
+                <div class="mt-4 bg-gray-50 rounded-xl border border-gray-200 px-4 py-3 flex items-center justify-between gap-3">
+                    <span class="text-xs text-gray-500">No. Pengajuan</span>
+                    <span class="text-xs font-bold font-mono text-gray-900" x-text="requestNumber"></span>
+                </div>
+
+                <form :action="cancelUrl" method="POST" class="mt-5" @submit="submitting = true">
+                    @csrf
+                    <div class="flex items-center gap-3">
+                        <button type="button"
+                            @click="cancelModal = false"
+                            :disabled="submitting"
+                            class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-gray-300 text-sm font-semibold text-gray-700 bg-white hover:bg-gray-50 transition disabled:opacity-50">
+                            Kembali
+                        </button>
+                        <button type="submit"
+                            :disabled="submitting"
+                            class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-sm font-bold shadow-sm shadow-rose-200 transition disabled:opacity-60">
+                            <template x-if="!submitting">
+                                <span class="inline-flex items-center gap-2">
+                                    <i class="fa-solid fa-trash-can text-xs"></i> Ya, Batalkan
+                                </span>
+                            </template>
+                            <template x-if="submitting">
+                                <span class="inline-flex items-center gap-2">
+                                    <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"></path>
+                                    </svg>
+                                    Membatalkan...
+                                </span>
+                            </template>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+
+            <!-- Flash Message -->
+            @if (session('success'))
+                <div class="bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-xl text-sm flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-circle-check text-emerald-500"></i>
+                        <span>{{ session('success') }}</span>
+                    </div>
+                </div>
+            @endif
+
+            @if (session('error'))
+                <div class="bg-rose-50 border border-rose-200 text-rose-800 px-4 py-3 rounded-xl text-sm flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-circle-exclamation text-rose-500"></i>
+                        <span>{{ session('error') }}</span>
+                    </div>
+                </div>
+            @endif
+
+            <!-- Top Header & Action -->
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-900">Pengajuan Cuti Tahunan</h2>
+                    <p class="text-sm text-gray-500">Employee Self Service (ESS) &bull; Karyawan: <span class="font-semibold text-gray-700">{{ $employee?->name ?? Auth::user()->name }}</span> ({{ $employee?->jabatan?->jabatan ?? 'Staf' }})</p>
+                </div>
+                <div>
+                    <a href="{{ route('leave.create') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl font-semibold text-xs transition shadow-sm">
+                        <i class="fa-solid fa-plus text-xs"></i>
+                        Ajukan Cuti Tahunan
+                    </a>
+                </div>
+            </div>
+
+            <!-- Jatah Cuti Summary Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div class="bg-gradient-to-r from-teal-500 to-emerald-600 rounded-2xl p-5 text-white shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-emerald-100 text-xs font-semibold uppercase tracking-wider">Jatah Cuti Tersedia</p>
+                        <h3 class="text-3xl font-extrabold mt-1">
+                            {{ $leaveBalance ? $leaveBalance->remaining_leave : '0.0' }} <span class="text-base font-medium">Hari</span>
+                        </h3>
+                        <p class="text-xs text-emerald-200 mt-2">Periode Kalender {{ $currentYear }}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                        <i class="fa-solid fa-umbrella-beach text-2xl text-white"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-xs font-semibold uppercase tracking-wider">Cuti Terpakai</p>
+                        <h3 class="text-2xl font-bold text-gray-800 mt-1">
+                            {{ $leaveBalance ? $leaveBalance->used_leave : '0.0' }} <span class="text-sm font-normal text-gray-500">Hari</span>
+                        </h3>
+                        <p class="text-xs text-gray-400 mt-2">Sudah disetujui / completed</p>
+                    </div>
+                    <div class="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center text-amber-500">
+                        <i class="fa-solid fa-calendar-minus text-xl"></i>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm flex items-center justify-between">
+                    <div>
+                        <p class="text-gray-400 text-xs font-semibold uppercase tracking-wider">Total Kuota Cuti</p>
+                        <h3 class="text-2xl font-bold text-gray-800 mt-1">
+                            {{ $leaveBalance ? ($leaveBalance->total_leave ?? $leaveBalance->annual_leave_quota ?? '12.0') : '12.0' }} <span class="text-sm font-normal text-gray-500">Hari</span>
+                        </h3>
+                        <p class="text-xs text-gray-400 mt-2">Hak cuti per tahun</p>
+                    </div>
+                    <div class="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-blue-500">
+                        <i class="fa-solid fa-calendar-check text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+<div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                    <h3 class="font-bold text-gray-800 text-base">Riwayat Pengajuan Cuti Saya</h3>
+                </div>
+
+                <div class="p-6">
+                    @if($leaveRequests->isEmpty())
+                        <div class="text-center py-12">
+                            <div class="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-3 text-gray-400">
+                                <i class="fa-regular fa-calendar-xmark text-2xl"></i>
+                            </div>
+                            <h4 class="text-gray-700 font-semibold text-sm">Belum ada pengajuan cuti</h4>
+                            <p class="text-gray-400 text-xs mt-1">Anda belum pernah mengajukan cuti tahunan pada tahun {{ $currentYear }}.</p>
+                            <div class="mt-4">
+                                <a href="{{ route('leave.create') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-xs transition shadow-sm">
+                                    Ajukan Cuti Sekarang
+                                </a>
+                            </div>
+                        </div>
+                    @else
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-left text-gray-600">
+                                <thead class="text-xs text-gray-500 uppercase bg-gray-50/80 border-b border-gray-100">
+                                    <tr>
+                                        <th class="px-4 py-3">No. Pengajuan</th>
+                                        <th class="px-4 py-3">Tgl Pengajuan</th>
+                                        <th class="px-4 py-3">Cuti Sehari Penuh</th>
+                                        <th class="px-4 py-3">Cuti Setengah Hari</th>
+                                        <th class="px-4 py-3">Total Hari Kerja</th>
+                                        <th class="px-4 py-3">Status</th>
+                                        <th class="px-4 py-3 text-right">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-100">
+                                    @foreach($leaveRequests as $req)
+                                        <tr class="hover:bg-gray-50/60 transition">
+                                            <td class="px-4 py-3.5 font-semibold text-gray-900">
+                                                {{ $req->request_number ?? 'CUTI-' . $req->id }}
+                                            </td>
+                                            <td class="px-4 py-3.5 text-xs text-gray-500">
+                                                {{ $req->created_at->format('d M Y') }}
+                                            </td>
+                                            <td class="px-4 py-3.5">
+                                                @if($req->full_day_count > 0)
+                                                    @php
+                                                        $startDateFmt = $req->full_day_start_date?->format('d/m/Y')
+                                                            ?? $req->dates->where('day_type', 'full_day')->first()?->date?->format('d/m/Y');
+                                                        $endDateFmt = $req->full_day_end_date?->format('d/m/Y')
+                                                            ?? $req->dates->where('day_type', 'full_day')->last()?->date?->format('d/m/Y');
+                                                    @endphp
+                                                    <span class="font-medium text-gray-800">
+                                                        {{ $startDateFmt }}{{ $endDateFmt && $endDateFmt !== $startDateFmt ? ' - ' . $endDateFmt : '' }}
+                                                    </span>
+                                                    <span class="block text-xs text-gray-400">({{ $req->full_day_count }} hari kerja)</span>
+                                                @else
+                                                    <span class="text-gray-400">-</span>
+                                                @endif
+                                            </td>
+                                            <td class="px-4 py-3.5">
+                                                @if($req->half_day_count > 0)
+                                                    @php
+                                                        $halfDateFmt = $req->half_day_start_date?->format('d/m/Y')
+                                                            ?? $req->dates->where('day_type', 'half_day')->first()?->date?->format('d/m/Y');
+                                                    @endphp
+                                                    <span class="font-medium text-amber-700">{{ $halfDateFmt }}</span>
+                                                    <span class="block text-xs text-gray-400">({{ $req->half_day_count }} hari &bull; {{ $req->half_day_type === 'first_half' ? 'Pagi' : 'Siang' }})</span>
+                                                @else
+                                                    <span class="text-gray-400">-</span>
+                                                @endif
+                                            </td>
+                                            <td class="px-4 py-3.5 font-extrabold text-gray-900">
+                                                {{ $req->total_days }} Hari
+                                            </td>
+                                            <td class="px-4 py-3.5">
+                                                @if($req->status === 'completed' || $req->status === 'approved')
+                                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
+                                                        <i class="fa-solid fa-circle-check text-[10px]"></i> Disetujui
+                                                    </span>
+                                                @elseif($req->status === 'rejected')
+                                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-800">
+                                                        <i class="fa-solid fa-circle-xmark text-[10px]"></i> Ditolak
+                                                    </span>
+                                                @elseif($req->status === 'cancelled')
+                                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-600">
+                                                        Dibatalkan
+                                                    </span>
+                                                @else
+                                                    @php
+                                                        $pendingApproval = $req->relationLoaded('approvals') ? $req->approvals->where('status', 'pending')->sortBy('level')->first() : null;
+                                                        $targetJabatan = $pendingApproval?->jabatan?->jabatan;
+                                                    @endphp
+                                                    <div class="space-y-1">
+                                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">
+                                                            <i class="fa-solid fa-clock text-[10px]"></i> Menunggu
+                                                        </span>
+                                                        @if($pendingApproval)
+                                                            <div class="text-[11px] leading-tight text-gray-600 whitespace-nowrap">
+                                                                <span class="text-gray-400">Approval:</span>
+                                                                <strong class="text-gray-900 font-bold">{{ $targetJabatan ?? 'Approver' }}</strong>
+                                                                <span class="inline-block px-1 rounded bg-blue-50 text-blue-700 text-[10px] font-mono font-bold">L{{ $pendingApproval->level }}</span>
+                                                            </div>
+                                                        @endif
+                                                    </div>
+                                                @endif
+                                            </td>
+                                            <td class="px-4 py-3.5 text-right space-x-1.5 whitespace-nowrap">
+                                                <a href="{{ route('leave.show', $req->id) }}"
+                                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-gray-300 text-xs font-semibold text-gray-700 bg-white hover:bg-gray-50 hover:text-blue-600 shadow-xs transition">
+                                                    <i class="fa-solid fa-eye text-gray-400 text-[11px]"></i> Detail
+                                                </a>
+                                                @if($req->status === 'pending')
+                                                    <button type="button"
+                                                        @click="openCancel('{{ route('leave.cancel', $req->id) }}', '{{ $req->request_number ?? ('CUTI-' . $req->id) }}')"
+                                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-rose-300 text-xs font-semibold text-rose-700 bg-white hover:bg-rose-50 shadow-xs transition cursor-pointer">
+                                                        <i class="fa-solid fa-xmark text-[11px]"></i> Batal
+                                                    </button>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="mt-4">
+                            {{ $leaveRequests->links() }}
+                        </div>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
+</x-app-layout>
+

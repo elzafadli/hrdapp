@@ -57,3 +57,21 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+Save these values to your environment (.env or WAHA\_\*) to reuse them; new keys are generated on every start otherwise.
+
+cat <<'EOF' >> .env
+
+WAHA_API_KEY=fd4cda4181354fdd984e00c0ec80436c
+
+WAHA_DASHBOARD_USERNAME=admin
+
+WAHA_DASHBOARD_PASSWORD=e789dc0258d546f0985f1dc7bc5d5154
+
+WHATSAPP_SWAGGER_USERNAME=admin
+
+WHATSAPP_SWAGGER_PASSWORD=e789dc0258d546f0985f1dc7bc5d5154
+
+EOF
+
+Generated credentials ready to copy

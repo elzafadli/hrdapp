@@ -1,14 +1,23 @@
-@props(['disabled' => false, 'options' => [], 'selected' => null, 'placeholder' => 'Select an option'])
+@props(['disabled' => false, 'options' => [], 'selected' => null, 'placeholder' => null, 'noSelect2' => false])
 
-<div wire:ignore {!! $attributes->merge(['class' => '']) !!}>
+<div wire:ignore class="{{ $attributes->get('class') }}">
     <select name="{{ $attributes->get('name') }}" id="{{ $attributes->get('id') }}" {{ $disabled ? 'disabled' : '' }}
-        class="select2 border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md py-1 text-sm shadow-sm w-full">
-        <option value="">{{ $placeholder }}</option>
-        @foreach($options as $key => $value)
-            <option value="{{ $key }}" {{ $selected == $key ? 'selected' : '' }}>
-                {{ $value }}
-            </option>
-        @endforeach
+        {{ $attributes->whereStartsWith('x-') }}
+        {{ $attributes->whereStartsWith('on') }}
+        {{ $attributes->whereStartsWith('wire:') }}
+        {{ $attributes->has('required') ? 'required' : '' }}
+        class="{{ $noSelect2 ? '' : 'select2' }} border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-xl py-2 pl-3.5 pr-10 text-sm shadow-xs w-full bg-white">
+        @if($placeholder)
+            <option value="">{{ $placeholder }}</option>
+        @endif
+        @if(!empty($options))
+            @foreach($options as $key => $value)
+                <option value="{{ $key }}" {{ $selected == $key ? 'selected' : '' }}>
+                    {{ $value }}
+                </option>
+            @endforeach
+        @endif
+        {{ $slot }}
     </select>
 </div>
 

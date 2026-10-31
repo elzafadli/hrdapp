@@ -26,10 +26,38 @@
                                 <x-input-error class="mt-2" :messages="$errors->get('name')" />
                             </div>
 
+                            <!-- User Account Select (untuk ESS & Approval) -->
+                            <div class="col-span-12 sm:col-span-6 my-2">
+                                <x-input-label for="user_id" :value="__('Akun Login User (Untuk Approval & ESS)')" />
+                                <x-select-input id="user_id" name="user_id" class="mt-1 block w-full"
+                                    :options="$userOptions" :selected="old('user_id', $empData->user_id)"
+                                    placeholder="{{ __('Pilih Akun User Login') }}" />
+                                <x-input-error class="mt-2" :messages="$errors->get('user_id')" />
+                                <p class="text-xs text-gray-500 mt-1">
+                                    Hubungkan data karyawan ini dengan akun login user agar karyawan dapat login ke ESS dan berwenang melakukan approval.
+                                </p>
+                            </div>
+
+                            <!-- Gender Select -->
+                            <div class="col-span-12 sm:col-span-6 my-2">
+                                <x-input-label for="gender" :value="__('Jenis Kelamin')" />
+                                <x-select-input id="gender" name="gender" class="mt-1 block w-full"
+                                    :options="$genderOptions" :selected="old('gender', $empData->gender ?? 'male')" />
+                                <x-input-error class="mt-2" :messages="$errors->get('gender')" />
+                            </div>
+
+                            <!-- Company Select -->
+                            <div class="col-span-12 sm:col-span-6 my-2">
+                                <x-input-label for="company_id" :value="__('Company')" />
+                                <x-select-input id="company_id" name="company_id" class="mt-1 block w-full"
+                                    :options="$companyOptions" :selected="old('company_id', $empData->company_id)"
+                                    placeholder="{{ __('Select Company') }}" />
+                                <x-input-error class="mt-2" :messages="$errors->get('company_id')" />
+                            </div>
+
                             <!-- Jabatan Select -->
                             <div class="col-span-12 sm:col-span-6 my-2">
                                 <x-input-label for="jabatan_id" :value="__('Jabatan')" />
-
                                 <x-select-input id="jabatan_id" name="jabatan_id" class="mt-1 block w-full"
                                     :options="$jabatanOptions" :selected="old('jabatan_id', $empData->jabatan_id)"
                                     placeholder="{{ __('Select Jabatan') }}" />
@@ -39,7 +67,6 @@
                             <!-- Project Select -->
                             <div class="col-span-12 sm:col-span-6 my-2">
                                 <x-input-label for="project_id" :value="__('Project')" />
-
                                 <x-select-input id="project_id" name="project_id" class="mt-1 block w-full"
                                     :options="$projectOptions" :selected="old('project_id', $empData->project_id)"
                                     placeholder="{{ __('Select Project') }}" />
@@ -47,9 +74,8 @@
                             </div>
 
                             <!-- Status PTKP Select -->
-                            <div class="col-span-12 sm:col-span-6 my-2">
+                            <div class="col-span-12 sm:col-span-12 my-2">
                                 <x-input-label for="status_ptkp" :value="__('Status PTKP')" />
-
                                 <x-select-input id="status_ptkp" name="status_ptkp" class="mt-1 block w-full"
                                     :options="$ptkpOptions" :selected="old('status_ptkp', $empData->status_ptkp)"
                                     placeholder="{{ __('Select Status PTKP') }}" />

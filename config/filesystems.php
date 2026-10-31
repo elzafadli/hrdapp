@@ -60,6 +60,20 @@ return [
             'report' => false,
         ],
 
+        'is3' => [
+            'driver' => 's3',
+            'key' => env('IS3_ACCESS_KEY_ID'),
+            'secret' => env('IS3_SECRET_ACCESS_KEY'),
+            'region' => env('IS3_DEFAULT_REGION', 'us-east-1'),
+            'bucket' => env('IS3_BUCKET'),
+            'url' => 'https://' . env('IS3_BUCKET') . '.' . rtrim(env('IS3_URL', 'is3.cloudhost.id'), '/'),
+            'endpoint' => 'https://' . rtrim(env('IS3_URL', 'is3.cloudhost.id'), '/'),
+            'use_path_style_endpoint' => true,
+            'visibility' => 'public',
+            'throw' => false,
+            'report' => false,
+        ],
+
     ],
 
     /*
