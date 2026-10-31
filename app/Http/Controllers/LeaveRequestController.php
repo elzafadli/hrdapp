@@ -446,7 +446,18 @@ class LeaveRequestController extends Controller
             // Simpan lampiran berkas jika ada
             if ($request->hasFile('files')) {
                 foreach ($request->file('files') as $file) {
-                    $path = $file->store('leave_attachments', 'is3');
+                    // Selalu coba IS3 terlebih dahulu; fallback ke local public jika gagal
+                    try {
+                        $path = $file->store('leave_attachments', 'is3');
+                    } catch (\Throwable $e) {
+                        // IS3 gagal — fallback ke public disk & log error
+                        \Log::error('[LeaveRequest] IS3 upload gagal, fallback ke public disk', [
+                            'error'    => $e->getMessage(),
+                            'file'     => $file->getClientOriginalName(),
+                            'leave_id' => $leaveRequest->id,
+                        ]);
+                        $path = $file->store('leave_attachments', 'public');
+                    }
                     LeaveRequestFile::create([
                         'leave_request_id' => $leaveRequest->id,
                         'file_path'        => $path,

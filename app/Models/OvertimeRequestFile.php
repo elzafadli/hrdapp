@@ -32,11 +32,21 @@ class OvertimeRequestFile extends Model
     {
         try {
             if (\Illuminate\Support\Facades\Storage::disk('is3')->exists($this->file_path)) {
-                return \Illuminate\Support\Facades\Storage::disk('is3')->url($this->file_path);
+                try {
+                    return \Illuminate\Support\Facades\Storage::disk('is3')->temporaryUrl($this->file_path, now()->addHours(4));
+                } catch (\Throwable $te) {
+                    return \Illuminate\Support\Facades\Storage::disk('is3')->url($this->file_path);
+                }
             }
         } catch (\Throwable $e) {
             // fallback
         }
+
+        try {
+            if (\Illuminate\Support\Facades\Storage::disk('public')->exists($this->file_path)) {
+                return \Illuminate\Support\Facades\Storage::disk('public')->url($this->file_path);
+            }
+        } catch (\Throwable $e) {}
 
         return asset('storage/' . $this->file_path);
     }

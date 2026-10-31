@@ -34,8 +34,7 @@ return [
             'driver' => 'local',
             'root' => storage_path('app/private'),
             'serve' => true,
-            'throw' => false,
-            'report' => false,
+            'throw' => true,
         ],
 
         'public' => [
@@ -43,8 +42,7 @@ return [
             'root' => storage_path('app/public'),
             'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/storage',
             'visibility' => 'public',
-            'throw' => false,
-            'report' => false,
+            'throw' => true,
         ],
 
         's3' => [
@@ -56,8 +54,7 @@ return [
             'url' => env('AWS_URL'),
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
-            'throw' => false,
-            'report' => false,
+            'throw' => true,
         ],
 
         'is3' => [
@@ -66,12 +63,11 @@ return [
             'secret' => env('IS3_SECRET_ACCESS_KEY'),
             'region' => env('IS3_DEFAULT_REGION', 'us-east-1'),
             'bucket' => env('IS3_BUCKET'),
-            'url' => 'https://' . env('IS3_BUCKET') . '.' . rtrim(env('IS3_URL', 'is3.cloudhost.id'), '/'),
+            'url' => 'https://' . rtrim(env('IS3_URL', 'is3.cloudhost.id'), '/') . '/' . env('IS3_BUCKET'),
             'endpoint' => 'https://' . rtrim(env('IS3_URL', 'is3.cloudhost.id'), '/'),
             'use_path_style_endpoint' => true,
             'visibility' => 'public',
-            'throw' => false,
-            'report' => false,
+            'throw' => true,
         ],
 
     ],

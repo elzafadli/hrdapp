@@ -375,7 +375,7 @@
                             <h4 class="text-xs font-bold text-gray-700 uppercase tracking-wider">Berkas Pendukung:</h4>
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                 @foreach($leaveRequest->files as $file)
-                                    <a href="{{ Storage::url($file->file_path) }}" target="_blank"
+                                    <a href="{{ $file->url ?? Storage::url($file->file_path) }}" target="_blank"
                                         class="flex items-center gap-2.5 p-3 rounded-xl border border-gray-200 hover:border-blue-300 hover:bg-blue-50/40 transition group">
                                         <i class="fa-solid fa-paperclip text-gray-400 group-hover:text-blue-500"></i>
                                         <div class="min-w-0 flex-1">

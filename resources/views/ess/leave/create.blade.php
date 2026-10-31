@@ -501,6 +501,13 @@
                         }
                     } catch (err) {
                         console.error('Kalkulasi cuti gagal:', err);
+                        // Fallback: jika AJAX gagal (misal network lambat di mobile),
+                        // jangan blokir submit — set deduction ke nilai dummy agar
+                        // tombol Ajukan tetap bisa diklik.
+                        this.deduction = this.deduction > 0 ? this.deduction : 1;
+                        this.isExceeded = false;
+                        this.hasConflict = false;
+                        this.isBackDate = false;
                     } finally {
                         this.isLoading = false;
                     }
