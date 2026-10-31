@@ -65,11 +65,26 @@ class KirimiService
                 ];
             }
 
+            // Cek apakah ada pengalihan nomor tujuan untuk testing / staging
+            $overrideConfig = config('services.kirimi.override_phone', env('KIRIMI_OVERRIDE_PHONE'));
+            $overridePhone  = $overrideConfig ? self::formatPhoneNumber($overrideConfig) : null;
+            $targetPhone    = $overridePhone ?: $formattedPhone;
+
+            // Jika dialihkan, tambahkan header testing pada pesan agar jelas tujuan aslinya
+            $finalMessage = $message;
+            if ($overridePhone && $overridePhone !== $formattedPhone) {
+                Log::info("[KirimiService] Pengalihan nomor aktif (KIRIMI_OVERRIDE_PHONE). Asli: {$formattedPhone} -> Dialihkan ke: {$targetPhone}");
+                $finalMessage = "⚠️ *[TESTING MODE - NOTIFIKASI DIALIHKAN]*\n"
+                    . "📱 *Nomor Asli Tujuan:* {$formattedPhone}\n"
+                    . "----------------------------------------\n\n"
+                    . $message;
+            }
+
             $payload = [
                 'user_code'          => $userCode,
                 'device_id'          => $deviceId,
-                'receiver'           => $formattedPhone,
-                'message'            => $message,
+                'receiver'           => $targetPhone,
+                'message'            => $finalMessage,
                 'secret'             => $secret,
                 'enableTypingEffect' => false,
             ];
@@ -85,12 +100,13 @@ class KirimiService
             $isSuccess = $response->successful() && is_array($body) && ($body['success'] ?? false) === true;
 
             if (!$isSuccess) {
-                Log::warning("[KirimiService] WhatsApp message failed to {$formattedPhone}", [
-                    'status' => $response->status(),
-                    'body'   => $body,
+                Log::warning("[KirimiService] WhatsApp message failed to {$targetPhone} (Original: {$formattedPhone}) [Device: {$deviceId}]", [
+                    'device_id' => $deviceId,
+                    'status'    => $response->status(),
+                    'body'      => $body,
                 ]);
             } else {
-                Log::info("[KirimiService] WhatsApp message sent successfully to {$formattedPhone}");
+                Log::info("[KirimiService] WhatsApp message sent successfully to {$formattedPhone} [Device: {$deviceId}]");
             }
 
             return [
