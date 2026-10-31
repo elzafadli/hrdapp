@@ -265,31 +265,12 @@ class SickLeaveController extends Controller
         $approval = DocumentApproval::with('approvable')->findOrFail($approvalId);
         $user = auth()->user();
 
-        if ($approval->status !== 'pending') {
-            return back()->with('error', 'Tahap persetujuan ini sudah diproses.');
-        }
-
         if (!$approval->canUserApprove($user)) {
             return back()->with('error', 'Anda tidak memiliki hak akses untuk menyetujui tahap ini.');
         }
 
-        $approval->update([
-            'status'      => 'approved',
-            'approver_id' => $user->id,
-            'approved_at' => now(),
-            'notes'       => $request->input('notes'),
-        ]);
-
-        $leaveRequest = $approval->approvable;
-
-        ApprovalHistory::log(
-            $leaveRequest,
-            'approved',
-            $user,
-            $request->input('notes') ?? "Disetujui oleh level {$approval->level} ({$approval->jabatan?->jabatan})"
-        );
-
-        $leaveRequest->checkApprovalCompletion();
+        $notes = $request->input('notes', 'Disetujui.');
+        $approval->approve($user, $notes);
 
         return redirect()->back()->with('success', 'Pengajuan izin sakit berhasil disetujui.');
     }
@@ -300,43 +281,19 @@ class SickLeaveController extends Controller
     public function reject(Request $request, $approvalId)
     {
         $request->validate([
-            'rejection_reason' => 'required|string|max:1000',
+            'rejection_reason' => 'nullable|string|max:1000',
+            'notes'            => 'nullable|string|max:1000',
         ]);
 
         $approval = DocumentApproval::with('approvable')->findOrFail($approvalId);
         $user = auth()->user();
 
-        if ($approval->status !== 'pending') {
-            return back()->with('error', 'Tahap persetujuan ini sudah diproses.');
-        }
-
         if (!$approval->canUserApprove($user)) {
             return back()->with('error', 'Anda tidak memiliki hak akses untuk menolak tahap ini.');
         }
 
-        $reason = $request->input('rejection_reason');
-
-        $approval->update([
-            'status'      => 'rejected',
-            'approver_id' => $user->id,
-            'approved_at' => now(),
-            'notes'       => $reason,
-        ]);
-
-        $leaveRequest = $approval->approvable;
-        $leaveRequest->update([
-            'status'           => 'rejected',
-            'rejected_by'      => $user->id,
-            'rejected_at'      => now(),
-            'rejection_reason' => $reason,
-        ]);
-
-        ApprovalHistory::log(
-            $leaveRequest,
-            'rejected',
-            $user,
-            "Ditolak pada level {$approval->level} ({$approval->jabatan?->jabatan}): {$reason}"
-        );
+        $reason = $request->input('rejection_reason') ?? $request->input('notes') ?? 'Ditolak.';
+        $approval->reject($user, $reason);
 
         return redirect()->back()->with('success', 'Pengajuan izin sakit telah ditolak.');
     }

@@ -330,31 +330,12 @@ class OvertimeRequestController extends Controller
         $approval = DocumentApproval::with('approvable')->findOrFail($approvalId);
         $user = auth()->user();
 
-        if ($approval->status !== 'pending') {
-            return back()->with('error', 'Tahap persetujuan ini sudah diproses.');
-        }
-
         if (!$approval->canUserApprove($user)) {
             return back()->with('error', 'Anda tidak memiliki hak akses untuk menyetujui tahap ini.');
         }
 
-        $approval->update([
-            'status'      => 'approved',
-            'approver_id' => $user->id,
-            'approved_at' => now(),
-            'notes'       => $request->input('notes'),
-        ]);
-
-        $overtime = $approval->approvable;
-
-        ApprovalHistory::log(
-            $overtime,
-            'approved',
-            $user,
-            $request->input('notes') ?? "Disetujui oleh level {$approval->level} ({$approval->jabatan?->jabatan})"
-        );
-
-        $overtime->checkApprovalCompletion();
+        $notes = $request->input('notes', 'Disetujui.');
+        $approval->approve($user, $notes);
 
         return redirect()->back()->with('success', 'Pengajuan lembur berhasil disetujui.');
     }
@@ -365,43 +346,19 @@ class OvertimeRequestController extends Controller
     public function reject(Request $request, $approvalId)
     {
         $request->validate([
-            'rejection_reason' => 'required|string|max:1000',
+            'rejection_reason' => 'nullable|string|max:1000',
+            'notes'            => 'nullable|string|max:1000',
         ]);
 
         $approval = DocumentApproval::with('approvable')->findOrFail($approvalId);
         $user = auth()->user();
 
-        if ($approval->status !== 'pending') {
-            return back()->with('error', 'Tahap persetujuan ini sudah diproses.');
-        }
-
         if (!$approval->canUserApprove($user)) {
             return back()->with('error', 'Anda tidak memiliki hak akses untuk menolak tahap ini.');
         }
 
-        $reason = $request->input('rejection_reason');
-
-        $approval->update([
-            'status'      => 'rejected',
-            'approver_id' => $user->id,
-            'approved_at' => now(),
-            'notes'       => $reason,
-        ]);
-
-        $overtime = $approval->approvable;
-        $overtime->update([
-            'status'           => 'rejected',
-            'rejected_by'      => $user->id,
-            'rejected_at'      => now(),
-            'rejection_reason' => $reason,
-        ]);
-
-        ApprovalHistory::log(
-            $overtime,
-            'rejected',
-            $user,
-            "Ditolak pada level {$approval->level} ({$approval->jabatan?->jabatan}): {$reason}"
-        );
+        $reason = $request->input('rejection_reason') ?? $request->input('notes') ?? 'Ditolak.';
+        $approval->reject($user, $reason);
 
         return redirect()->back()->with('success', 'Pengajuan lembur telah ditolak.');
     }
