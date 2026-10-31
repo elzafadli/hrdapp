@@ -26,27 +26,22 @@ class LeaveRequestFile extends Model
     }
 
     /**
-     * URL file: otomatis ambil dari cloud storage (is3) atau fallback local storage.
+     * URL file: langsung generate dari IS3 (path-style).
+     * Tidak pakai exists() untuk hindari extra HTTP request yang lambat/gagal.
+     * Fallback ke public/local jika file_path terdeteksi bukan dari IS3.
      */
     public function getUrlAttribute(): string
     {
-        try {
-            if (\Illuminate\Support\Facades\Storage::disk('is3')->exists($this->file_path)) {
-                try {
-                    return \Illuminate\Support\Facades\Storage::disk('is3')->temporaryUrl($this->file_path, now()->addHours(4));
-                } catch (\Throwable $te) {
-                    return \Illuminate\Support\Facades\Storage::disk('is3')->url($this->file_path);
-                }
-            }
-        } catch (\Throwable $e) {
-            // fallback
+        if (!$this->file_path) {
+            return '';
         }
 
+        // Jika path dimulai dari "leave_attachments/" atau path cloud — langsung IS3
         try {
-            if (\Illuminate\Support\Facades\Storage::disk('public')->exists($this->file_path)) {
-                return \Illuminate\Support\Facades\Storage::disk('public')->url($this->file_path);
-            }
-        } catch (\Throwable $e) {}
+            return \Illuminate\Support\Facades\Storage::disk('is3')->url($this->file_path);
+        } catch (\Throwable $e) {
+            // IS3 config belum ada / gagal — fallback ke public
+        }
 
         return asset('storage/' . $this->file_path);
     }
