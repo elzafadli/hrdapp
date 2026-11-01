@@ -107,23 +107,25 @@
             height: 38px !important;
         }
 
-        /* Slim scrollbar untuk sidebar agar rapi & mudah di-scroll */
+        /* Slim & responsive scrollbar untuk sidebar */
         .sidebar-scroll {
             scrollbar-width: thin;
-            scrollbar-color: #334155 transparent;
+            scrollbar-color: #475569 transparent;
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
         }
         .sidebar-scroll::-webkit-scrollbar {
-            width: 5px;
+            width: 6px;
         }
         .sidebar-scroll::-webkit-scrollbar-track {
             background: transparent;
         }
         .sidebar-scroll::-webkit-scrollbar-thumb {
-            background: #334155;
+            background: #475569;
             border-radius: 9999px;
         }
         .sidebar-scroll::-webkit-scrollbar-thumb:hover {
-            background: #475569;
+            background: #64748b;
         }
     </style>
 </head>

@@ -1,4 +1,4 @@
-<aside class="w-64 bg-slate-900 text-white h-screen max-h-screen flex flex-col flex-shrink-0 overflow-hidden hidden sm:block">
+<aside class="w-64 bg-slate-900 text-white h-screen max-h-screen flex flex-col flex-shrink-0 overflow-hidden hidden sm:flex">
     {{-- Header Logo --}}
     <div class="h-16 flex items-center px-5 border-b border-gray-800 flex-shrink-0">
         <x-application-logo class="block h-8 w-auto fill-current text-white mr-3" />
@@ -6,8 +6,8 @@
     </div>
 
     {{-- Scrollable Menu Container --}}
-    <div class="flex-1 min-h-0 px-3 py-3 overflow-y-auto overflow-x-hidden sidebar-scroll">
-        <ul class="space-y-1 font-medium text-[13.5px]">
+    <div class="flex-1 min-h-0 px-3 py-3 overflow-y-auto overflow-x-hidden sidebar-scroll" style="height: calc(100vh - 4rem); max-height: calc(100vh - 4rem);">
+        <ul class="space-y-1 font-medium text-[13.5px] pb-20">
             @if(auth()->user()?->canAccessFinanceBackoffice())
             {{-- SECTION: MASTER DATA --}}
             <li class="pt-1 pb-1 px-2.5">
