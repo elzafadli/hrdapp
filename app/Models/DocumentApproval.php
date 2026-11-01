@@ -221,6 +221,11 @@ class DocumentApproval extends Model
             ]);
         }
 
+        // Kembalikan saldo cuti jika pengajuan ditolak
+        if (method_exists($this->approvable, 'restoreLeaveBalance')) {
+            $this->approvable->restoreLeaveBalance();
+        }
+
         // Kirim notifikasi WhatsApp rejection ke pemohon
         SendEssApprovalNotification::dispatch($this->approvable, 'rejected', $this, ['notes' => $notes]);
 

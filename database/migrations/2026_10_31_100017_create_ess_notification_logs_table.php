@@ -19,7 +19,7 @@ return new class extends Migration
             $table->string('receiver_name')->nullable();
             $table->string('receiver_phone')->nullable();
             $table->text('message');
-            $table->enum('status', ['success', 'failed'])->default('pending');
+            $table->enum('status', ['pending', 'success', 'failed'])->default('pending');
             $table->longText('response_payload')->nullable();
             $table->timestamps();
 

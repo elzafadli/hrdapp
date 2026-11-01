@@ -24,9 +24,19 @@
         </div>
 
         <div>
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" name="email" type="email" class="mt-1 block w-full" :value="old('email', $user->email)" required autocomplete="username" />
+            <div class="flex items-center justify-between">
+                <x-input-label for="email" :value="__('Email')" />
+                <span class="text-[11px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded flex items-center gap-1">
+                    <i class="fa-solid fa-lock text-[10px]"></i> Dikelola HRD
+                </span>
+            </div>
+            <x-text-input id="email" name="email" type="email" class="mt-1 block w-full bg-slate-100 text-slate-600 cursor-not-allowed" :value="old('email', $user->email)" readonly autocomplete="username" />
+            <p class="text-xs text-gray-500 mt-1 flex items-center gap-1 font-medium">
+                <i class="fa-solid fa-circle-info text-blue-500 text-[11px]"></i>
+                Email akun resmi ditetapkan oleh tim HRD dan tidak dapat diubah secara mandiri.
+            </p>
             <x-input-error class="mt-2" :messages="$errors->get('email')" />
+        </div>
 
             @if ($user instanceof \Illuminate\Contracts\Auth\MustVerifyEmail && ! $user->hasVerifiedEmail())
                 <div>

@@ -139,7 +139,7 @@
             @include('layouts.navigation')
 
             <!-- Main Scrollable Area -->
-            <div class="flex-1 overflow-y-auto">
+            <div class="flex-1 overflow-y-auto pb-20 sm:pb-0">
                 <!-- Page Heading -->
                 @isset($header)
                     <header class="bg-white shadow">
@@ -156,6 +156,49 @@
             </div>
         </div>
     </div>
+
+    <!-- Mobile Bottom Navigation Bar (Sesuai Tampilan Mobile App) -->
+    <nav class="sm:hidden fixed bottom-0 inset-x-0 bg-white border-t border-gray-200/90 z-50 px-2 py-1 shadow-lg pb-[max(0.35rem,env(safe-area-inset-bottom))]">
+        <div class="flex items-center justify-around max-w-md mx-auto">
+            <!-- Home -->
+            <a href="{{ route('timeline.index') }}" class="flex flex-col items-center py-1 px-2.5 text-xs transition {{ request()->routeIs('dashboard') && !request()->routeIs('timeline.*') ? 'text-blue-600 font-bold' : 'text-gray-500 hover:text-gray-900' }}">
+                <i class="fa-solid fa-house text-lg mb-0.5"></i>
+                <span class="text-[11px] leading-tight">Home</span>
+            </a>
+
+            <!-- Timeline -->
+            <a href="{{ route('timeline.index') }}" class="flex flex-col items-center py-1 px-2 text-xs transition {{ request()->routeIs('timeline.*') ? 'text-blue-600 font-bold' : 'text-gray-500 hover:text-gray-900' }}">
+                <div class="{{ request()->routeIs('timeline.*') ? 'bg-blue-100/90 text-blue-600 px-3.5 py-0.5 rounded-full' : '' }}">
+                    <i class="fa-solid fa-newspaper text-base"></i>
+                </div>
+                <span class="text-[11px] leading-tight mt-0.5">Timeline</span>
+            </a>
+
+            <!-- Kehadiran (Tombol Lingkaran Melayang di Tengah) -->
+            <a href="{{ route('attendance.check-in') }}" class="flex flex-col items-center -mt-6 group">
+                <div class="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-lg group-hover:bg-blue-700 transition border-4 border-slate-100">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7V5a2 2 0 012-2h2m10 0h2a2 2 0 012 2v2m0 10v2a2 2 0 01-2 2h-2m-10 0H5a2 2 0 01-2-2v-2" />
+                        <circle cx="12" cy="11" r="3" stroke-width="2" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 17a4 4 0 018 0" />
+                    </svg>
+                </div>
+                <span class="text-[11px] text-gray-600 font-medium mt-0.5">Kehadiran</span>
+            </a>
+
+            <!-- Perusahaan -->
+            <a href="{{ route('employee.index') }}" class="flex flex-col items-center py-1 px-2 text-xs transition {{ request()->routeIs('employee.*') ? 'text-blue-600 font-bold' : 'text-gray-500 hover:text-gray-900' }}">
+                <i class="fa-regular fa-building text-lg mb-0.5"></i>
+                <span class="text-[11px] leading-tight">Perusahaan</span>
+            </a>
+
+            <!-- Profil -->
+            <a href="{{ route('profile.edit') }}" class="flex flex-col items-center py-1 px-2.5 text-xs transition {{ request()->routeIs('profile.*') ? 'text-blue-600 font-bold' : 'text-gray-500 hover:text-gray-900' }}">
+                <i class="fa-regular fa-circle-user text-lg mb-0.5"></i>
+                <span class="text-[11px] leading-tight">Profil</span>
+            </a>
+        </div>
+    </nav>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>

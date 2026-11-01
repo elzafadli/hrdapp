@@ -22,14 +22,14 @@
                             <div>
                                 <!-- Loan Date -->
                                 <div>
-                                    <x-input-label for="loan_date" :value="__('Tanggal Pinjaman')" />
+                                    <x-input-label for="loan_date" :value="__('Tanggal Pinjaman')" :required="true" />
                                     <x-text-input id="loan_date" name="loan_date" type="date" class="mt-1 block w-full"
                                         :value="old('loan_date', $empLoan->loan_date ? $empLoan->loan_date->format('Y-m-d') : date('Y-m-d'))" required />
                                     <x-input-error class="mt-2" :messages="$errors->get('loan_date')" />
                                 </div>
                             </div>
                             <div>
-                                <x-input-label for="emp_id" :value="__('Employee')" />
+                                <x-input-label for="emp_id" :value="__('Employee')" :required="true" />
                                 <x-select-input id="emp_id" name="emp_id" class="mt-1 block w-full"
                                     :options="$employees"
                                     :selected="old('emp_id', $empLoan->emp_id ?? $selectedEmpId)"
@@ -41,7 +41,7 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                             <!-- Amount -->
                             <div>
-                                <x-input-label for="amount" :value="__('Jumlah Pinjaman')" />
+                                <x-input-label for="amount" :value="__('Jumlah Pinjaman')" :required="true" />
                                 <x-currency-input id="amount" name="amount" class="mt-1 block w-full"
                                     :value="old('amount', $empLoan->amount)" required />
                                 <x-input-error class="mt-2" :messages="$errors->get('amount')" />
@@ -49,7 +49,7 @@
 
                             <!-- Duration -->
                             <div>
-                                <x-input-label for="duration" :value="__('Durasi (Bulan)')" />
+                                <x-input-label for="duration" :value="__('Durasi (Bulan)')" :required="true" />
                                 <x-text-input id="duration" name="duration" type="number" min="1" class="mt-1 block w-full"
                                     :value="old('duration', $empLoan->duration)" required />
                                 <x-input-error class="mt-2" :messages="$errors->get('duration')" />

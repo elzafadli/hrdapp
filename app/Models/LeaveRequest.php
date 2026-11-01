@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Jobs\SendEssApprovalNotification;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -125,13 +126,12 @@ class LeaveRequest extends Model
         }
 
         // Kalo belum ada setting nya, langsung otomatis COMPLETED
+        // Saldo sudah dipotong saat submit, tidak perlu deduct lagi di sini.
         if ($workflow->isEmpty()) {
             $this->update([
                 'status' => 'completed',
                 'approved_at' => now(),
             ]);
-
-            $this->deductLeaveBalance();
 
             ApprovalHistory::log($this, 'auto_completed', null, 'Disetujui otomatis karena belum ada setting approval.');
             SendEssApprovalNotification::dispatch($this, 'auto_completed');
@@ -180,6 +180,9 @@ class LeaveRequest extends Model
         // Log aksi pengajuan ulang
         ApprovalHistory::log($this, 'resubmitted', auth()->user(), 'Pengajuan cuti diajukan kembali.');
 
+        // Potong saldo lagi karena saldo sudah dikembalikan saat ditolak sebelumnya
+        $this->deductLeaveBalance();
+
         // Re-generate approval workflow baru (otomatis menotifikasi Approver level 1)
         $this->initializeApproval();
     }
@@ -187,6 +190,7 @@ class LeaveRequest extends Model
     /**
      * Cek apakah seluruh level approval sudah disetujui.
      * Jika sudah semua, status pengajuan cuti menjadi completed.
+     * Saldo TIDAK dipotong lagi di sini karena sudah dipotong saat submit.
      */
     public function checkApprovalCompletion(): void
     {
@@ -198,13 +202,13 @@ class LeaveRequest extends Model
                 'status' => 'completed',
                 'approved_at' => now(),
             ]);
-
-            $this->deductLeaveBalance();
         }
     }
 
     /**
-     * Memotong saldo cuti tahunan saat status cuti disetujui / completed.
+     * Memotong saldo cuti tahunan.
+     * Dipanggil LANGSUNG saat pengajuan di-submit (termasuk saat masih pending),
+     * bukan menunggu completed. Ini mencegah abuse double-submit.
      */
     public function deductLeaveBalance(): void
     {
@@ -212,7 +216,8 @@ class LeaveRequest extends Model
             return;
         }
 
-        $year = $this->full_day_start_date ? $this->full_day_start_date->year : now()->year;
+        $targetDate = $this->full_day_start_date ?? $this->half_day_start_date;
+        $year = $targetDate ? Carbon::parse($targetDate)->year : now()->year;
 
         $balance = LeaveBalance::firstOrCreate(
             ['emp_id' => $this->emp_id, 'year' => $year],
@@ -220,6 +225,29 @@ class LeaveRequest extends Model
         );
 
         $balance->used_leave += $this->total_days;
+        $balance->remaining_leave = max(0, $balance->total_leave - $balance->used_leave);
+        $balance->save();
+    }
+
+    /**
+     * Kembalikan saldo cuti tahunan.
+     * Dipanggil saat pengajuan dibatalkan oleh karyawan atau ditolak oleh approver.
+     */
+    public function restoreLeaveBalance(): void
+    {
+        if ($this->leave_type !== 'annual' || $this->total_days <= 0) {
+            return;
+        }
+
+        $targetDate = $this->full_day_start_date ?? $this->half_day_start_date;
+        $year = $targetDate ? Carbon::parse($targetDate)->year : now()->year;
+
+        $balance = LeaveBalance::firstOrCreate(
+            ['emp_id' => $this->emp_id, 'year' => $year],
+            ['total_leave' => 12.0, 'used_leave' => 0.0, 'remaining_leave' => 12.0]
+        );
+
+        $balance->used_leave = max(0, $balance->used_leave - $this->total_days);
         $balance->remaining_leave = max(0, $balance->total_leave - $balance->used_leave);
         $balance->save();
     }

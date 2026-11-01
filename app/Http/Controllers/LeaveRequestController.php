@@ -107,6 +107,7 @@ class LeaveRequestController extends Controller
             ['total_leave' => 12.0, 'used_leave' => 0.0, 'remaining_leave' => 12.0]
         );
 
+        // Saldo remaining_leave sudah real-time (langsung dipotong saat submit)
         $currentRemaining = (float) $leaveBalance->remaining_leave;
 
         // Dukungan input radio button: is_half_day / leave_duration_type
@@ -379,7 +380,7 @@ class LeaveRequestController extends Controller
             return back()->withInput()->with('error', 'Tanggal yang Anda pilih seluruhnya adalah hari libur atau akhir pekan (0 hari kerja).');
         }
 
-        // Validasi Saldo Cuti
+        // Validasi Saldo Cuti — gunakan remaining_leave langsung (sudah dipotong saat submit)
         if ($totalDays > (float) $leaveBalance->remaining_leave) {
             return back()->withInput()->with('error', "Sisa cuti Anda tidak mencukupi. (Sisa: {$leaveBalance->remaining_leave} hari, diajukan: {$totalDays} hari kerja).");
         }
@@ -469,8 +470,11 @@ class LeaveRequestController extends Controller
             }
 
             // Inisialisasi alur approval:
-            // - Jika belum ada setting approval -> status otomatis 'completed' & kuota terpotong
+            // - Jika belum ada setting approval -> status otomatis 'completed'
             // - Jika ada setting approval -> status 'pending' & approval list per level terbuat
+            // Saldo cuti dipotong LANGSUNG saat submit (sebelum initializeApproval)
+            // agar tidak bisa di-abuse dengan double-submit saat pending.
+            $leaveRequest->deductLeaveBalance();
             $leaveRequest->initializeApproval();
 
             DB::commit();
@@ -520,6 +524,8 @@ class LeaveRequestController extends Controller
         }
 
         $leaveRequest->update(['status' => 'cancelled']);
+        // Kembalikan saldo cuti karena pengajuan dibatalkan
+        $leaveRequest->restoreLeaveBalance();
         ApprovalHistory::log($leaveRequest, 'cancelled', auth()->user(), 'Dibatalkan oleh pemohon.');
 
         return redirect()->route('leave.index')->with('success', 'Pengajuan cuti berhasil dibatalkan.');

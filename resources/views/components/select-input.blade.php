@@ -5,7 +5,7 @@
         {{ $attributes->whereStartsWith('x-') }}
         {{ $attributes->whereStartsWith('on') }}
         {{ $attributes->whereStartsWith('wire:') }}
-        {{ $attributes->has('required') ? 'required' : '' }}
+        {{ ($attributes->has('required') && $noSelect2) ? 'required' : '' }}
         class="{{ $noSelect2 ? '' : 'select2' }} border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-xl py-2 pl-3.5 pr-10 text-sm shadow-xs w-full bg-white">
         @if($placeholder)
             <option value="">{{ $placeholder }}</option>
@@ -58,8 +58,15 @@
     </style>
     <script>
         $(document).ready(function () {
-            $('.select2').select2({
-                width: '100%' // Ensure it takes full width
+            $('.select2').each(function () {
+                if (!$(this).data('select2')) {
+                    $(this).select2({
+                        width: '100%'
+                    }).on('change', function () {
+                        this.dispatchEvent(new Event('change', { bubbles: true }));
+                        this.dispatchEvent(new Event('input', { bubbles: true }));
+                    });
+                }
             });
         });
     </script>

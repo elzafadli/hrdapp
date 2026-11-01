@@ -22,6 +22,8 @@ class EmpLoan extends Model
         'end_date',
         'description',
         'status',
+        'budget_id',
+        'budget_reference_number',
     ];
 
     protected $casts = [
@@ -35,5 +37,10 @@ class EmpLoan extends Model
     public function employee(): BelongsTo
     {
         return $this->belongsTo(EmpData::class, 'emp_id');
+    }
+
+    public function budget(): BelongsTo
+    {
+        return $this->belongsTo(Budget::class, 'budget_id');
     }
 }

@@ -8,6 +8,7 @@
     {{-- Scrollable Menu Container --}}
     <div class="flex-1 min-h-0 px-3 py-3 overflow-y-auto overflow-x-hidden sidebar-scroll">
         <ul class="space-y-1 font-medium text-[13.5px]">
+            @if(auth()->user()?->canAccessFinanceBackoffice())
             {{-- SECTION: MASTER DATA --}}
             <li class="pt-1 pb-1 px-2.5">
                 <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Master Data</span>
@@ -131,10 +132,38 @@
                     </li>
                 </ul>
             </li>
+            @endif
 
             {{-- SECTION: ESS --}}
             <li class="pt-2.5 pb-1 px-2.5">
                 <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">ESS</span>
+            </li>
+
+            {{-- Timeline --}}
+            <li>
+                <a href="{{ route('timeline.index') }}"
+                    class="flex items-center px-3 py-2 rounded-xl group transition duration-75 {{ request()->routeIs('timeline.*') ? 'bg-blue-600 text-white font-bold shadow-xs' : 'text-slate-300 hover:bg-gray-800/80 hover:text-white' }}">
+                    <i class="fa-solid fa-newspaper w-4 h-4 text-sm transition duration-75 {{ request()->routeIs('timeline.*') ? 'text-white' : 'text-blue-400 group-hover:text-white' }}"></i>
+                    <span class="ms-3 flex-1">Timeline</span>
+                </a>
+            </li>
+
+            {{-- Profile ESS --}}
+            <li>
+                <a href="{{ route('ess.profile') }}"
+                    class="flex items-center px-3 py-2 rounded-xl group transition duration-75 {{ request()->routeIs('ess.profile') ? 'bg-blue-600 text-white font-bold shadow-xs' : 'text-slate-300 hover:bg-gray-800/80 hover:text-white' }}">
+                    <i class="fa-solid fa-id-badge w-4 h-4 text-sm transition duration-75 {{ request()->routeIs('ess.profile') ? 'text-white' : 'text-blue-400 group-hover:text-white' }}"></i>
+                    <span class="ms-3 flex-1">Profile</span>
+                </a>
+            </li>
+
+            {{-- Kalender ESS --}}
+            <li>
+                <a href="{{ route('calendar.index') }}"
+                    class="flex items-center px-3 py-2 rounded-xl group transition duration-75 {{ request()->routeIs('calendar.*') ? 'bg-gray-800 text-white font-bold' : 'text-slate-300 hover:bg-gray-800/80 hover:text-white' }}">
+                    <i class="fa-solid fa-calendar-days w-4 h-4 text-sm transition duration-75 {{ request()->routeIs('calendar.*') ? 'text-blue-400' : 'text-slate-400 group-hover:text-white' }}"></i>
+                    <span class="ms-3 flex-1">Kalender ESS</span>
+                </a>
             </li>
 
             {{-- Presensi Dropdown --}}
@@ -172,6 +201,9 @@
                 $showApprovalMenu = false;
                 try {
                     $sidebarUser = auth()->user();
+                    if ($sidebarUser) {
+                        $sidebarUser->loadMissing('employee');
+                    }
                     $sidebarEmp  = $sidebarUser?->employee;
                     if ($sidebarEmp?->jabatan_id) {
                         $showApprovalMenu = \App\Models\ApprovalSetting::isJabatanAnApprover((int) $sidebarEmp->jabatan_id);

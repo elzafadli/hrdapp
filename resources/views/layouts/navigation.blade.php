@@ -4,23 +4,17 @@
         <div class="flex justify-between h-16">
             <div class="flex items-center">
                 <!-- Mobile Logo & Brand (visible on mobile only) -->
-                <a href="{{ route('dashboard') }}" class="flex items-center gap-2 sm:hidden">
+                <a href="{{ route('timeline.index') }}" class="flex items-center gap-2 sm:hidden">
                     <x-application-logo class="block h-7 w-auto fill-current text-blue-600" />
                     <span class="font-bold text-gray-900 tracking-tight text-sm">HRD System</span>
                 </a>
-
-                <!-- Navigation Links -->
-                <div class="hidden space-x-4 sm:-my-px sm:flex sm:items-center">
-                    <a href="{{ route('leave.index') }}"
-                        class="inline-flex items-center px-3 py-1.5 text-sm font-medium rounded-md transition duration-150 ease-in-out {{ request()->routeIs('leave.*') ? 'text-blue-600 bg-blue-50 font-semibold' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50' }}">
-                        <i class="fa-solid fa-umbrella-beach mr-2 text-blue-500"></i>
-                        ESS - Cuti Tahunan
-                    </a>
-                </div>
             </div>
 
             @php
                 $navUser = Auth::user();
+                if ($navUser) {
+                    $navUser->loadMissing(['employee.jabatan', 'employee.company', 'employee.project.company']);
+                }
                 $navEmp = $navUser?->employee;
                 $navDisplayName = $navEmp?->name ?? $navUser?->name;
                 $navJabatan = $navEmp?->jabatan?->jabatan ?? ucfirst(str_replace('_', ' ', $navUser?->role ?? 'User'));
@@ -70,9 +64,14 @@
                             </div>
                         </div>
 
+                        <x-dropdown-link :href="route('ess.profile')">
+                            <i class="fa-solid fa-id-badge mr-2 text-blue-500"></i>
+                            {{ __('Profile Karyawan') }}
+                        </x-dropdown-link>
+
                         <x-dropdown-link :href="route('profile.edit')">
                             <i class="fa-regular fa-user mr-2 text-gray-400"></i>
-                            {{ __('Profile') }}
+                            {{ __('Profile Akun') }}
                         </x-dropdown-link>
 
                         <!-- Authentication -->
@@ -108,9 +107,27 @@
     <!-- Responsive Navigation Menu -->
     <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden">
         <div class="pt-2 pb-3 space-y-1">
-            <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
+            <x-responsive-nav-link :href="route('timeline.index')" :active="request()->routeIs('timeline.*')">
+                <i class="fa-solid fa-newspaper mr-2 text-blue-500"></i>
+                {{ __('Timeline') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('ess.profile')" :active="request()->routeIs('ess.profile')">
+                <i class="fa-solid fa-id-badge mr-2 text-blue-500"></i>
+                {{ __('Profile') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard') && !request()->routeIs('timeline.*')">
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
+            @if(auth()->user()?->canAccessFinanceBackoffice())
+            <x-responsive-nav-link :href="route('employee.index')" :active="request()->routeIs('employee.*')">
+                <i class="fa-solid fa-users mr-2 text-blue-500"></i>
+                {{ __('Employee Data') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('emp-allowance.index')" :active="request()->routeIs('emp-allowance.*')">
+                <i class="fa-solid fa-hand-holding-dollar mr-2 text-blue-500"></i>
+                {{ __('Employee Allowance') }}
+            </x-responsive-nav-link>
+            @endif
             @php
                 $navShowApprovalMenu = false;
                 try {
@@ -129,6 +146,10 @@
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('attendance.check-out')" :active="request()->routeIs('attendance.check-out')">
                 {{ __('Presensi Keluar (ESS)') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('calendar.index')" :active="request()->routeIs('calendar.*')">
+                <i class="fa-solid fa-calendar-days mr-2 text-blue-500"></i>
+                {{ __('Kalender ESS') }}
             </x-responsive-nav-link>
             <x-responsive-nav-link :href="route('leave.index')" :active="request()->routeIs('leave.*')">
                 {{ __('Cuti Tahunan (ESS)') }}
@@ -160,6 +181,11 @@
             </div>
 
             <div class="mt-3 space-y-1">
+                <x-responsive-nav-link :href="route('ess.profile')" :active="request()->routeIs('ess.profile')">
+                    <i class="fa-solid fa-id-badge mr-2 text-blue-500"></i>
+                    {{ __('Profile Karyawan') }}
+                </x-responsive-nav-link>
+
                 <x-responsive-nav-link :href="route('profile.edit')">
                     {{ __('Profile') }}
                 </x-responsive-nav-link>

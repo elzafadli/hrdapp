@@ -69,4 +69,34 @@ class User extends Authenticatable
     {
         return $this->hasMany(LeaveRequest::class, 'user_id');
     }
+
+    /**
+     * Cek apakah user berhak mengakses menu Master Data & Payroll (Hanya Finance, Admin Finance, dan Cashier).
+     */
+    public function canAccessFinanceBackoffice(): bool
+    {
+        // 1. Ambil nama jabatan karyawan
+        $jabatanName = $this->employee?->jabatan?->jabatan;
+        if (!$jabatanName && !$this->relationLoaded('employee')) {
+            $jabatanName = $this->employee()->with('jabatan')->first()?->jabatan?->jabatan;
+        }
+
+        $allowedJabatan = [
+            'finance',
+            'admin finance',
+            'cashier',
+        ];
+
+        if ($jabatanName && in_array(strtolower(trim($jabatanName)), $allowedJabatan, true)) {
+            return true;
+        }
+
+        // 2. Fallback periksa role akun user jika ada kecocokan
+        $userRole = strtolower(trim(str_replace('_', ' ', $this->role ?? '')));
+        if (in_array($userRole, $allowedJabatan, true) || in_array(strtolower($this->role ?? ''), ['finance', 'admin_finance', 'cashier'], true)) {
+            return true;
+        }
+
+        return false;
+    }
 }
