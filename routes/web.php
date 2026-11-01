@@ -57,6 +57,24 @@ Route::middleware('auth')->group(function () {
         Route::resource('emp-bpjs', \App\Http\Controllers\EmpBpjsController::class)
             ->only(['index', 'edit', 'update'])
             ->parameters(['emp-bpjs' => 'emp_bpjs']);
+
+        // Master Data & Operasional Settings
+        Route::post('holidays/auto-generate', [\App\Http\Controllers\HolidayController::class, 'autoGenerate'])->name('holidays.auto-generate');
+        Route::resource('holidays', \App\Http\Controllers\HolidayController::class);
+
+        Route::post('work-schedules/{work_schedule}/set-default', [\App\Http\Controllers\WorkScheduleController::class, 'setDefault'])->name('work-schedules.set-default');
+        Route::resource('work-schedules', \App\Http\Controllers\WorkScheduleController::class);
+
+        Route::post('emp-schedules/bulk-assign', [\App\Http\Controllers\EmpScheduleController::class, 'bulkAssign'])->name('emp-schedules.bulk-assign');
+        Route::resource('emp-schedules', \App\Http\Controllers\EmpScheduleController::class);
+
+        Route::resource('special-leave-types', \App\Http\Controllers\SpecialLeaveTypeController::class);
+
+        Route::get('attendance-settings', [\App\Http\Controllers\AttendanceSettingController::class, 'index'])->name('attendance-settings.index');
+        Route::post('attendance-settings', [\App\Http\Controllers\AttendanceSettingController::class, 'update'])->name('attendance-settings.update');
+
+        Route::post('leave-balances/generate-annual', [\App\Http\Controllers\LeaveBalanceController::class, 'generateAnnual'])->name('leave-balances.generate-annual');
+        Route::resource('leave-balances', \App\Http\Controllers\LeaveBalanceController::class);
     });
 
     // ESS - Cuti & Izin
