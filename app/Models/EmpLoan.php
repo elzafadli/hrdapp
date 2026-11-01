@@ -14,6 +14,7 @@ class EmpLoan extends Model
 
     protected $fillable = [
         'emp_id',
+        'project_id',
         'amount',
         'installment_amount',
         'duration',
@@ -21,6 +22,7 @@ class EmpLoan extends Model
         'start_date',
         'end_date',
         'description',
+        'attachment',
         'status',
         'budget_id',
         'budget_reference_number',
@@ -37,6 +39,11 @@ class EmpLoan extends Model
     public function employee(): BelongsTo
     {
         return $this->belongsTo(EmpData::class, 'emp_id');
+    }
+
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class, 'project_id');
     }
 
     public function budget(): BelongsTo

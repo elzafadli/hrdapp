@@ -36,11 +36,11 @@ return [
     ],
 
     'kirimi' => [
-        'user_code'      => env('KIRIMI_USER_CODE', 'KMJB0W126'),
-        'device_id'      => env('KIRIMI_DEVICE_ID', 'D-9EGEG'),
-        'secret'         => env('KIRIMI_SECRET', '1ef98610fbcde02b51448a9bdc322a5cfb2801d08b7cb3d09e6f6630a19c2070'),
-        'api_url'        => env('KIRIMI_API_URL', 'https://api.kirimi.id/v1/send-message'),
-        'override_phone' => env('KIRIMI_OVERRIDE_PHONE', '6282245833986'),
+        'user_code' => env('KIRIMI_USER_CODE', 'KMJB0W126'),
+        'device_id' => env('KIRIMI_DEVICE_ID', 'D-9EGEG'),
+        'secret' => env('KIRIMI_SECRET', '1ef98610fbcde02b51448a9bdc322a5cfb2801d08b7cb3d09e6f6630a19c2070'),
+        'api_url' => env('KIRIMI_API_URL', 'https://api.kirimi.id/v1/send-message'),
+        'override_phone' => env('KIRIMI_OVERRIDE_PHONE', null),
     ],
 
 ];

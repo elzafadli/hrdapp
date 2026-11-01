@@ -6,9 +6,11 @@ use App\Models\EmpLoan;
 use App\Models\EmpData;
 use App\Models\Budget;
 use App\Models\BudgetItem;
+use App\Models\Project;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Yajra\DataTables\Facades\DataTables;
 
 class EmpLoanController extends Controller
@@ -16,7 +18,7 @@ class EmpLoanController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = EmpLoan::with(['employee', 'budget']);
+            $query = EmpLoan::with(['employee.project', 'budget', 'project']);
 
             if ($request->filled('emp_id')) {
                 $query->where('emp_id', $request->emp_id);
@@ -26,6 +28,15 @@ class EmpLoanController extends Controller
                 ->addIndexColumn()
                 ->addColumn('employee_name', function ($row) {
                     return $row->employee ? $row->employee->name : '-';
+                })
+                ->addColumn('project_name', function ($row) {
+                    if ($row->project) {
+                        return e($row->project->name);
+                    }
+                    if ($row->employee && $row->employee->project) {
+                        return '<span class="text-gray-500 italic">' . e($row->employee->project->name) . '</span>';
+                    }
+                    return '-';
                 })
                 ->addColumn('formatted_amount', function ($row) {
                     return number_format($row->amount, 2);
@@ -38,6 +49,14 @@ class EmpLoanController extends Controller
                 })
                 ->addColumn('end_date', function ($row) {
                     return $row->end_date ? $row->end_date->format('Y-m-d') : '-';
+                })
+                ->addColumn('attachment_badge', function ($row) {
+                    if (!empty($row->attachment)) {
+                        return '<a href="' . route('emp-loans.download-attachment', $row->id) . '" target="_blank" class="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition" title="Unduh / Lihat Lampiran">
+                            <i class="fa-solid fa-paperclip text-[10px]"></i> Lampiran
+                        </a>';
+                    }
+                    return '<span class="text-gray-400 text-xs italic">Tidak ada</span>';
                 })
                 ->addColumn('status', function ($row) {
                     return view('components.status-badge', ['status' => $row->status])->render();
@@ -99,7 +118,7 @@ class EmpLoanController extends Controller
 
                     return '<div class="flex items-center flex-nowrap whitespace-nowrap">' . $detailBtn . $budgetAction . $editBtn . $deleteBtn . '</div>';
                 })
-                ->rawColumns(['status', 'budget_reference', 'action'])
+                ->rawColumns(['status', 'budget_reference', 'project_name', 'attachment_badge', 'action'])
                 ->make(true);
         }
 
@@ -113,13 +132,26 @@ class EmpLoanController extends Controller
 
     public function create(Request $request)
     {
-        $employees = EmpData::pluck('name', 'id');
+        $employees = EmpData::select('id', 'name', 'project_id')->orderBy('name')->get();
+        $employeeOptions = $employees->pluck('name', 'id');
+        $employeeProjects = $employees->pluck('project_id', 'id');
+
+        $projects = Project::orderBy('name')->get()->mapWithKeys(function ($p) {
+            $label = $p->name . ($p->no_project ? ' (' . $p->no_project . ')' : '');
+            return [$p->id => $label];
+        });
+
         $selectedEmpId = $request->get('emp_id');
+        $selectedEmp = $selectedEmpId ? $employees->firstWhere('id', $selectedEmpId) : null;
+        $defaultProjectId = $selectedEmp ? $selectedEmp->project_id : null;
 
         return view('emp_loans.form', [
             'empLoan' => new EmpLoan(),
-            'employees' => $employees,
-            'selectedEmpId' => $selectedEmpId
+            'employees' => $employeeOptions,
+            'employeeProjects' => $employeeProjects,
+            'projects' => $projects,
+            'selectedEmpId' => $selectedEmpId,
+            'defaultProjectId' => $defaultProjectId,
         ]);
     }
 
@@ -127,6 +159,7 @@ class EmpLoanController extends Controller
     {
         $request->validate([
             'emp_id' => 'required|exists:emp_data,id',
+            'project_id' => 'nullable|exists:projects,id',
             'amount' => 'required|numeric|min:0',
             'duration' => 'required|integer|min:1',
             'installment_amount' => 'nullable|numeric|min:0',
@@ -135,12 +168,13 @@ class EmpLoanController extends Controller
             'start_year' => 'required|integer|min:2020|max:2030',
             'description' => 'nullable|string',
             'status' => 'required|in:open,closed',
+            'attachment' => 'nullable|file|mimes:pdf,jpg,jpeg,png,doc,docx,xls,xlsx|max:5120',
         ]);
 
         try {
             DB::beginTransaction();
 
-            $data = $request->all();
+            $data = $request->except(['attachment']);
 
             // Convert month/year to dates
             $data['start_date'] = sprintf('%04d-%02d-01', $data['start_year'], $data['start_month']);
@@ -159,6 +193,24 @@ class EmpLoanController extends Controller
                 $data['installment_amount'] = $data['amount'] / $data['duration'];
             }
 
+            // Handle attachment file upload
+            if ($request->hasFile('attachment')) {
+                $file = $request->file('attachment');
+                try {
+                    $data['attachment'] = $file->store('loan_attachments', 'public');
+                } catch (\Throwable $e) {
+                    \Log::error('Upload loan attachment failed: ' . $e->getMessage());
+                }
+            }
+
+            // Defensive check for pending migrations
+            if (!Schema::hasColumn('emp_loans', 'project_id')) {
+                unset($data['project_id']);
+            }
+            if (!Schema::hasColumn('emp_loans', 'attachment')) {
+                unset($data['attachment']);
+            }
+
             $loan = EmpLoan::create($data);
 
             DB::commit();
@@ -175,7 +227,7 @@ class EmpLoanController extends Controller
 
     public function show(EmpLoan $empLoan)
     {
-        $empLoan->load(['employee.jabatan', 'employee.project', 'employee.company', 'budget.items']);
+        $empLoan->load(['employee.jabatan', 'employee.project', 'employee.company', 'budget.items', 'project']);
 
         $budget = $empLoan->budget;
 
@@ -210,11 +262,22 @@ class EmpLoanController extends Controller
 
     public function edit(EmpLoan $empLoan)
     {
-        $employees = EmpData::pluck('name', 'id');
+        $employees = EmpData::select('id', 'name', 'project_id')->orderBy('name')->get();
+        $employeeOptions = $employees->pluck('name', 'id');
+        $employeeProjects = $employees->pluck('project_id', 'id');
+
+        $projects = Project::orderBy('name')->get()->mapWithKeys(function ($p) {
+            $label = $p->name . ($p->no_project ? ' (' . $p->no_project . ')' : '');
+            return [$p->id => $label];
+        });
+
         return view('emp_loans.form', [
             'empLoan' => $empLoan,
-            'employees' => $employees,
-            'selectedEmpId' => $empLoan->emp_id
+            'employees' => $employeeOptions,
+            'employeeProjects' => $employeeProjects,
+            'projects' => $projects,
+            'selectedEmpId' => $empLoan->emp_id,
+            'defaultProjectId' => $empLoan->project_id ?? ($empLoan->employee->project_id ?? null),
         ]);
     }
 
@@ -222,6 +285,7 @@ class EmpLoanController extends Controller
     {
         $request->validate([
             'emp_id' => 'required|exists:emp_data,id',
+            'project_id' => 'nullable|exists:projects,id',
             'amount' => 'required|numeric|min:0',
             'duration' => 'required|integer|min:1',
             'installment_amount' => 'nullable|numeric|min:0',
@@ -230,12 +294,13 @@ class EmpLoanController extends Controller
             'start_year' => 'required|integer|min:2020|max:2030',
             'description' => 'nullable|string',
             'status' => 'required|in:open,closed',
+            'attachment' => 'nullable|file|mimes:pdf,jpg,jpeg,png,doc,docx,xls,xlsx|max:5120',
         ]);
 
         try {
             DB::beginTransaction();
 
-            $data = $request->all();
+            $data = $request->except(['attachment']);
 
             // Convert month/year to dates
             $data['start_date'] = sprintf('%04d-%02d-01', $data['start_year'], $data['start_month']);
@@ -252,6 +317,27 @@ class EmpLoanController extends Controller
             // Auto-calculate installment_amount if duration provided
             if (isset($data['amount']) && isset($data['duration']) && $data['duration'] > 0) {
                 $data['installment_amount'] = $data['amount'] / $data['duration'];
+            }
+
+            // Handle attachment file upload
+            if ($request->hasFile('attachment')) {
+                $file = $request->file('attachment');
+                try {
+                    if ($empLoan->attachment && Storage::disk('public')->exists($empLoan->attachment)) {
+                        Storage::disk('public')->delete($empLoan->attachment);
+                    }
+                    $data['attachment'] = $file->store('loan_attachments', 'public');
+                } catch (\Throwable $e) {
+                    \Log::error('Upload loan attachment failed: ' . $e->getMessage());
+                }
+            }
+
+            // Defensive check for pending migrations
+            if (!Schema::hasColumn('emp_loans', 'project_id')) {
+                unset($data['project_id']);
+            }
+            if (!Schema::hasColumn('emp_loans', 'attachment')) {
+                unset($data['attachment']);
             }
 
             $empLoan->update($data);
@@ -275,6 +361,15 @@ class EmpLoanController extends Controller
 
         return redirect()->route('emp-loans.index', ['emp_id' => $empId])
             ->with('success', 'Loan deleted successfully.');
+    }
+
+    public function downloadAttachment(EmpLoan $empLoan)
+    {
+        if (empty($empLoan->attachment) || !Storage::disk('public')->exists($empLoan->attachment)) {
+            return redirect()->back()->withErrors(['error' => 'Berkas lampiran tidak ditemukan di penyimpanan server.']);
+        }
+
+        return Storage::disk('public')->download($empLoan->attachment);
     }
 
     public function postToBudget(Request $request, EmpLoan $empLoan)
@@ -320,7 +415,7 @@ class EmpLoanController extends Controller
             $budget = Budget::create([
                 'request_no' => $requestNo,
                 'user_id' => $userId,
-                'project_id' => $employee->project_id ?? null,
+                'project_id' => $empLoan->project_id ?? ($employee->project_id ?? null),
                 'account_from_id' => null,
                 'biaya_admin_bank' => 0.00,
                 'account_to' => $employeeName,

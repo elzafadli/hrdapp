@@ -169,8 +169,23 @@
                     </div>
 
                     <div class="divide-y divide-gray-100 text-xs">
+                        <div class="py-2.5 flex justify-between items-center">
+                            <span class="text-gray-500">Alokasi Proyek Pinjaman</span>
+                            <span class="font-semibold text-gray-800 text-right">
+                                @if($empLoan->project)
+                                    <span class="inline-flex items-center gap-1 text-blue-700 bg-blue-50 px-2 py-0.5 rounded font-bold">
+                                        <i class="fa-solid fa-diagram-project text-[10px]"></i>
+                                        {{ $empLoan->project->name }} {{ $empLoan->project->no_project ? '(' . $empLoan->project->no_project . ')' : '' }}
+                                    </span>
+                                @elseif($empLoan->employee && $empLoan->employee->project)
+                                    {{ $empLoan->employee->project->name }}
+                                @else
+                                    -
+                                @endif
+                            </span>
+                        </div>
                         <div class="py-2.5 flex justify-between">
-                            <span class="text-gray-500">Departemen / Proyek</span>
+                            <span class="text-gray-500">Departemen Asal</span>
                             <span class="font-semibold text-gray-800 text-right">{{ $empLoan->employee->project->name ?? '-' }}</span>
                         </div>
                         <div class="py-2.5 flex justify-between">
@@ -232,6 +247,32 @@
                         <div class="p-3 bg-gray-50 rounded-lg border border-gray-100 text-xs text-gray-700">
                             {{ $empLoan->description ?: 'Tidak ada keterangan tambahan.' }}
                         </div>
+                    </div>
+
+                    <div class="pt-2 border-t border-gray-100">
+                        <span class="block text-xs font-semibold text-gray-600 mb-2">Lampiran Dokumen / Attachment:</span>
+                        @if($empLoan->attachment)
+                            <div class="flex items-center justify-between p-3.5 bg-blue-50/60 border border-blue-200 rounded-xl">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-lg bg-blue-600 text-white flex items-center justify-center text-sm shadow-xs">
+                                        <i class="fa-solid fa-paperclip"></i>
+                                    </div>
+                                    <div>
+                                        <span class="text-xs font-bold text-gray-900 block">{{ basename($empLoan->attachment) }}</span>
+                                        <span class="text-[11px] text-gray-500">Berkas pendukung perjanjian pinjaman</span>
+                                    </div>
+                                </div>
+                                <a href="{{ route('emp-loans.download-attachment', $empLoan->id) }}" target="_blank"
+                                    class="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs transition">
+                                    <i class="fa-solid fa-download text-xs"></i>
+                                    Unduh Berkas
+                                </a>
+                            </div>
+                        @else
+                            <div class="p-3 bg-gray-50 rounded-lg border border-gray-100 text-xs text-gray-400 italic">
+                                <i class="fa-solid fa-info-circle mr-1"></i> Tidak ada dokumen lampiran yang diunggah.
+                            </div>
+                        @endif
                     </div>
                 </div>
 

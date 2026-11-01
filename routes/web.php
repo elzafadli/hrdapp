@@ -43,6 +43,7 @@ Route::middleware('auth')->group(function () {
         Route::resource('payroll-components', \App\Http\Controllers\PayrollComponentController::class);
         Route::resource('emp-allowance', \App\Http\Controllers\EmpAllowanceController::class)->only(['index', 'edit', 'update']);
         Route::post('emp-loans/{emp_loan}/post-to-budget', [\App\Http\Controllers\EmpLoanController::class, 'postToBudget'])->name('emp-loans.post-to-budget');
+        Route::get('emp-loans/{emp_loan}/download-attachment', [\App\Http\Controllers\EmpLoanController::class, 'downloadAttachment'])->name('emp-loans.download-attachment');
         Route::resource('emp-loans', \App\Http\Controllers\EmpLoanController::class);
         Route::resource('potongan-karyawan', \App\Http\Controllers\PotonganKaryawanController::class);
 

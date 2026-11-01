@@ -53,7 +53,7 @@
                         </div>
                     @endif
 
-                    <x-data-table id="emp-loan-table" :headers="['No', 'Employee', 'Amount', 'Cicilan Per Bulan', 'Start Date', 'End Date', 'Status', 'Budget Ref', 'Action']" />
+                    <x-data-table id="emp-loan-table" :headers="['No', 'Employee', 'Project', 'Amount', 'Cicilan / Bulan', 'Start Date', 'End Date', 'Lampiran', 'Status', 'Budget Ref', 'Action']" />
                 </div>
             </div>
         </div>
@@ -69,10 +69,12 @@
                     columns: [
                         { data: 'DT_RowIndex', name: 'DT_RowIndex', orderable: false, searchable: false },
                         { data: 'employee_name', name: 'employee.name' },
+                        { data: 'project_name', name: 'project.name' },
                         { data: 'formatted_amount', name: 'amount' },
                         { data: 'formatted_installment', name: 'installment_amount' },
                         { data: 'start_date', name: 'start_date' },
                         { data: 'end_date', name: 'end_date' },
+                        { data: 'attachment_badge', name: 'attachment_badge', orderable: false, searchable: false },
                         { data: 'status', name: 'status' },
                         { data: 'budget_reference', name: 'budget_reference_number' },
                         { data: 'action', name: 'action', orderable: false, searchable: false },
