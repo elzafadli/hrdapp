@@ -1,4 +1,4 @@
-<nav x-data="{ open: false }" class="bg-white border-b border-gray-100">
+<nav x-data="{ open: false }" class="bg-white border-b border-gray-100 relative z-30">
     <!-- Primary Navigation Menu -->
     <div class="w-full px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
@@ -104,102 +104,111 @@
         </div>
     </div>
 
-    <!-- Responsive Navigation Menu -->
-    <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden">
-        <div class="pt-2 pb-3 space-y-1">
-            <x-responsive-nav-link :href="route('timeline.index')" :active="request()->routeIs('timeline.*')">
-                <i class="fa-solid fa-newspaper mr-2 text-blue-500"></i>
-                {{ __('Timeline') }}
-            </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('ess.profile')" :active="request()->routeIs('ess.profile')">
-                <i class="fa-solid fa-id-badge mr-2 text-blue-500"></i>
-                {{ __('Profile') }}
-            </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard') && !request()->routeIs('timeline.*')">
-                {{ __('Dashboard') }}
-            </x-responsive-nav-link>
-            @if(auth()->user()?->canAccessFinanceBackoffice())
-            <x-responsive-nav-link :href="route('employee.index')" :active="request()->routeIs('employee.*')">
-                <i class="fa-solid fa-users mr-2 text-blue-500"></i>
-                {{ __('Employee Data') }}
-            </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('emp-allowance.index')" :active="request()->routeIs('emp-allowance.*')">
-                <i class="fa-solid fa-hand-holding-dollar mr-2 text-blue-500"></i>
-                {{ __('Employee Allowance') }}
-            </x-responsive-nav-link>
-            @endif
-            @php
-                $navShowApprovalMenu = false;
-                try {
-                    if ($navEmp?->jabatan_id) {
-                        $navShowApprovalMenu = \App\Models\ApprovalSetting::isJabatanAnApprover((int) $navEmp->jabatan_id);
-                    }
-                } catch (\Exception $e) {}
-            @endphp
-            @if($navShowApprovalMenu)
-            <x-responsive-nav-link :href="route('approval-inbox.index')" :active="request()->routeIs('approval-inbox.*')">
-                {{ __('Approval Inbox') }}
-            </x-responsive-nav-link>
-            @endif
-            <x-responsive-nav-link :href="route('attendance.check-in')" :active="request()->routeIs('attendance.check-in')">
-                {{ __('Presensi Masuk (ESS)') }}
-            </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('attendance.check-out')" :active="request()->routeIs('attendance.check-out')">
-                {{ __('Presensi Keluar (ESS)') }}
-            </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('calendar.index')" :active="request()->routeIs('calendar.*')">
-                <i class="fa-solid fa-calendar-days mr-2 text-blue-500"></i>
-                {{ __('Kalender ESS') }}
-            </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('leave.index')" :active="request()->routeIs('leave.*')">
-                {{ __('Cuti Tahunan (ESS)') }}
-            </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('special-leave.index')" :active="request()->routeIs('special-leave.*')">
-                {{ __('Cuti Khusus (ESS)') }}
-            </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('permit.index')" :active="request()->routeIs('permit.*')">
-                {{ __('Izin (ESS)') }}
-            </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('sick.index')" :active="request()->routeIs('sick.*')">
-                {{ __('Izin Sakit (ESS)') }}
-            </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('overtime.index')" :active="request()->routeIs('overtime.*')">
-                {{ __('Lembur (ESS)') }}
-            </x-responsive-nav-link>
-        </div>
+    <!-- Mobile Navigation Overlay & Floating Card -->
+    <template x-teleport="body">
+        <div class="sm:hidden">
+            <!-- Mobile Backdrop Overlay -->
+            <div x-show="open"
+                x-transition:enter="transition-opacity ease-out duration-200"
+                x-transition:enter-start="opacity-0"
+                x-transition:enter-end="opacity-100"
+                x-transition:leave="transition-opacity ease-in duration-150"
+                x-transition:leave-start="opacity-100"
+                x-transition:leave-end="opacity-0"
+                @click="open = false"
+                class="fixed inset-0 z-[80] bg-slate-900/60 backdrop-blur-sm"
+                style="display: none;">
+            </div>
 
-        <!-- Responsive Settings Options -->
-        <div class="pt-4 pb-1 border-t border-gray-200">
-            <div class="px-4">
-                <div class="font-bold text-base text-gray-900">{{ $navDisplayName }}</div>
-                <div class="flex items-center gap-1.5 text-xs text-gray-500 mt-0.5">
-                    <span class="font-semibold text-blue-600">{{ $navJabatan }}</span>
-                    <span>•</span>
-                    <span class="font-mono bg-gray-100 px-1 rounded text-[10px] font-bold text-gray-700">{{ $navCompCode }}</span>
+            <!-- Responsive Navigation Menu (Floating Card Modal - Tidak Mendorong Content) -->
+            <div x-show="open"
+                x-transition:enter="transition ease-out duration-200"
+                x-transition:enter-start="opacity-0 -translate-y-3 scale-95"
+                x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+                x-transition:leave="transition ease-in duration-150"
+                x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+                x-transition:leave-end="opacity-0 -translate-y-3 scale-95"
+                class="fixed top-[4.5rem] inset-x-3 z-[90] bg-white rounded-2xl shadow-2xl border border-gray-200 max-h-[calc(100vh-6.5rem)] flex flex-col overflow-hidden"
+                style="display: none;">
+
+                <!-- Header Popup Menu -->
+                <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100 bg-slate-50/80 shrink-0">
+                    <div class="flex items-center gap-2">
+                        <x-application-logo class="block h-6 w-auto fill-current text-blue-600" />
+                        <span class="font-bold text-gray-900 tracking-tight text-sm">Menu HRD</span>
+                    </div>
+                    <button type="button" @click="open = false" class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-200/60 transition cursor-pointer">
+                        <i class="fa-solid fa-xmark text-sm"></i>
+                    </button>
                 </div>
-                <div class="text-xs text-gray-400 mt-1 font-mono">{{ Auth::user()->email }}</div>
-            </div>
 
-            <div class="mt-3 space-y-1">
-                <x-responsive-nav-link :href="route('ess.profile')" :active="request()->routeIs('ess.profile')">
-                    <i class="fa-solid fa-id-badge mr-2 text-blue-500"></i>
-                    {{ __('Profile Karyawan') }}
-                </x-responsive-nav-link>
-
-                <x-responsive-nav-link :href="route('profile.edit')">
-                    {{ __('Profile') }}
-                </x-responsive-nav-link>
-
-                <!-- Authentication -->
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-
-                    <x-responsive-nav-link :href="route('logout')" onclick="event.preventDefault();
-                                        this.closest('form').submit();">
-                        {{ __('Log Out') }}
+                <!-- Scrollable Menu Links -->
+                <div class="flex-1 overflow-y-auto px-2 py-2 space-y-1">
+                    <x-responsive-nav-link :href="route('timeline.index')" :active="request()->routeIs('timeline.*')" @click="open = false">
+                        <i class="fa-solid fa-newspaper mr-2 text-blue-500"></i>
+                        {{ __('Timeline') }}
                     </x-responsive-nav-link>
-                </form>
+                    <x-responsive-nav-link :href="route('ess.profile')" :active="request()->routeIs('ess.profile')" @click="open = false">
+                        <i class="fa-solid fa-id-badge mr-2 text-blue-500"></i>
+                        {{ __('Profile') }}
+                    </x-responsive-nav-link>
+                    @php
+                        $navShowApprovalMenu = false;
+                        try {
+                            if ($navEmp?->jabatan_id) {
+                                $navShowApprovalMenu = \App\Models\ApprovalSetting::isJabatanAnApprover((int) $navEmp->jabatan_id);
+                            }
+                        } catch (\Exception $e) {}
+                    @endphp
+                    @if($navShowApprovalMenu)
+                    <x-responsive-nav-link :href="route('approval-inbox.index')" :active="request()->routeIs('approval-inbox.*')" @click="open = false">
+                        <i class="fa-solid fa-inbox mr-2 text-blue-500"></i>
+                        {{ __('Approval Inbox') }}
+                    </x-responsive-nav-link>
+                    @endif
+                    <x-responsive-nav-link :href="route('attendance.check-in')" :active="request()->routeIs('attendance.check-in')" @click="open = false">
+                        <i class="fa-solid fa-fingerprint mr-2 text-blue-500"></i>
+                        {{ __('Presensi Masuk (ESS)') }}
+                    </x-responsive-nav-link>
+                    <x-responsive-nav-link :href="route('attendance.check-out')" :active="request()->routeIs('attendance.check-out')" @click="open = false">
+                        <i class="fa-solid fa-arrow-right-from-bracket mr-2 text-blue-500"></i>
+                        {{ __('Presensi Keluar (ESS)') }}
+                    </x-responsive-nav-link>
+                    <x-responsive-nav-link :href="route('calendar.index')" :active="request()->routeIs('calendar.*')" @click="open = false">
+                        <i class="fa-solid fa-calendar-days mr-2 text-blue-500"></i>
+                        {{ __('Kalender ESS') }}
+                    </x-responsive-nav-link>
+                    <x-responsive-nav-link :href="route('leave.index')" :active="request()->routeIs('leave.*')" @click="open = false">
+                        <i class="fa-solid fa-umbrella-beach mr-2 text-blue-500"></i>
+                        {{ __('Cuti Tahunan (ESS)') }}
+                    </x-responsive-nav-link>
+                    <x-responsive-nav-link :href="route('special-leave.index')" :active="request()->routeIs('special-leave.*')" @click="open = false">
+                        <i class="fa-solid fa-star mr-2 text-blue-500"></i>
+                        {{ __('Cuti Khusus (ESS)') }}
+                    </x-responsive-nav-link>
+                    <x-responsive-nav-link :href="route('permit.index')" :active="request()->routeIs('permit.*')" @click="open = false">
+                        <i class="fa-solid fa-clipboard-user mr-2 text-blue-500"></i>
+                        {{ __('Izin (ESS)') }}
+                    </x-responsive-nav-link>
+                    <x-responsive-nav-link :href="route('sick.index')" :active="request()->routeIs('sick.*')" @click="open = false">
+                        <i class="fa-solid fa-notes-medical mr-2 text-blue-500"></i>
+                        {{ __('Izin Sakit (ESS)') }}
+                    </x-responsive-nav-link>
+                    <x-responsive-nav-link :href="route('overtime.index')" :active="request()->routeIs('overtime.*')" @click="open = false">
+                        <i class="fa-solid fa-business-time mr-2 text-blue-500"></i>
+                        {{ __('Lembur (ESS)') }}
+                    </x-responsive-nav-link>
+
+                    <!-- Authentication / Logout -->
+                    <form method="POST" action="{{ route('logout') }}" class="pt-1 mt-1 border-t border-gray-100">
+                        @csrf
+                        <x-responsive-nav-link :href="route('logout')" onclick="event.preventDefault(); this.closest('form').submit();" class="text-rose-600 hover:text-rose-700 hover:bg-rose-50 cursor-pointer">
+                            <i class="fa-solid fa-arrow-right-from-bracket mr-2 text-rose-500"></i>
+                            {{ __('Log Out') }}
+                        </x-responsive-nav-link>
+                    </form>
+                </div>
             </div>
         </div>
-    </div>
+    </template>
 </nav>

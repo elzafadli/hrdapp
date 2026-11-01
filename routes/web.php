@@ -23,13 +23,17 @@ Route::middleware('auth')->group(function () {
     Route::middleware('finance.access')->group(function () {
         Route::resource('employee-jabatan', \App\Http\Controllers\EmpJabatanController::class);
         Route::post('employee/{employee}/career', [\App\Http\Controllers\EmpDataController::class, 'storeCareer'])->name('employee.career.store');
+        Route::put('employee/{employee}/career/{career}', [\App\Http\Controllers\EmpDataController::class, 'updateCareer'])->name('employee.career.update');
         Route::delete('employee/{employee}/career/{career}', [\App\Http\Controllers\EmpDataController::class, 'destroyCareer'])->name('employee.career.destroy');
         Route::post('employee/{employee}/tenure', [\App\Http\Controllers\EmpDataController::class, 'updateTenure'])->name('employee.tenure.update');
         Route::post('employee/{employee}/education', [\App\Http\Controllers\EmpDataController::class, 'storeEducation'])->name('employee.education.store');
+        Route::put('employee/{employee}/education/{education}', [\App\Http\Controllers\EmpDataController::class, 'updateEducation'])->name('employee.education.update');
         Route::delete('employee/{employee}/education/{education}', [\App\Http\Controllers\EmpDataController::class, 'destroyEducation'])->name('employee.education.destroy');
         Route::post('employee/{employee}/experience', [\App\Http\Controllers\EmpDataController::class, 'storeExperience'])->name('employee.experience.store');
+        Route::put('employee/{employee}/experience/{experience}', [\App\Http\Controllers\EmpDataController::class, 'updateExperience'])->name('employee.experience.update');
         Route::delete('employee/{employee}/experience/{experience}', [\App\Http\Controllers\EmpDataController::class, 'destroyExperience'])->name('employee.experience.destroy');
         Route::post('employee/{employee}/training', [\App\Http\Controllers\EmpDataController::class, 'storeTraining'])->name('employee.training.store');
+        Route::put('employee/{employee}/training/{training}', [\App\Http\Controllers\EmpDataController::class, 'updateTraining'])->name('employee.training.update');
         Route::delete('employee/{employee}/training/{training}', [\App\Http\Controllers\EmpDataController::class, 'destroyTraining'])->name('employee.training.destroy');
         Route::post('employee/{employee}/assignment', [\App\Http\Controllers\EmpDataController::class, 'updateAssignment'])->name('employee.assignment.update');
         Route::post('employee/{employee}/bpjs', [\App\Http\Controllers\EmpDataController::class, 'updateBpjs'])->name('employee.bpjs.update');

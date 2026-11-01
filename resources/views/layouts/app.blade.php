@@ -160,18 +160,16 @@
     <!-- Mobile Bottom Navigation Bar (Sesuai Tampilan Mobile App) -->
     <nav class="sm:hidden fixed bottom-0 inset-x-0 bg-white border-t border-gray-200/90 z-50 px-2 py-1 shadow-lg pb-[max(0.35rem,env(safe-area-inset-bottom))]">
         <div class="flex items-center justify-around max-w-md mx-auto">
-            <!-- Home -->
-            <a href="{{ route('timeline.index') }}" class="flex flex-col items-center py-1 px-2.5 text-xs transition {{ request()->routeIs('dashboard') && !request()->routeIs('timeline.*') ? 'text-blue-600 font-bold' : 'text-gray-500 hover:text-gray-900' }}">
-                <i class="fa-solid fa-house text-lg mb-0.5"></i>
-                <span class="text-[11px] leading-tight">Home</span>
+            <!-- Kalender -->
+            <a href="{{ route('calendar.index') }}" class="flex flex-col items-center py-1 px-2.5 text-xs transition {{ request()->routeIs('calendar.*') ? 'text-blue-600 font-bold' : 'text-gray-500 hover:text-gray-900' }}">
+                <i class="fa-solid fa-calendar-days text-lg mb-0.5"></i>
+                <span class="text-[11px] leading-tight">Kalender</span>
             </a>
 
             <!-- Timeline -->
             <a href="{{ route('timeline.index') }}" class="flex flex-col items-center py-1 px-2 text-xs transition {{ request()->routeIs('timeline.*') ? 'text-blue-600 font-bold' : 'text-gray-500 hover:text-gray-900' }}">
-                <div class="{{ request()->routeIs('timeline.*') ? 'bg-blue-100/90 text-blue-600 px-3.5 py-0.5 rounded-full' : '' }}">
-                    <i class="fa-solid fa-newspaper text-base"></i>
-                </div>
-                <span class="text-[11px] leading-tight mt-0.5">Timeline</span>
+                <i class="fa-solid fa-newspaper text-lg mb-0.5"></i>
+                <span class="text-[11px] leading-tight">Timeline</span>
             </a>
 
             <!-- Kehadiran (Tombol Lingkaran Melayang di Tengah) -->
@@ -183,18 +181,18 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 17a4 4 0 018 0" />
                     </svg>
                 </div>
-                <span class="text-[11px] text-gray-600 font-medium mt-0.5">Kehadiran</span>
+                <span class="text-[11px] font-medium mt-0.5 {{ request()->routeIs('attendance.*') ? 'text-blue-600 font-bold' : 'text-gray-600' }}">Kehadiran</span>
             </a>
 
-            <!-- Perusahaan -->
-            <a href="{{ route('employee.index') }}" class="flex flex-col items-center py-1 px-2 text-xs transition {{ request()->routeIs('employee.*') ? 'text-blue-600 font-bold' : 'text-gray-500 hover:text-gray-900' }}">
-                <i class="fa-regular fa-building text-lg mb-0.5"></i>
-                <span class="text-[11px] leading-tight">Perusahaan</span>
+            <!-- Ajukan Cuti Tahunan -->
+            <a href="{{ route('leave.index') }}" class="flex flex-col items-center py-1 px-2 text-xs transition {{ request()->routeIs('leave.*') ? 'text-blue-600 font-bold' : 'text-gray-500 hover:text-gray-900' }}">
+                <i class="fa-solid fa-umbrella-beach text-lg mb-0.5"></i>
+                <span class="text-[11px] leading-tight">Ajukan Cuti</span>
             </a>
 
-            <!-- Profil -->
-            <a href="{{ route('profile.edit') }}" class="flex flex-col items-center py-1 px-2.5 text-xs transition {{ request()->routeIs('profile.*') ? 'text-blue-600 font-bold' : 'text-gray-500 hover:text-gray-900' }}">
-                <i class="fa-regular fa-circle-user text-lg mb-0.5"></i>
+            <!-- Profil (Employee Profile) -->
+            <a href="{{ route('ess.profile') }}" class="flex flex-col items-center py-1 px-2.5 text-xs transition {{ request()->routeIs('ess.profile*') ? 'text-blue-600 font-bold' : 'text-gray-500 hover:text-gray-900' }}">
+                <i class="fa-solid fa-id-badge text-lg mb-0.5"></i>
                 <span class="text-[11px] leading-tight">Profil</span>
             </a>
         </div>

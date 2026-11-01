@@ -70,10 +70,9 @@ class EmpLoanController extends Controller
                         $budgetAction = '<form action="' . route('emp-loans.post-to-budget', $row->id) . '" method="POST" class="inline-block" onsubmit="return confirm(\'Posting pinjaman ini ke Budgeting dengan status Draft?\');">
                             ' . $csrf . '
                             <button type="submit"
-                                class="inline-flex items-center gap-1 px-2 py-1.5 bg-emerald-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-emerald-700 active:bg-emerald-800 focus:outline-none focus:ring ring-emerald-300 transition ease-in-out duration-150 mr-1.5"
+                                class="inline-flex items-center px-2 py-1.5 bg-emerald-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-emerald-700 active:bg-emerald-800 focus:outline-none focus:ring ring-emerald-300 transition ease-in-out duration-150 mr-1.5"
                                 title="Post ke Budgeting (Draft)">
                                 <i class="fa-solid fa-file-invoice-dollar"></i>
-                                <span class="hidden sm:inline text-[10px]">Post Budget</span>
                             </button>
                         </form>';
                     } else {
@@ -98,7 +97,7 @@ class EmpLoanController extends Controller
                         </button>
                     </form>';
 
-                    return '<div class="flex items-center flex-nowrap">' . $detailBtn . $budgetAction . $editBtn . $deleteBtn . '</div>';
+                    return '<div class="flex items-center flex-nowrap whitespace-nowrap">' . $detailBtn . $budgetAction . $editBtn . $deleteBtn . '</div>';
                 })
                 ->rawColumns(['status', 'budget_reference', 'action'])
                 ->make(true);

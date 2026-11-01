@@ -134,13 +134,11 @@ class EmpDataController extends Controller
             'last_education'        => 'nullable|string|max:50',
             'education_institution' => 'nullable|string|max:255',
             'company_id'            => 'nullable|exists:companies,id',
-            'jabatan_id'            => 'required|exists:emp_jabatan,id',
+            'jabatan_id'            => 'nullable|exists:emp_jabatan,id',
             'project_id'            => 'nullable|exists:projects,id',
-            'status_ptkp'           => 'required|in:TK0,TK1,TK2,TK3,K0,K1,K2,K3',
+            'status_ptkp'           => 'nullable|in:TK0,TK1,TK2,TK3,K0,K1,K2,K3',
         ], [
             'name.required'        => 'Nama Lengkap (Sesuai KTP) wajib diisi.',
-            'jabatan_id.required'  => 'Jabatan awal karyawan wajib dipilih.',
-            'status_ptkp.required' => 'Status PTKP awal wajib dipilih.',
             'photo.image'          => 'Berkas foto profil harus berupa file gambar.',
             'photo.max'            => 'Ukuran foto profil maksimal 2 MB.',
             'birth_date.date'      => 'Format tanggal lahir tidak valid.',
@@ -178,6 +176,15 @@ class EmpDataController extends Controller
                     $dataToSave['email'] = $linkedUser->email;
                 }
             }
+        }
+
+        if (Schema::hasColumn('emp_data', 'jabatan_id') && empty($dataToSave['jabatan_id'])) {
+            $fallbackJabatan = \App\Models\EmpJabatan::first();
+            $dataToSave['jabatan_id'] = $fallbackJabatan?->id ?? 1;
+        }
+
+        if (Schema::hasColumn('emp_data', 'status_ptkp') && empty($dataToSave['status_ptkp'])) {
+            $dataToSave['status_ptkp'] = 'TK0';
         }
 
         $employee = EmpData::create($dataToSave);
@@ -399,6 +406,39 @@ class EmpDataController extends Controller
     }
 
     /**
+     * Perbarui data riwayat karir.
+     */
+    public function updateCareer(Request $request, EmpData $employee, EmpCareer $career)
+    {
+        if ($career->emp_id !== $employee->id) {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'status_karyawan'  => 'required|string|max:50',
+            'penempatan_kerja' => 'required|string|max:100',
+            'tanggal_efektif'  => 'required|date',
+            'organisasi'       => 'nullable|string|max:100',
+            'pangkat'          => 'nullable|string|max:100',
+            'jabatan'          => 'nullable|string|max:100',
+            'notes'            => 'nullable|string',
+        ]);
+
+        $career->update($validated);
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Riwayat Karir berhasil diperbarui.',
+                'career'  => $career->fresh(),
+            ]);
+        }
+
+        return redirect()->route('employee.edit', ['employee' => $employee, 'tab' => 'karir'])
+            ->with('success', 'Riwayat Karir berhasil diperbarui.');
+    }
+
+    /**
      * Update data masa / lama bekerja (join_date).
      */
     public function updateTenure(Request $request, EmpData $employee)
@@ -493,6 +533,39 @@ class EmpDataController extends Controller
     }
 
     /**
+     * Perbarui data riwayat pendidikan.
+     */
+    public function updateEducation(Request $request, EmpData $employee, EmpEducation $education)
+    {
+        if ($education->emp_id !== $employee->id) {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'jenjang'     => 'required|string|max:50',
+            'institusi'   => 'required|string|max:255',
+            'jurusan'     => 'nullable|string|max:100',
+            'tahun_masuk' => 'nullable|string|max:10',
+            'tahun_lulus' => 'nullable|string|max:10',
+            'nilai'       => 'nullable|string|max:20',
+            'notes'       => 'nullable|string',
+        ]);
+
+        $education->update($validated);
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success'   => true,
+                'message'   => 'Riwayat Pendidikan berhasil diperbarui.',
+                'education' => $education->fresh(),
+            ]);
+        }
+
+        return redirect()->route('employee.edit', ['employee' => $employee, 'tab' => 'pendidikan'])
+            ->with('success', 'Riwayat Pendidikan berhasil diperbarui.');
+    }
+
+    /**
      * Simpan data riwayat pengalaman kerja (bisa multi).
      */
     public function storeExperience(Request $request, EmpData $employee)
@@ -550,6 +623,41 @@ class EmpDataController extends Controller
     }
 
     /**
+     * Perbarui data riwayat pengalaman kerja.
+     */
+    public function updateExperience(Request $request, EmpData $employee, EmpExperience $experience)
+    {
+        if ($experience->emp_id !== $employee->id) {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'perusahaan'          => 'required|string|max:255',
+            'jabatan'             => 'required|string|max:150',
+            'tanggal_mulai'       => 'nullable|date',
+            'tanggal_selesai'     => 'nullable|date',
+            'is_current'          => 'nullable|boolean',
+            'gaji_terakhir'       => 'nullable|string|max:50',
+            'deskripsi_pekerjaan' => 'nullable|string',
+            'alasan_berhenti'     => 'nullable|string',
+        ]);
+
+        $validated['is_current'] = $request->boolean('is_current');
+        $experience->update($validated);
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success'    => true,
+                'message'    => 'Riwayat Pengalaman Kerja berhasil diperbarui.',
+                'experience' => $experience->fresh(),
+            ]);
+        }
+
+        return redirect()->route('employee.edit', ['employee' => $employee, 'tab' => 'pengalaman-kerja'])
+            ->with('success', 'Riwayat Pengalaman Kerja berhasil diperbarui.');
+    }
+
+    /**
      * Simpan data pelatihan, sertifikasi, & skill (bisa multi).
      */
     public function storeTraining(Request $request, EmpData $employee)
@@ -601,6 +709,38 @@ class EmpDataController extends Controller
 
         return redirect()->route('employee.edit', ['employee' => $employee, 'tab' => 'pelatihan-skill'])
             ->with('success', 'Data pelatihan & sertifikasi berhasil dihapus.');
+    }
+
+    /**
+     * Perbarui data pelatihan & sertifikasi.
+     */
+    public function updateTraining(Request $request, EmpData $employee, EmpTraining $training)
+    {
+        if ($training->emp_id !== $employee->id) {
+            abort(404);
+        }
+
+        $validated = $request->validate([
+            'nama_pelatihan'   => 'required|string|max:255',
+            'penyelenggara'    => 'required|string|max:255',
+            'tahun'            => 'nullable|string|max:20',
+            'nomor_sertifikat' => 'nullable|string|max:100',
+            'masa_berlaku'     => 'nullable|string|max:50',
+            'deskripsi'        => 'nullable|string',
+        ]);
+
+        $training->update($validated);
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success'  => true,
+                'message'  => 'Data Pelatihan & Keahlian berhasil diperbarui.',
+                'training' => $training->fresh(),
+            ]);
+        }
+
+        return redirect()->route('employee.edit', ['employee' => $employee, 'tab' => 'pelatihan-skill'])
+            ->with('success', 'Data Pelatihan & Keahlian berhasil diperbarui.');
     }
 
     /**
