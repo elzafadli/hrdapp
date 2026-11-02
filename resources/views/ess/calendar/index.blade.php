@@ -73,13 +73,13 @@
 
             // Fungsi Cek Kelayakan Event Berdasarkan Filter Client-Side
             isEventVisible(ev) {
+                if (ev.status === 'cancelled') return false;
                 if (this.scope === 'my' && !ev.is_mine) return false;
                 if (this.filterType !== 'all' && ev.type !== this.filterType) return false;
                 if (this.filterStatus !== 'all') {
                     if (this.filterStatus === 'approved' && ev.status !== 'approved' && ev.status !== 'completed') return false;
                     if (this.filterStatus === 'pending' && ev.status !== 'pending') return false;
                     if (this.filterStatus === 'rejected' && ev.status !== 'rejected') return false;
-                    if (this.filterStatus === 'cancelled' && ev.status !== 'cancelled') return false;
                 }
                 return true;
             },
@@ -115,7 +115,7 @@
                                 }
                             } else if (ev.status === 'pending') {
                                 pending++;
-                            } else if (ev.status === 'rejected' || ev.status === 'cancelled') {
+                            } else if (ev.status === 'rejected') {
                                 rejected++;
                             }
                         }
@@ -247,10 +247,10 @@
                 </div>
             </div>
 
-            <!-- Ditolak / Batal -->
+            <!-- Ditolak -->
             <div class="bg-white rounded-2xl p-3 sm:p-4 border border-gray-200/90 shadow-2xs flex items-center justify-between">
                 <div>
-                    <span class="text-[10px] sm:text-[11px] font-semibold text-gray-400 uppercase tracking-wider block">Ditolak / Batal</span>
+                    <span class="text-[10px] sm:text-[11px] font-semibold text-gray-400 uppercase tracking-wider block">Ditolak</span>
                     <span class="text-xl sm:text-2xl font-extrabold text-rose-600 mt-0.5 sm:mt-1 block" x-text="stats.rejected"></span>
                     <span class="text-[10px] sm:text-[11px] text-gray-400">Tidak disetujui</span>
                 </div>
@@ -339,9 +339,15 @@
 
                 <!-- Right Controls: Scope & Status Dropdown (Client-Side Instant!) -->
                 <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
-                    @if($isApprover)
-                    <!-- Scope Selector (Pengajuan Saya vs Pengajuan Tim) -->
+                    <!-- Scope Selector (Semua Tim vs Pengajuan Saya) -->
                     <div class="inline-flex rounded-xl p-1 bg-gray-100 border border-gray-200/80 text-xs font-semibold w-full sm:w-auto">
+                        <button type="button"
+                            @click="scope = 'team'"
+                            :class="scope === 'team' ? 'bg-white text-blue-600 shadow-xs font-bold' : 'text-gray-600 hover:text-gray-900'"
+                            class="flex-1 sm:flex-initial px-3 py-1.5 rounded-lg transition text-center">
+                            <i class="fa-solid fa-users mr-1 text-[11px]"></i>
+                            Semua Tim
+                        </button>
                         <button type="button"
                             @click="scope = 'my'"
                             :class="scope === 'my' ? 'bg-white text-blue-600 shadow-xs font-bold' : 'text-gray-600 hover:text-gray-900'"
@@ -349,15 +355,7 @@
                             <i class="fa-solid fa-user mr-1 text-[11px]"></i>
                             Pengajuan Saya
                         </button>
-                        <button type="button"
-                            @click="scope = 'team'"
-                            :class="scope === 'team' ? 'bg-white text-blue-600 shadow-xs font-bold' : 'text-gray-600 hover:text-gray-900'"
-                            class="flex-1 sm:flex-initial px-3 py-1.5 rounded-lg transition text-center">
-                            <i class="fa-solid fa-users mr-1 text-[11px]"></i>
-                            Pengajuan Tim
-                        </button>
                     </div>
-                    @endif
 
                     <!-- Filter Status Component (Client-Side Reaktif via x-model) -->
                     <div class="w-full sm:w-44">
@@ -370,7 +368,6 @@
                             <option value="approved">Disetujui</option>
                             <option value="pending">Menunggu</option>
                             <option value="rejected">Ditolak</option>
-                            <option value="cancelled">Dibatalkan</option>
                         </x-select-input>
                     </div>
                 </div>

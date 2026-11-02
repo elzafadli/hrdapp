@@ -1,10 +1,22 @@
 <x-app-layout>
+    @php
+        $specialTypesJson = ($specialLeaveTypes ?? collect())->map(function($t) {
+            return [
+                'id' => (string) $t->id,
+                'name' => $t->name,
+                'days_allowed' => (float) $t->days_allowed,
+                'description' => $t->description ?? '',
+            ];
+        })->values();
+    @endphp
+
     <div class="py-6" x-data="leaveForm()">
         <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
             <form action="{{ route('leave.store') }}" method="POST" enctype="multipart/form-data" 
                   @submit="if(isSubmitting) { $event.preventDefault(); return false; } isSubmitting = true;" 
                   class="space-y-5">
                 @csrf
+                <input type="hidden" name="leave_category" :value="leaveCategory">
 
                 <!-- Top Bar Navigasi -->
                 <div class="flex items-center justify-between">
@@ -13,8 +25,8 @@
                             <i class="fa-solid fa-arrow-left text-lg"></i>
                         </a>
                         <div>
-                            <h2 class="text-xl font-bold text-gray-900">Ajukan Cuti Tahunan</h2>
-                            <p class="text-xs text-gray-400">Lengkapi formulir permohonan cuti tahunan di bawah</p>
+                            <h2 class="text-xl font-bold text-gray-900">Ajukan Cuti</h2>
+                            <p class="text-xs text-gray-400">Pilih jenis cuti dan lengkapi formulir permohonan di bawah</p>
                         </div>
                     </div>
                 </div>
@@ -55,14 +67,14 @@
                         </div>
                         <span class="text-xs font-semibold text-gray-700 tracking-wide flex items-center gap-1.5">
                             <i class="fa-solid fa-calculator text-blue-500"></i>
-                            Menghitung sisa cuti...
+                            Menghitung simulasi cuti...
                         </span>
                     </div>
 
                     <div class="flex items-center justify-between pb-2 border-b border-gray-100">
                         <span class="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
-                            <i class="fa-solid fa-calculator text-blue-600"></i>
-                            Simulasi Sisa Cuti
+                            <i class="fa-solid fa-calculator" :class="leaveCategory === 'annual' ? 'text-blue-600' : 'text-purple-600'"></i>
+                            <span x-text="leaveCategory === 'annual' ? 'Simulasi Sisa Cuti Tahunan' : 'Simulasi Cuti Khusus'"></span>
                         </span>
                         <span x-show="isBackDate" class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-rose-100 text-rose-700">
                             <i class="fa-solid fa-ban"></i> Back-date Dilarang!
@@ -70,36 +82,71 @@
                         <span x-show="!isBackDate && hasConflict" class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-rose-100 text-rose-700">
                             <i class="fa-solid fa-triangle-exclamation"></i> Tanggal Bentrok!
                         </span>
-                        <span x-show="!isBackDate && !hasConflict && isExceeded" class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-rose-100 text-rose-700">
+                        <span x-show="!isBackDate && !hasConflict && leaveCategory === 'annual' && isExceeded" class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-rose-100 text-rose-700">
                             Saldo Kurang!
                         </span>
-                        <span x-show="!isBackDate && !hasConflict && !isExceeded && deduction > 0" class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-800">
+                        <span x-show="!isBackDate && !hasConflict && ((leaveCategory === 'annual' && !isExceeded && deduction > 0) || (leaveCategory === 'special' && specialDaysCount > 0))" class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-emerald-100 text-emerald-800">
                             Bisa Diajukan
                         </span>
-                        <span x-show="!isBackDate && !hasConflict && !isExceeded && deduction === 0 && startDate" class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-amber-100 text-amber-800">
+                        <span x-show="!isBackDate && !hasConflict && ((leaveCategory === 'annual' && !isExceeded && deduction === 0 && startDate) || (leaveCategory === 'special' && specialDaysCount === 0 && startDate))" class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-amber-100 text-amber-800">
                             Hari Libur / Off (0 Hari)
                         </span>
-                        <span x-show="!isBackDate && !hasConflict && !isExceeded && !startDate" class="text-xs px-2.5 py-0.5 rounded-full font-medium text-gray-400">
+                        <span x-show="!isBackDate && !hasConflict && !startDate" class="text-xs px-2.5 py-0.5 rounded-full font-medium text-gray-400">
                             Pilih tanggal di bawah
                         </span>
                     </div>
 
-                    <div class="grid grid-cols-3 gap-2 text-center">
-                        <div class="p-3 rounded-xl bg-gray-50 border border-gray-100">
-                            <span class="text-[11px] text-gray-400 block font-medium">Jatah Tersedia</span>
-                            <span class="text-lg font-bold text-gray-800" x-text="currentRemaining.toFixed(1)"></span>
-                            <span class="text-[11px] text-gray-400">Hari</span>
+                    <!-- KONTEN SIMULASI JIKA CUTI TAHUNAN -->
+                    <template x-if="leaveCategory === 'annual'">
+                        <div class="grid grid-cols-3 gap-2 text-center">
+                            <div class="p-3 rounded-xl bg-gray-50 border border-gray-100">
+                                <span class="text-[11px] text-gray-400 block font-medium">Jatah Tersedia</span>
+                                <span class="text-lg font-bold text-gray-800" x-text="currentRemaining.toFixed(1)"></span>
+                                <span class="text-[11px] text-gray-400">Hari</span>
+                            </div>
+                            <div class="p-3 rounded-xl bg-blue-50/60 border border-blue-100">
+                                <span class="text-[11px] text-blue-600 block font-medium">Diajukan</span>
+                                <span class="text-lg font-bold text-blue-700" x-text="deduction > 0 ? ('-' + deduction.toFixed(1)) : '0.0'"></span>
+                                <span class="text-[11px] text-blue-500">Hari</span>
+                            </div>
+                            <div class="p-3 rounded-xl border transition" :class="isExceeded ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-emerald-50/60 border-emerald-100 text-emerald-800'">
+                                <span class="text-[11px] block font-medium" :class="isExceeded ? 'text-rose-600' : 'text-emerald-700'">Sisa Nanti</span>
+                                <span class="text-lg font-bold" x-text="remainingAfter.toFixed(1)"></span>
+                                <span class="text-[11px]">Hari</span>
+                            </div>
                         </div>
-                        <div class="p-3 rounded-xl bg-blue-50/60 border border-blue-100">
-                            <span class="text-[11px] text-blue-600 block font-medium">Diajukan</span>
-                            <span class="text-lg font-bold text-blue-700" x-text="deduction > 0 ? ('-' + deduction.toFixed(1)) : '0.0'"></span>
-                            <span class="text-[11px] text-blue-500">Hari</span>
+                    </template>
+
+                    <!-- KONTEN SIMULASI JIKA CUTI KHUSUS -->
+                    <template x-if="leaveCategory === 'special'">
+                        <div class="grid grid-cols-3 gap-2 text-center">
+                            <div class="p-3 rounded-xl bg-purple-50/60 border border-purple-100">
+                                <span class="text-[11px] text-purple-700 block font-medium">Jatah Cuti Khusus</span>
+                                <span class="text-lg font-bold text-purple-900" x-text="currentSpecialMaxDays.toFixed(1)"></span>
+                                <span class="text-[11px] text-purple-600">Hari Kerja</span>
+                            </div>
+                            <div class="p-3 rounded-xl bg-blue-50/60 border border-blue-100">
+                                <span class="text-[11px] text-blue-600 block font-medium">Durasi Hari Riil</span>
+                                <span class="text-lg font-bold text-blue-700" x-text="specialDaysCount.toFixed(1)"></span>
+                                <span class="text-[11px] text-blue-500">Hari</span>
+                            </div>
+                            <div class="p-3 rounded-xl bg-emerald-50/60 border border-emerald-100 text-emerald-800">
+                                <span class="text-[11px] text-emerald-700 block font-medium">Potong Kuota Tahunan</span>
+                                <span class="text-lg font-bold text-emerald-800">0.0</span>
+                                <span class="text-[11px] text-emerald-600">Hari (Gratis)</span>
+                            </div>
                         </div>
-                        <div class="p-3 rounded-xl border transition" :class="isExceeded ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-emerald-50/60 border-emerald-100 text-emerald-800'">
-                            <span class="text-[11px] block font-medium" :class="isExceeded ? 'text-rose-600' : 'text-emerald-700'">Sisa Nanti</span>
-                            <span class="text-lg font-bold" x-text="remainingAfter.toFixed(1)"></span>
-                            <span class="text-[11px]">Hari</span>
-                        </div>
+                    </template>
+
+                    <!-- Info Cuti Khusus Tidak Memotong Kuota -->
+                    <div x-show="leaveCategory === 'special'" class="text-[11px] text-purple-800 bg-purple-50 px-3 py-1.5 rounded-lg border border-purple-100 flex items-center justify-between">
+                        <span class="flex items-center gap-1.5">
+                            <i class="fa-solid fa-gift text-purple-600"></i>
+                            <span>Cuti khusus diberikan tanpa memotong saldo kuota cuti tahunan Anda.</span>
+                        </span>
+                        <span x-show="specialEndDateFormatted" class="font-semibold text-purple-900">
+                            Selesai: <span x-text="specialEndDateFormatted"></span>
+                        </span>
                     </div>
 
                     <!-- Notifikasi Khusus Jika Memilih Back-Date -->
@@ -125,9 +172,9 @@
                     </div>
 
                     <!-- Notifikasi Khusus Jika Memilih Hari Libur / Weekend -->
-                    <div x-show="!isBackDate && !hasConflict && deduction === 0 && skippedDates.length > 0" class="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs flex items-center gap-2">
+                    <div x-show="!isBackDate && !hasConflict && ((leaveCategory === 'annual' && deduction === 0) || (leaveCategory === 'special' && specialDaysCount === 0)) && skippedDates.length > 0" class="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 text-xs flex items-center gap-2">
                         <i class="fa-solid fa-circle-info text-amber-500 text-sm shrink-0"></i>
-                        <span>Tanggal yang Anda pilih adalah <strong>hari libur/akhir pekan</strong> sesuai jadwal kerja (Sabtu/Minggu), sehingga <strong>0 hari kerja</strong> yang terpotong dari saldo cuti.</span>
+                        <span>Tanggal yang Anda pilih adalah <strong>hari libur/akhir pekan</strong> sesuai jadwal kerja (Sabtu/Minggu), sehingga <strong>0 hari kerja</strong> yang terhitung.</span>
                     </div>
 
                     <!-- Breakdown Tanggal Kerja vs Libur -->
@@ -153,56 +200,88 @@
                 <!-- Card Form Input -->
                 <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-5">
 
-                    <!-- STEP 1: Radio Button Pilihan Jenis Cuti -->
+                    <!-- STEP 1: Radio Button Pilihan Kategori Cuti (Default: Cuti Tahunan) -->
                     <div>
-                        <x-input-label :value="__('Tipe Cuti')" class="mb-2 font-bold text-gray-900" />
-                        <div class="grid grid-cols-2 gap-3">
+                        <x-input-label :value="__('Pilih Kategori Cuti')" class="mb-2 font-bold text-gray-900" />
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <label class="flex items-center gap-3 p-3.5 border-2 rounded-xl cursor-pointer transition"
-                                :class="isHalfDay === '0' ? 'border-blue-600 bg-blue-50/40 text-blue-900 shadow-sm' : 'border-gray-200 hover:border-gray-300 text-gray-700'">
-                                <input type="radio" name="is_half_day" value="0" x-model="isHalfDay" @change="onTypeChange()" class="text-blue-600 focus:ring-blue-500">
+                                :class="leaveCategory === 'annual' ? 'border-blue-600 bg-blue-50/40 text-blue-900 shadow-sm' : 'border-gray-200 hover:border-gray-300 text-gray-700'">
+                                <input type="radio" name="leave_category_radio" value="annual" x-model="leaveCategory" @change="onCategoryChange()" class="text-blue-600 focus:ring-blue-500">
                                 <div>
-                                    <div class="font-bold text-sm">Sehari Penuh</div>
-                                    <div class="text-[11px] text-gray-500">1 hari kerja penuh (1.0 hari)</div>
+                                    <div class="font-bold text-sm flex items-center gap-1.5">
+                                        <i class="fa-solid fa-umbrella-beach text-blue-600"></i>
+                                        <span>Cuti Tahunan</span>
+                                    </div>
+                                    <div class="text-[11px] text-gray-500 mt-0.5">Memotong kuota saldo cuti tahunan</div>
                                 </div>
                             </label>
 
                             <label class="flex items-center gap-3 p-3.5 border-2 rounded-xl cursor-pointer transition"
-                                :class="isHalfDay === '1' ? 'border-amber-500 bg-amber-50/40 text-amber-900 shadow-sm' : 'border-gray-200 hover:border-gray-300 text-gray-700'">
-                                <input type="radio" name="is_half_day" value="1" x-model="isHalfDay" @change="onTypeChange()" class="text-amber-600 focus:ring-amber-500">
+                                :class="leaveCategory === 'special' ? 'border-purple-600 bg-purple-50/40 text-purple-900 shadow-sm' : 'border-gray-200 hover:border-gray-300 text-gray-700'">
+                                <input type="radio" name="leave_category_radio" value="special" x-model="leaveCategory" @change="onCategoryChange()" class="text-purple-600 focus:ring-purple-500">
                                 <div>
-                                    <div class="font-bold text-sm">Setengah Hari</div>
-                                    <div class="text-[11px] text-gray-500">Pagi atau siang (0.5 hari)</div>
+                                    <div class="font-bold text-sm flex items-center gap-1.5">
+                                        <i class="fa-solid fa-award text-purple-600"></i>
+                                        <span>Cuti Khusus</span>
+                                    </div>
+                                    <div class="text-[11px] text-gray-500 mt-0.5">Menikah, duka, melahirkan, dll</div>
                                 </div>
                             </label>
                         </div>
                     </div>
 
-                    <!-- STEP 2: Tanggal Cuti (Single Unified Form) -->
-                    <div class="space-y-4 pt-2 border-t border-gray-100">
+                    <!-- STEP 2A: FORM CUTI TAHUNAN -->
+                    <div x-show="leaveCategory === 'annual'" class="space-y-4 pt-3 border-t border-gray-100">
+                        <!-- Pilihan Durasi Cuti Tahunan -->
+                        <div>
+                            <x-input-label :value="__('Durasi Cuti Tahunan')" class="mb-2 font-bold text-gray-900" />
+                            <div class="grid grid-cols-2 gap-3">
+                                <label class="flex items-center gap-3 p-3 border rounded-xl cursor-pointer transition"
+                                    :class="isHalfDay === '0' ? 'border-blue-600 bg-blue-50/40 text-blue-900 shadow-sm' : 'border-gray-200 hover:border-gray-300 text-gray-700'">
+                                    <input type="radio" name="is_half_day" value="0" x-model="isHalfDay" @change="onTypeChange()" class="text-blue-600 focus:ring-blue-500">
+                                    <div>
+                                        <div class="font-bold text-sm">Sehari Penuh</div>
+                                        <div class="text-[11px] text-gray-500">1.0 hari kerja</div>
+                                    </div>
+                                </label>
+
+                                <label class="flex items-center gap-3 p-3 border rounded-xl cursor-pointer transition"
+                                    :class="isHalfDay === '1' ? 'border-amber-500 bg-amber-50/40 text-amber-900 shadow-sm' : 'border-gray-200 hover:border-gray-300 text-gray-700'">
+                                    <input type="radio" name="is_half_day" value="1" x-model="isHalfDay" @change="onTypeChange()" class="text-amber-600 focus:ring-amber-500">
+                                    <div>
+                                        <div class="font-bold text-sm">Setengah Hari</div>
+                                        <div class="text-[11px] text-gray-500">0.5 hari kerja</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Tanggal Cuti Tahunan -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <!-- Input Tanggal Mulai / Tanggal Cuti -->
                             <div>
                                 <x-input-label for="start_date" x-text="isHalfDay === '1' ? 'Tanggal Cuti Setengah Hari' : 'Tanggal Mulai Cuti'" />
-                                <x-text-input id="start_date" name="start_date" type="text" class="mt-1.5 block w-full bg-white"
+                                <x-text-input id="start_date" name="start_date" type="text" class="mt-1.5 block w-full bg-white cursor-pointer"
                                     placeholder="Pilih tanggal..."
                                     x-model="startDate"
+                                    x-bind:disabled="leaveCategory !== 'annual'"
                                     @input="onStartDateChange()"
                                     @change="onStartDateChange()" />
                                 <x-input-error class="mt-1.5" :messages="$errors->get('start_date')" />
                             </div>
 
-                            <!-- Kolom Kedua: Tanggal Selesai (Jika Sehari Penuh) -->
+                            <!-- Tanggal Selesai (Sehari Penuh) -->
                             <div x-show="isHalfDay === '0'">
                                 <x-input-label for="end_date" :value="__('Tanggal Selesai Cuti')" />
-                                <x-text-input id="end_date" name="end_date" type="text" class="mt-1.5 block w-full bg-white"
+                                <x-text-input id="end_date" name="end_date" type="text" class="mt-1.5 block w-full bg-white cursor-pointer"
                                     placeholder="Pilih tanggal selesai..."
                                     x-model="endDate"
+                                    x-bind:disabled="leaveCategory !== 'annual'"
                                     @input="onEndDateChange()"
                                     @change="onEndDateChange()" />
                                 <x-input-error class="mt-1.5" :messages="$errors->get('end_date')" />
                             </div>
 
-                            <!-- Kolom Kedua: Pilihan Waktu (Jika Setengah Hari) -->
+                            <!-- Pilihan Waktu (Setengah Hari) -->
                             <div x-show="isHalfDay === '1'" style="display: none;">
                                 <x-input-label for="half_day_type" :value="__('Waktu')" />
                                 <x-select-input id="half_day_type" name="half_day_type" class="mt-1.5 block w-full"
@@ -217,18 +296,64 @@
                                 <x-input-error class="mt-1.5" :messages="$errors->get('half_day_type')" />
                             </div>
                         </div>
-
-                        <p class="text-[11px] text-gray-500 flex items-center gap-1.5">
-                            <i class="fa-solid fa-circle-info text-blue-500"></i>
-                            <span>Tanggal lampau dan tanggal cuti yang sudah pernah diajukan otomatis <strong>dinonaktifkan (dicoret)</strong> pada kalender.</span>
-                        </p>
                     </div>
 
-                    <!-- STEP 3: Keterangan -->
+                    <!-- STEP 2B: FORM CUTI KHUSUS -->
+                    <div x-show="leaveCategory === 'special'" style="display: none;" class="space-y-4 pt-3 border-t border-gray-100">
+                        <!-- Dropdown Jenis Cuti Khusus -->
+                        <div>
+                            <x-input-label for="special_leave_type_id" :value="__('Jenis Cuti Khusus')" />
+                            <x-select-input id="special_leave_type_id" name="special_leave_type_id" class="mt-1.5 block w-full"
+                                :noSelect2="true"
+                                :options="$typeOptions ?? []"
+                                :selected="old('special_leave_type_id', $specialLeaveTypes->first()?->id)"
+                                x-model="selectedTypeId"
+                                @change="onSpecialTypeSelected()" />
+                            <x-input-error class="mt-1.5" :messages="$errors->get('special_leave_type_id')" />
+
+                            <!-- Info Card Keterangan Cuti Khusus Terpilih -->
+                            <div class="mt-2.5 p-3.5 rounded-xl bg-purple-50/70 border border-purple-100 flex items-start gap-2.5 text-xs text-purple-900">
+                                <i class="fa-solid fa-circle-info text-purple-600 mt-0.5 text-sm shrink-0"></i>
+                                <div>
+                                    <span class="font-bold text-purple-950" x-text="currentSpecialTypeName"></span>:
+                                    <span class="text-purple-800" x-text="currentSpecialTypeDesc || 'Cuti penting sesuai ketentuan ketenagakerjaan.'"></span>
+                                    <div class="mt-1 font-semibold text-purple-700">
+                                        Ketentuan Jatah: <strong class="text-purple-950" x-text="currentSpecialMaxDays + ' Hari kerja'"></strong> (Tidak memotong kuota tahunan).
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tanggal Mulai Cuti Khusus -->
+                        <div class="space-y-2">
+                            <div>
+                                <x-input-label for="special_start_date" :value="__('Tanggal Mulai Cuti Khusus')" />
+                                <x-text-input id="special_start_date" name="start_date" type="text" class="mt-1.5 block w-full bg-white cursor-pointer"
+                                    placeholder="Pilih tanggal mulai..."
+                                    x-model="startDate"
+                                    x-bind:disabled="leaveCategory !== 'special'"
+                                    @input="onStartDateChange()"
+                                    @change="onStartDateChange()" />
+                                <x-input-error class="mt-1.5" :messages="$errors->get('start_date')" />
+                            </div>
+
+                            <div class="p-3 bg-gray-50 border border-gray-200/80 rounded-xl flex items-center gap-2 text-xs text-gray-600">
+                                <i class="fa-solid fa-calendar-check text-purple-500 text-sm shrink-0"></i>
+                                <span>Tanggal selesai dan durasi hari kerja (<strong x-text="currentSpecialMaxDays + ' hari'"></strong>) otomatis dihitung oleh sistem sejak tanggal mulai, melewati libur akhir pekan dan tanggal merah.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p class="text-[11px] text-gray-500 flex items-center gap-1.5">
+                        <i class="fa-solid fa-circle-info text-blue-500"></i>
+                        <span>Tanggal lampau dan tanggal cuti yang sudah pernah diajukan otomatis <strong>dinonaktifkan (dicoret)</strong> pada kalender.</span>
+                    </p>
+
+                    <!-- STEP 3: Keterangan / Keperluan -->
                     <div class="space-y-2 pt-2 border-t border-gray-100">
                         <div class="flex items-center justify-between">
                             <x-input-label for="reason" :value="__('Keterangan / Keperluan')" />
-                            <button type="button" @click="document.getElementById('reason').value = 'Mengajukan cuti tahunan untuk keperluan keluarga/pribadi.';"
+                            <button type="button" @click="useTemplateReason()"
                                 class="text-xs text-rose-600 hover:text-rose-800 flex items-center gap-1 font-semibold transition">
                                 <i class="fa-solid fa-file-lines text-xs"></i>
                                 Gunakan template
@@ -236,7 +361,7 @@
                         </div>
                         <textarea id="reason" name="reason" rows="3" required
                             class="block w-full rounded-xl border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm placeholder-gray-400"
-                            placeholder="Tuliskan keterangan cuti...">{{ old('reason') }}</textarea>
+                            placeholder="Tuliskan keterangan permohonan cuti...">{{ old('reason') }}</textarea>
                         <x-input-error class="mt-1.5" :messages="$errors->get('reason')" />
                     </div>
 
@@ -282,7 +407,8 @@
                             class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-700 font-semibold text-sm hover:bg-gray-50 transition shadow-sm">
                             Batal
                         </a>
-                        <button type="submit" x-bind:disabled="isSubmitting || isLoading || isExceeded || deduction <= 0 || hasConflict || isBackDate"
+                        <button type="submit" 
+                            x-bind:disabled="isSubmitting || isLoading || isBackDate || hasConflict || !startDate || (leaveCategory === 'annual' && (isExceeded || deduction <= 0)) || (leaveCategory === 'special' && (specialDaysCount <= 0 || !selectedTypeId))"
                             class="inline-flex items-center justify-center gap-2 px-7 py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-sm rounded-xl shadow-md shadow-blue-500/20 transition ease-in-out duration-150 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-300">
                             <!-- Saat sedang submit permohonan ke backend -->
                             <span x-show="isSubmitting" class="inline-flex items-center gap-2" style="display: none;">
@@ -314,6 +440,7 @@
     <script>
         function leaveForm() {
             return {
+                leaveCategory: 'annual', // 'annual' (default) atau 'special'
                 isHalfDay: '0',
                 halfDayType: 'first_half',
                 startDate: '{{ old('start_date', '') }}',
@@ -332,9 +459,34 @@
                 skippedDates: [],
                 isLoading: false,
                 isSubmitting: false,
-                fpStart: null,
-                fpEnd: null,
+
+                // Special Leave Data
+                specialTypes: @json($specialTypesJson),
+                selectedTypeId: '{{ old('special_leave_type_id', $specialLeaveTypes->first()?->id ?? '') }}',
+                specialDaysCount: 0.0,
+                specialEndDateFormatted: '',
+
+                fpAnnualStart: null,
+                fpAnnualEnd: null,
+                fpSpecialStart: null,
                 disabledDates: @json($disabledDates ?? []),
+
+                get currentSpecialType() {
+                    const idStr = String(this.selectedTypeId);
+                    return this.specialTypes.find(t => String(t.id) === idStr) || this.specialTypes[0] || null;
+                },
+
+                get currentSpecialTypeName() {
+                    return this.currentSpecialType ? this.currentSpecialType.name : 'Cuti Khusus';
+                },
+
+                get currentSpecialTypeDesc() {
+                    return this.currentSpecialType ? this.currentSpecialType.description : '';
+                },
+
+                get currentSpecialMaxDays() {
+                    return this.currentSpecialType ? Number(this.currentSpecialType.days_allowed) : 1;
+                },
 
                 init() {
                     this.$nextTick(() => {
@@ -356,9 +508,10 @@
                     try {
                         const startEl = document.getElementById('start_date');
                         const endEl = document.getElementById('end_date');
+                        const specialStartEl = document.getElementById('special_start_date');
 
                         if (startEl) {
-                            self.fpStart = flatpickr(startEl, {
+                            self.fpAnnualStart = flatpickr(startEl, {
                                 disableMobile: true,
                                 locale: (window.flatpickr && flatpickr.l10ns && flatpickr.l10ns.id) ? flatpickr.l10ns.id : 'default',
                                 dateFormat: 'Y-m-d',
@@ -369,7 +522,7 @@
                                 disable: [
                                     ...disabledList,
                                     function(date) {
-                                        if (self.isHalfDay === '1') {
+                                        if (self.leaveCategory === 'annual' && self.isHalfDay === '1') {
                                             return (date.getDay() === 0 || date.getDay() === 6);
                                         }
                                         return false;
@@ -379,15 +532,18 @@
                                 onChange: function(selectedDates, dateStr) {
                                     self.startDate = dateStr;
                                     self.onStartDateChange();
-                                    if (self.fpEnd) {
-                                        self.fpEnd.set('minDate', dateStr || self.minAllowedDate);
+                                    if (self.fpAnnualEnd) {
+                                        self.fpAnnualEnd.set('minDate', dateStr || self.minAllowedDate);
+                                    }
+                                    if (self.fpSpecialStart) {
+                                        self.fpSpecialStart.setDate(dateStr, false);
                                     }
                                 }
                             });
                         }
 
                         if (endEl) {
-                            self.fpEnd = flatpickr(endEl, {
+                            self.fpAnnualEnd = flatpickr(endEl, {
                                 disableMobile: true,
                                 locale: (window.flatpickr && flatpickr.l10ns && flatpickr.l10ns.id) ? flatpickr.l10ns.id : 'default',
                                 dateFormat: 'Y-m-d',
@@ -403,29 +559,63 @@
                                 }
                             });
                         }
+
+                        if (specialStartEl) {
+                            self.fpSpecialStart = flatpickr(specialStartEl, {
+                                disableMobile: true,
+                                locale: (window.flatpickr && flatpickr.l10ns && flatpickr.l10ns.id) ? flatpickr.l10ns.id : 'default',
+                                dateFormat: 'Y-m-d',
+                                altInput: true,
+                                altFormat: 'd F Y',
+                                altInputClass: 'mt-1.5 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm bg-white cursor-pointer',
+                                minDate: self.minAllowedDate,
+                                disable: disabledList,
+                                defaultDate: self.startDate || null,
+                                onChange: function(selectedDates, dateStr) {
+                                    self.startDate = dateStr;
+                                    self.onStartDateChange();
+                                    if (self.fpAnnualStart) {
+                                        self.fpAnnualStart.setDate(dateStr, false);
+                                    }
+                                }
+                            });
+                        }
                     } catch (e) {
                         console.error('Flatpickr init error:', e);
                     }
                 },
 
+                onCategoryChange() {
+                    if (this.leaveCategory === 'special' && !this.selectedTypeId && this.specialTypes.length > 0) {
+                        this.selectedTypeId = this.specialTypes[0].id;
+                    }
+                    this.calculate();
+                },
+
+                onSpecialTypeSelected() {
+                    this.calculate();
+                },
+
                 onTypeChange() {
                     if (this.isHalfDay === '1') {
                         this.endDate = this.startDate;
-                        if (this.fpEnd) {
-                            this.fpEnd.setDate(this.startDate, false);
+                        if (this.fpAnnualEnd) {
+                            this.fpAnnualEnd.setDate(this.startDate, false);
                         }
                     }
-                    if (this.fpStart) {
-                        this.fpStart.redraw();
+                    if (this.fpAnnualStart) {
+                        this.fpAnnualStart.redraw();
                     }
                     this.calculate();
                 },
 
                 onStartDateChange() {
-                    if (this.isHalfDay === '1' || !this.endDate) {
-                        this.endDate = this.startDate;
-                        if (this.fpEnd) {
-                            this.fpEnd.setDate(this.startDate, false);
+                    if (this.leaveCategory === 'annual') {
+                        if (this.isHalfDay === '1' || !this.endDate) {
+                            this.endDate = this.startDate;
+                            if (this.fpAnnualEnd) {
+                                this.fpAnnualEnd.setDate(this.startDate, false);
+                            }
                         }
                     }
                     this.calculate();
@@ -435,10 +625,23 @@
                     this.calculate();
                 },
 
+                useTemplateReason() {
+                    const el = document.getElementById('reason');
+                    if (!el) return;
+
+                    if (this.leaveCategory === 'special') {
+                        el.value = 'Mengajukan cuti khusus untuk keperluan ' + (this.currentSpecialTypeName || 'cuti khusus') + ' sesuai ketentuan yang berlaku.';
+                    } else {
+                        el.value = 'Mengajukan cuti tahunan untuk keperluan keluarga/pribadi.';
+                    }
+                },
+
                 async calculate() {
                     if (!this.startDate) {
                         this.deduction = 0.0;
                         this.remainingAfter = this.currentRemaining;
+                        this.specialDaysCount = 0.0;
+                        this.specialEndDateFormatted = '';
                         this.isExceeded = false;
                         this.isBackDate = false;
                         this.hasConflict = false;
@@ -454,6 +657,8 @@
                         this.backDateMessage = 'Tanggal cuti tidak boleh tanggal lampau (back-date). Sesuai ketentuan, pengajuan paling lambat H-1 (mulai {{ \Carbon\Carbon::tomorrow()->format('d/m/Y') }}).';
                         this.deduction = 0.0;
                         this.remainingAfter = this.currentRemaining;
+                        this.specialDaysCount = 0.0;
+                        this.specialEndDateFormatted = '';
                         this.hasConflict = false;
                         this.conflicts = [];
                         this.workingDays = [];
@@ -468,6 +673,20 @@
 
                     this.isLoading = true;
                     try {
+                        const payload = {
+                            _token: '{{ csrf_token() }}',
+                            leave_category: this.leaveCategory,
+                            start_date: this.startDate,
+                        };
+
+                        if (this.leaveCategory === 'special') {
+                            payload.special_leave_type_id = this.selectedTypeId;
+                        } else {
+                            payload.is_half_day = this.isHalfDay === '1';
+                            payload.end_date = targetEndDate;
+                            payload.half_day_type = this.halfDayType;
+                        }
+
                         const response = await fetch('{{ route('leave.calculate-preview') }}', {
                             method: 'POST',
                             headers: {
@@ -475,20 +694,23 @@
                                 'X-CSRF-TOKEN': '{{ csrf_token() }}',
                                 'Accept': 'application/json'
                             },
-                            body: JSON.stringify({
-                                _token: '{{ csrf_token() }}',
-                                is_half_day: this.isHalfDay === '1',
-                                start_date: this.startDate,
-                                end_date: targetEndDate,
-                                half_day_type: this.halfDayType
-                            })
+                            body: JSON.stringify(payload)
                         });
 
                         if (response.ok) {
                             const data = await response.json();
-                            this.deduction = Number(data.total_deduction);
-                            this.remainingAfter = Number(data.remaining_after);
-                            this.isExceeded = Boolean(data.is_exceeded);
+                            if (this.leaveCategory === 'special') {
+                                this.specialDaysCount = Number(data.full_day_count || data.days_allowed || 0);
+                                this.specialEndDateFormatted = data.end_date_formatted || '';
+                                this.deduction = 0.0;
+                                this.remainingAfter = this.currentRemaining;
+                                this.isExceeded = false;
+                            } else {
+                                this.deduction = Number(data.total_deduction);
+                                this.remainingAfter = Number(data.remaining_after);
+                                this.isExceeded = Boolean(data.is_exceeded);
+                            }
+
                             this.isBackDate = Boolean(data.is_backdate);
                             if (data.backdate_message) {
                                 this.backDateMessage = data.backdate_message;
@@ -501,10 +723,12 @@
                         }
                     } catch (err) {
                         console.error('Kalkulasi cuti gagal:', err);
-                        // Fallback: jika AJAX gagal (misal network lambat di mobile),
-                        // jangan blokir submit — set deduction ke nilai dummy agar
-                        // tombol Ajukan tetap bisa diklik.
-                        this.deduction = this.deduction > 0 ? this.deduction : 1;
+                        // Fallback agar tombol tidak terblokir permanen jika network timeout
+                        if (this.leaveCategory === 'special') {
+                            this.specialDaysCount = this.currentSpecialMaxDays;
+                        } else {
+                            this.deduction = this.deduction > 0 ? this.deduction : 1;
+                        }
                         this.isExceeded = false;
                         this.hasConflict = false;
                         this.isBackDate = false;

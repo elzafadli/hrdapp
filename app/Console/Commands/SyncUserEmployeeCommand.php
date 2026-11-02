@@ -146,36 +146,35 @@ class SyncUserEmployeeCommand extends Command
         // 4. Setup Alur Approval Default (approval_settings)
         $this->line('4. Memeriksa pengaturan Approval Multi-Level (approval_settings)...');
         $pmJabatanId = $jabatanMap['Project Manager'] ?? 3;
-        $adminJabatanId = $jabatanMap['Admin'] ?? 1;
+        $financeJabatanId = $jabatanMap['Finance'] ?? 2;
 
-        $modules = ['leave', 'special_leave', 'permit', 'sick', 'overtime'];
-
-        foreach ($modules as $mod) {
-            $existing = ApprovalSetting::where('module', $mod)->count();
-            if ($existing === 0) {
-                // Level 1: Project Manager (Atasan Langsung)
-                ApprovalSetting::create([
-                    'module'        => $mod,
-                    'level'         => 1,
-                    'jabatan_id'    => $pmJabatanId,
-                    'description'   => 'Persetujuan Level 1: Project Manager / Atasan Langsung',
-                    'min_approvers' => 1,
-                    'is_active'     => true,
+        if (\Illuminate\Support\Facades\Schema::hasTable('approval_setting_details')) {
+            $existingAll = ApprovalSetting::where('module', 'all')->whereNull('requester_jabatan_id')->first();
+            if (!$existingAll) {
+                $head = ApprovalSetting::create([
+                    'module'               => 'all',
+                    'requester_jabatan_id' => null,
+                    'description'          => 'Semua Modul ESS (Semua Jabatan)',
+                    'is_active'            => true,
                 ]);
 
-                // Level 2: HRD / Admin
-                ApprovalSetting::create([
-                    'module'        => $mod,
-                    'level'         => 2,
-                    'jabatan_id'    => $adminJabatanId,
-                    'description'   => 'Persetujuan Level 2: HRD / Management Approval',
-                    'min_approvers' => 1,
-                    'is_active'     => true,
+                $head->details()->create([
+                    'level'               => 1,
+                    'approver_jabatan_id' => $pmJabatanId,
+                    'description'         => 'Persetujuan Level 1: Project Manager / Atasan Langsung',
+                    'min_approvers'       => 1,
                 ]);
 
-                $this->info("   - Workflow Approval untuk modul '{$mod}' berhasil di-set (Level 1: PM, Level 2: Admin).");
+                $head->details()->create([
+                    'level'               => 2,
+                    'approver_jabatan_id' => $financeJabatanId,
+                    'description'         => 'Persetujuan Level 2: HRD / Finance Approval',
+                    'min_approvers'       => 1,
+                ]);
+
+                $this->info("   - Workflow Approval Default untuk Semua Modul ('all') berhasil di-set.");
             } else {
-                $this->line("   - Workflow Approval untuk modul '{$mod}' sudah ada ({$existing} tahapan).");
+                $this->line("   - Workflow Approval Default untuk Semua Modul ('all') sudah ada.");
             }
         }
 

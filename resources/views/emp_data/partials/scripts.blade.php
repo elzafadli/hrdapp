@@ -16,7 +16,7 @@ function employeeFormManager() {
         activeTab: (function() {
             try {
                 const p = new URLSearchParams(window.location.search).get('tab');
-                if (p && ['data-karyawan', 'penugasan-payroll', 'karir', 'lama-bekerja', 'pendidikan', 'pengalaman-kerja', 'pelatihan-skill', 'bpjs'].includes(p)) {
+                if (p && ['data-karyawan', 'karir', 'pendidikan', 'pengalaman-kerja', 'pelatihan-skill', 'bpjs'].includes(p)) {
                     return p;
                 }
             } catch (e) {}
@@ -292,6 +292,41 @@ function employeeFormManager() {
             });
         },
 
+        updateTenureDisplay(dateStr) {
+            if (!dateStr) {
+                this.tenureDisplay = '-';
+                return;
+            }
+            const join = new Date(dateStr);
+            if (isNaN(join.getTime())) {
+                this.tenureDisplay = '-';
+                return;
+            }
+            const now = new Date();
+            let years = now.getFullYear() - join.getFullYear();
+            let months = now.getMonth() - join.getMonth();
+            let days = now.getDate() - join.getDate();
+
+            if (days < 0) {
+                months--;
+                const prevMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+                days += prevMonth.getDate();
+            }
+            if (months < 0) {
+                years--;
+                months += 12;
+            }
+            if (years < 0) {
+                this.tenureDisplay = '0 Hari';
+                return;
+            }
+            const parts = [];
+            if (years > 0) parts.push(`${years} Tahun`);
+            if (months > 0) parts.push(`${months} Bulan`);
+            if (days > 0 || parts.length === 0) parts.push(`${days} Hari`);
+            this.tenureDisplay = parts.join(' ');
+        },
+
         initTabComponents(tab) {
             this.$nextTick(() => {
                 if (typeof flatpickr !== 'undefined') {
@@ -305,14 +340,18 @@ function employeeFormManager() {
                             maxDate: 'today',
                             locale: (window.flatpickr && flatpickr.l10ns && flatpickr.l10ns.id) ? flatpickr.l10ns.id : 'default'
                         });
-                    } else if (tab === 'lama-bekerja') {
+
                         flatpickr('#tenure_join_date', {
                             disableMobile: true,
                             dateFormat: 'Y-m-d',
                             altInput: true,
                             altFormat: 'd/m/Y',
                             altInputClass: 'border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-xl py-2 px-3 text-sm shadow-xs w-full bg-white cursor-pointer',
-                            locale: (window.flatpickr && flatpickr.l10ns && flatpickr.l10ns.id) ? flatpickr.l10ns.id : 'default'
+                            locale: (window.flatpickr && flatpickr.l10ns && flatpickr.l10ns.id) ? flatpickr.l10ns.id : 'default',
+                            onChange: (selectedDates, dateStr) => {
+                                this.updateTenureDisplay(dateStr);
+                                this.markDirty();
+                            }
                         });
                     }
                 }
@@ -344,11 +383,15 @@ function employeeFormManager() {
             if (!jabatanVal) {
                 this.fieldErrors = { jabatan_id: ['Jabatan karyawan wajib dipilih.'] };
                 this.showToast('Jabatan karyawan wajib dipilih.', 'error');
+                const jabEl = form.querySelector('[name="jabatan_id"]');
+                if (jabEl) jabEl.focus();
                 return;
             }
             if (!ptkpVal) {
                 this.fieldErrors = { status_ptkp: ['Status PTKP wajib dipilih.'] };
                 this.showToast('Status PTKP wajib dipilih.', 'error');
+                const ptkpEl = form.querySelector('[name="status_ptkp"]');
+                if (ptkpEl) ptkpEl.focus();
                 return;
             }
 
@@ -379,6 +422,7 @@ function employeeFormManager() {
                         this.empId = data.employee_id;
                         this.empName = data.employee_name;
                         if (data.photo_url) this.photoPreview = data.photo_url;
+
                         try {
                             const newUrl = new URL(data.edit_url, window.location.origin);
                             newUrl.searchParams.set('tab', this.activeTab);

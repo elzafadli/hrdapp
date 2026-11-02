@@ -58,7 +58,7 @@
                         <div class="w-56">
                             <x-input-label for="module_filter" :value="__('Filter Modul ESS')" class="text-xs font-semibold text-gray-600 mb-1" />
                             <x-select-input id="module_filter" :noSelect2="true" class="w-full">
-                                <option value="all_filter">-- Semua Modul ESS --</option>
+                                <option value="all_filter">-- Tampilkan Semua Modul --</option>
                                 @foreach($modules as $key => $lbl)
                                     <option value="{{ $key }}">{{ $lbl }}</option>
                                 @endforeach
@@ -79,7 +79,7 @@
                     </div>
 
                     <div class="text-xs text-gray-400 self-end sm:self-center">
-                        <i class="fa-solid fa-circle-info mr-1 text-blue-500"></i> Alur spesifik jabatan akan meng-override alur default.
+                        <i class="fa-solid fa-circle-info mr-1 text-blue-500"></i> Alur spesifik jabatan & modul akan meng-override alur umum 'Semua Modul (All)'.
                     </div>
                 </div>
 

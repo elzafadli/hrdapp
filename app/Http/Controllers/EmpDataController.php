@@ -134,14 +134,18 @@ class EmpDataController extends Controller
             'last_education'        => 'nullable|string|max:50',
             'education_institution' => 'nullable|string|max:255',
             'company_id'            => 'nullable|exists:companies,id',
-            'jabatan_id'            => 'nullable|exists:emp_jabatan,id',
+            'jabatan_id'            => 'required|exists:emp_jabatan,id',
             'project_id'            => 'nullable|exists:projects,id',
-            'status_ptkp'           => 'nullable|in:TK0,TK1,TK2,TK3,K0,K1,K2,K3',
+            'status_ptkp'           => 'required|in:TK0,TK1,TK2,TK3,K0,K1,K2,K3',
+            'join_date'             => 'nullable|date',
         ], [
             'name.required'        => 'Nama Lengkap (Sesuai KTP) wajib diisi.',
             'photo.image'          => 'Berkas foto profil harus berupa file gambar.',
             'photo.max'            => 'Ukuran foto profil maksimal 2 MB.',
             'birth_date.date'      => 'Format tanggal lahir tidak valid.',
+            'join_date.date'       => 'Format tanggal mulai kerja tidak valid.',
+            'jabatan_id.required'  => 'Jabatan karyawan wajib dipilih.',
+            'status_ptkp.required' => 'Status PTKP karyawan wajib dipilih.',
         ]);
 
         if ($request->hasFile('photo')) {
@@ -188,10 +192,6 @@ class EmpDataController extends Controller
         }
 
         $employee = EmpData::create($dataToSave);
-
-        if ($employee->user && !empty($dataToSave['email']) && $employee->user->email !== $dataToSave['email']) {
-            $employee->user->update(['email' => $dataToSave['email']]);
-        }
 
         // Inisialisasi saldo cuti default jika belum ada
         if (Schema::hasTable('leave_balances')) {
@@ -274,15 +274,19 @@ class EmpDataController extends Controller
             'blood_type'            => 'nullable|string|max:10',
             'last_education'        => 'nullable|string|max:50',
             'education_institution' => 'nullable|string|max:255',
-            'company_id'            => 'sometimes|nullable|exists:companies,id',
-            'jabatan_id'            => 'sometimes|nullable|exists:emp_jabatan,id',
-            'project_id'            => 'sometimes|nullable|exists:projects,id',
-            'status_ptkp'           => 'sometimes|nullable|in:TK0,TK1,TK2,TK3,K0,K1,K2,K3',
+            'company_id'            => 'nullable|exists:companies,id',
+            'jabatan_id'            => 'required|exists:emp_jabatan,id',
+            'project_id'            => 'nullable|exists:projects,id',
+            'status_ptkp'           => 'required|in:TK0,TK1,TK2,TK3,K0,K1,K2,K3',
+            'join_date'             => 'nullable|date',
         ], [
-            'name.required'   => 'Nama Lengkap (Sesuai KTP) wajib diisi.',
-            'photo.image'     => 'Berkas foto profil harus berupa file gambar.',
-            'photo.max'       => 'Ukuran foto profil maksimal 2 MB.',
-            'birth_date.date' => 'Format tanggal lahir tidak valid.',
+            'name.required'        => 'Nama Lengkap (Sesuai KTP) wajib diisi.',
+            'photo.image'          => 'Berkas foto profil harus berupa file gambar.',
+            'photo.max'            => 'Ukuran foto profil maksimal 2 MB.',
+            'birth_date.date'      => 'Format tanggal lahir tidak valid.',
+            'join_date.date'       => 'Format tanggal mulai kerja tidak valid.',
+            'jabatan_id.required'  => 'Jabatan karyawan wajib dipilih.',
+            'status_ptkp.required' => 'Status PTKP karyawan wajib dipilih.',
         ]);
 
         if ($request->hasFile('photo')) {
@@ -316,10 +320,6 @@ class EmpDataController extends Controller
         }
 
         $employee->update($dataToSave);
-
-        if ($employee->user && !empty($dataToSave['email']) && $employee->user->email !== $dataToSave['email']) {
-            $employee->user->update(['email' => $dataToSave['email']]);
-        }
 
         if ($request->ajax() || $request->wantsJson()) {
             return response()->json([

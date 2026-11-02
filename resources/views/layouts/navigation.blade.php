@@ -178,13 +178,9 @@
                         <i class="fa-solid fa-calendar-days mr-2 text-blue-500"></i>
                         {{ __('Kalender ESS') }}
                     </x-responsive-nav-link>
-                    <x-responsive-nav-link :href="route('leave.index')" :active="request()->routeIs('leave.*')" @click="open = false">
+                    <x-responsive-nav-link :href="route('leave.index')" :active="request()->routeIs('leave.*') || request()->routeIs('special-leave.*')" @click="open = false">
                         <i class="fa-solid fa-umbrella-beach mr-2 text-blue-500"></i>
-                        {{ __('Cuti Tahunan (ESS)') }}
-                    </x-responsive-nav-link>
-                    <x-responsive-nav-link :href="route('special-leave.index')" :active="request()->routeIs('special-leave.*')" @click="open = false">
-                        <i class="fa-solid fa-star mr-2 text-blue-500"></i>
-                        {{ __('Cuti Khusus (ESS)') }}
+                        {{ __('Cuti (ESS)') }}
                     </x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('permit.index')" :active="request()->routeIs('permit.*')" @click="open = false">
                         <i class="fa-solid fa-clipboard-user mr-2 text-blue-500"></i>

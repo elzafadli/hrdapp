@@ -89,15 +89,15 @@ Route::middleware('auth')->group(function () {
         Route::post('/approvals/{approval}/reject', [\App\Http\Controllers\LeaveRequestController::class, 'reject'])->name('reject');
     });
 
-    // ESS - Cuti Khusus
+    // ESS - Cuti Khusus (Redirect & backward compatibility ke modul Cuti Terpadu)
     Route::prefix('special-leave')->name('special-leave.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\SpecialLeaveController::class, 'index'])->name('index');
-        Route::get('/create', [\App\Http\Controllers\SpecialLeaveController::class, 'create'])->name('create');
-        Route::post('/', [\App\Http\Controllers\SpecialLeaveController::class, 'store'])->name('store');
-        Route::get('/{specialLeave}', [\App\Http\Controllers\SpecialLeaveController::class, 'show'])->name('show');
-        Route::post('/{specialLeave}/cancel', [\App\Http\Controllers\SpecialLeaveController::class, 'cancel'])->name('cancel');
-        Route::post('/approvals/{approval}/approve', [\App\Http\Controllers\SpecialLeaveController::class, 'approve'])->name('approve');
-        Route::post('/approvals/{approval}/reject', [\App\Http\Controllers\SpecialLeaveController::class, 'reject'])->name('reject');
+        Route::get('/', fn() => redirect()->route('leave.index'))->name('index');
+        Route::get('/create', fn() => redirect()->route('leave.create'))->name('create');
+        Route::post('/', [\App\Http\Controllers\LeaveRequestController::class, 'store'])->name('store');
+        Route::get('/{specialLeave}', fn($id) => redirect()->route('leave.show', $id))->name('show');
+        Route::post('/{specialLeave}/cancel', [\App\Http\Controllers\LeaveRequestController::class, 'cancel'])->name('cancel');
+        Route::post('/approvals/{approval}/approve', [\App\Http\Controllers\LeaveRequestController::class, 'approve'])->name('approve');
+        Route::post('/approvals/{approval}/reject', [\App\Http\Controllers\LeaveRequestController::class, 'reject'])->name('reject');
     });
 
     // ESS - Izin

@@ -320,14 +320,8 @@
                 <ul x-show="open" x-collapse class="py-1 space-y-0.5">
                     <li>
                         <a href="{{ route('leave.index') }}"
-                            class="flex items-center w-full px-3 py-1.5 pl-9 transition duration-75 rounded-lg text-[13px] group {{ request()->routeIs('leave.*') ? 'text-white bg-gray-800 font-semibold' : 'text-slate-400 hover:text-white hover:bg-gray-800/60' }}">
-                            Cuti Tahunan
-                        </a>
-                    </li>
-                    <li>
-                        <a href="{{ route('special-leave.index') }}"
-                            class="flex items-center w-full px-3 py-1.5 pl-9 transition duration-75 rounded-lg text-[13px] group {{ request()->routeIs('special-leave.*') ? 'text-white bg-gray-800 font-semibold' : 'text-slate-400 hover:text-white hover:bg-gray-800/60' }}">
-                            Cuti Khusus
+                            class="flex items-center w-full px-3 py-1.5 pl-9 transition duration-75 rounded-lg text-[13px] group {{ request()->routeIs('leave.*') || request()->routeIs('special-leave.*') ? 'text-white bg-gray-800 font-semibold' : 'text-slate-400 hover:text-white hover:bg-gray-800/60' }}">
+                            Cuti
                         </a>
                     </li>
                     <li>

@@ -41,52 +41,42 @@ return new class extends Migration {
             $table->index(['approver_jabatan_id']);
         });
 
-        // Seed data alur standar (Default Semua Jabatan)
-        $modules = [
-            'leave'         => 'Cuti Tahunan Standar',
-            'special_leave' => 'Cuti Khusus Standar',
-            'permit'        => 'Izin Standar',
-            'sick'          => 'Sakit Standar',
-            'overtime'      => 'Lembur Standar',
-        ];
+        // 1. Seed data alur standar untuk SEMUA MODUL ESS (Semua Jabatan)
+        $defaultHeadId = DB::table('approval_settings')->insertGetId([
+            'module'               => 'all',
+            'requester_jabatan_id' => null, // Default berlaku untuk semua jabatan
+            'description'          => 'Semua Modul ESS (Semua Jabatan)',
+            'is_active'            => true,
+            'created_at'           => now(),
+            'updated_at'           => now(),
+        ]);
 
-        foreach ($modules as $mod => $desc) {
-            $headId = DB::table('approval_settings')->insertGetId([
-                'module'               => $mod,
-                'requester_jabatan_id' => null, // Default berlaku untuk semua jabatan
-                'description'          => $desc . ' (Semua Jabatan)',
-                'is_active'            => true,
-                'created_at'           => now(),
-                'updated_at'           => now(),
-            ]);
+        DB::table('approval_setting_details')->insert([
+            [
+                'approval_setting_id' => $defaultHeadId,
+                'level'               => 1,
+                'approver_jabatan_id' => 3, // Project Manager
+                'description'         => 'Persetujuan Level 1: Project Manager / Atasan Langsung',
+                'min_approvers'       => 1,
+                'created_at'          => now(),
+                'updated_at'          => now(),
+            ],
+            [
+                'approval_setting_id' => $defaultHeadId,
+                'level'               => 2,
+                'approver_jabatan_id' => 2, // Finance
+                'description'         => 'Persetujuan Level 2: HRD / Finance Approval',
+                'min_approvers'       => 1,
+                'created_at'          => now(),
+                'updated_at'          => now(),
+            ],
+        ]);
 
-            DB::table('approval_setting_details')->insert([
-                [
-                    'approval_setting_id' => $headId,
-                    'level'               => 1,
-                    'approver_jabatan_id' => 3, // Project Manager
-                    'description'         => 'Persetujuan Level 1: Project Manager / Atasan Langsung',
-                    'min_approvers'       => 1,
-                    'created_at'          => now(),
-                    'updated_at'          => now(),
-                ],
-                [
-                    'approval_setting_id' => $headId,
-                    'level'               => 2,
-                    'approver_jabatan_id' => 2, // Finance
-                    'description'         => 'Persetujuan Level 2: HRD / Finance Approval',
-                    'min_approvers'       => 1,
-                    'created_at'          => now(),
-                    'updated_at'          => now(),
-                ],
-            ]);
-        }
-
-        // Seed khusus contoh kebutuhan user: Jabatan Cashier (ID 4) hanya 1 level approval untuk Cuti!
+        // 2. Seed khusus: Jabatan Cashier (ID 4) hanya 1 level approval (Finance) untuk SEMUA MODUL ESS!
         $cashierHeadId = DB::table('approval_settings')->insertGetId([
-            'module'               => 'leave',
+            'module'               => 'all',
             'requester_jabatan_id' => 4, // Cashier
-            'description'          => 'Khusus Karyawan Kasir (Hanya 1 Level Approval)',
+            'description'          => 'Khusus Karyawan Kasir (Semua Modul - 1 Level Approval)',
             'is_active'            => true,
             'created_at'           => now(),
             'updated_at'           => now(),
@@ -96,8 +86,8 @@ return new class extends Migration {
             [
                 'approval_setting_id' => $cashierHeadId,
                 'level'               => 1,
-                'approver_jabatan_id' => 3, // Project Manager
-                'description'         => 'Persetujuan Level 1: Project Manager / Supervisor Kasir',
+                'approver_jabatan_id' => 2, // Finance
+                'description'         => 'Persetujuan Level 1: Finance Approval',
                 'min_approvers'       => 1,
                 'created_at'          => now(),
                 'updated_at'          => now(),

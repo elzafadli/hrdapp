@@ -1,5 +1,5 @@
 <x-app-layout>
-        <div class="py-6"
+    <div class="py-6"
         x-data="{
             cancelModal: false,
             cancelUrl: '',
@@ -119,13 +119,13 @@
             <!-- Top Header & Action -->
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h2 class="text-2xl font-bold text-gray-900">Pengajuan Cuti Tahunan</h2>
+                    <h2 class="text-2xl font-bold text-gray-900">Pengajuan Cuti</h2>
                     <p class="text-sm text-gray-500">Employee Self Service (ESS) &bull; Karyawan: <span class="font-semibold text-gray-700">{{ $employee?->name ?? Auth::user()->name }}</span> ({{ $employee?->jabatan?->jabatan ?? 'Staf' }})</p>
                 </div>
                 <div>
                     <a href="{{ route('leave.create') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl font-semibold text-xs transition shadow-sm">
                         <i class="fa-solid fa-plus text-xs"></i>
-                        Ajukan Cuti Tahunan
+                        Ajukan Cuti
                     </a>
                 </div>
             </div>
@@ -172,7 +172,8 @@
                 </div>
             </div>
 
-<div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+            <!-- Tabel Riwayat Pengajuan Cuti (Tahunan & Khusus) -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
                 <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
                     <h3 class="font-bold text-gray-800 text-base">Riwayat Pengajuan Cuti Saya</h3>
                 </div>
@@ -184,7 +185,7 @@
                                 <i class="fa-regular fa-calendar-xmark text-2xl"></i>
                             </div>
                             <h4 class="text-gray-700 font-semibold text-sm">Belum ada pengajuan cuti</h4>
-                            <p class="text-gray-400 text-xs mt-1">Anda belum pernah mengajukan cuti tahunan pada tahun {{ $currentYear }}.</p>
+                            <p class="text-gray-400 text-xs mt-1">Anda belum pernah mengajukan cuti tahunan maupun cuti khusus pada tahun {{ $currentYear }}.</p>
                             <div class="mt-4">
                                 <a href="{{ route('leave.create') }}" class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-xs transition shadow-sm">
                                     Ajukan Cuti Sekarang
@@ -198,9 +199,9 @@
                                     <tr>
                                         <th class="px-4 py-3">No. Pengajuan</th>
                                         <th class="px-4 py-3">Tgl Pengajuan</th>
-                                        <th class="px-4 py-3">Cuti Sehari Penuh</th>
-                                        <th class="px-4 py-3">Cuti Setengah Hari</th>
-                                        <th class="px-4 py-3">Total Hari Kerja</th>
+                                        <th class="px-4 py-3">Jenis Cuti</th>
+                                        <th class="px-4 py-3">Rentang Tanggal</th>
+                                        <th class="px-4 py-3">Total Hari</th>
                                         <th class="px-4 py-3">Status</th>
                                         <th class="px-4 py-3 text-right">Aksi</th>
                                     </tr>
@@ -215,32 +216,34 @@
                                                 {{ $req->created_at->format('d M Y') }}
                                             </td>
                                             <td class="px-4 py-3.5">
-                                                @if($req->full_day_count > 0)
-                                                    @php
-                                                        $startDateFmt = $req->full_day_start_date?->format('d/m/Y')
-                                                            ?? $req->dates->where('day_type', 'full_day')->first()?->date?->format('d/m/Y');
-                                                        $endDateFmt = $req->full_day_end_date?->format('d/m/Y')
-                                                            ?? $req->dates->where('day_type', 'full_day')->last()?->date?->format('d/m/Y');
-                                                    @endphp
-                                                    <span class="font-medium text-gray-800">
-                                                        {{ $startDateFmt }}{{ $endDateFmt && $endDateFmt !== $startDateFmt ? ' - ' . $endDateFmt : '' }}
+                                                @if($req->leave_type === 'special')
+                                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-bold bg-purple-50 text-purple-700 border border-purple-200">
+                                                        <i class="fa-solid fa-award text-[10px]"></i> Cuti Khusus
                                                     </span>
-                                                    <span class="block text-xs text-gray-400">({{ $req->full_day_count }} hari kerja)</span>
+                                                    <span class="block text-xs text-gray-600 font-medium mt-1">
+                                                        {{ $req->specialLeaveType?->name ?? 'Cuti Khusus' }}
+                                                    </span>
                                                 @else
-                                                    <span class="text-gray-400">-</span>
+                                                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                                        <i class="fa-solid fa-umbrella-beach text-[10px]"></i> Cuti Tahunan
+                                                    </span>
+                                                    <span class="block text-xs text-gray-500 mt-1">
+                                                        {{ $req->half_day_count > 0 ? ('Setengah Hari (' . ($req->half_day_type === 'first_half' ? 'Pagi' : 'Siang') . ')') : 'Sehari Penuh' }}
+                                                    </span>
                                                 @endif
                                             </td>
-                                            <td class="px-4 py-3.5">
-                                                @if($req->half_day_count > 0)
-                                                    @php
-                                                        $halfDateFmt = $req->half_day_start_date?->format('d/m/Y')
-                                                            ?? $req->dates->where('day_type', 'half_day')->first()?->date?->format('d/m/Y');
-                                                    @endphp
-                                                    <span class="font-medium text-amber-700">{{ $halfDateFmt }}</span>
-                                                    <span class="block text-xs text-gray-400">({{ $req->half_day_count }} hari &bull; {{ $req->half_day_type === 'first_half' ? 'Pagi' : 'Siang' }})</span>
-                                                @else
-                                                    <span class="text-gray-400">-</span>
-                                                @endif
+                                            <td class="px-4 py-3.5 text-xs">
+                                                @php
+                                                    $startDateFmt = $req->full_day_start_date?->format('d/m/Y')
+                                                        ?? $req->half_day_start_date?->format('d/m/Y')
+                                                        ?? $req->dates->first()?->date?->format('d/m/Y');
+                                                    $endDateFmt = $req->full_day_end_date?->format('d/m/Y')
+                                                        ?? $req->half_day_end_date?->format('d/m/Y')
+                                                        ?? $req->dates->last()?->date?->format('d/m/Y');
+                                                @endphp
+                                                <span class="font-medium text-gray-800">
+                                                    {{ $startDateFmt }}{{ $endDateFmt && $endDateFmt !== $startDateFmt ? ' - ' . $endDateFmt : '' }}
+                                                </span>
                                             </td>
                                             <td class="px-4 py-3.5 font-extrabold text-gray-900">
                                                 {{ $req->total_days }} Hari
@@ -305,4 +308,3 @@
         </div>
     </div>
 </x-app-layout>
-

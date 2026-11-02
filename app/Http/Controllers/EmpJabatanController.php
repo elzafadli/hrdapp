@@ -43,26 +43,33 @@ class EmpJabatanController extends Controller
         return redirect()->route('employee-jabatan.index')->with('success', 'Jabatan created successfully.');
     }
 
-    public function edit(EmpJabatan $empJabatan)
+    public function edit(EmpJabatan $employeeJabatan)
     {
-        return view('emp_jabatan.form', ['jabatan' => $empJabatan]);
+        return view('emp_jabatan.form', ['jabatan' => $employeeJabatan]);
     }
 
-    public function update(Request $request, EmpJabatan $empJabatan)
+    public function update(Request $request, EmpJabatan $employeeJabatan)
     {
         $request->validate([
             'jabatan' => 'required|string|max:255',
         ]);
 
-        $empJabatan->update($request->all());
+        $employeeJabatan->update($request->all());
 
         return redirect()->route('employee-jabatan.index')->with('success', 'Jabatan updated successfully.');
     }
 
-    public function destroy(EmpJabatan $empJabatan)
+    public function destroy(EmpJabatan $employeeJabatan)
     {
-        $empJabatan->delete();
+        if ($employeeJabatan->employees()->exists()) {
+            return redirect()->route('employee-jabatan.index')->with('error', 'Jabatan tidak dapat dihapus karena masih digunakan oleh data karyawan.');
+        }
 
-        return redirect()->route('employee-jabatan.index')->with('success', 'Jabatan deleted successfully.');
+        try {
+            $employeeJabatan->delete();
+            return redirect()->route('employee-jabatan.index')->with('success', 'Jabatan deleted successfully.');
+        } catch (\Exception $e) {
+            return redirect()->route('employee-jabatan.index')->with('error', 'Gagal menghapus jabatan: ' . $e->getMessage());
+        }
     }
 }

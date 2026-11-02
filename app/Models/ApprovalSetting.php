@@ -65,8 +65,8 @@ class ApprovalSetting extends Model
      * Ambil workflow approval yang aktif untuk modul dan jabatan pemohon tertentu.
      * Prioritas:
      * 1. Aturan spesifik (Modul sama + Jabatan Pemohon sama persis).
-     * 2. Aturan default modul (Modul sama + requester_jabatan_id NULL / Semua Jabatan).
-     * 3. Aturan global ('all' + Jabatan Pemohon sama).
+     * 2. Aturan global ('all' + Jabatan Pemohon sama).
+     * 3. Aturan default modul (Modul sama + requester_jabatan_id NULL / Semua Jabatan).
      * 4. Aturan global default ('all' + Semua Jabatan).
      */
     public static function getActiveWorkflow(string $module, ?int $requesterJabatanId = null)
@@ -86,18 +86,7 @@ class ApprovalSetting extends Model
                 }
             }
 
-            // 2. Fallback: Aturan modul default untuk Semua Jabatan
-            $defaultSetting = self::with(['details.approverJabatan'])
-                ->where('is_active', true)
-                ->where('module', $module)
-                ->whereNull('requester_jabatan_id')
-                ->first();
-
-            if ($defaultSetting && $defaultSetting->details->isNotEmpty()) {
-                return $defaultSetting->details->sortBy('level');
-            }
-
-            // 3. Fallback: Aturan global 'all' spesifik jabatan pemohon
+            // 2. Fallback: Aturan global 'all' spesifik jabatan pemohon
             if ($requesterJabatanId) {
                 $globalSetting = self::with(['details.approverJabatan'])
                     ->where('is_active', true)
@@ -108,6 +97,17 @@ class ApprovalSetting extends Model
                 if ($globalSetting && $globalSetting->details->isNotEmpty()) {
                     return $globalSetting->details->sortBy('level');
                 }
+            }
+
+            // 3. Fallback: Aturan modul default untuk Semua Jabatan
+            $defaultSetting = self::with(['details.approverJabatan'])
+                ->where('is_active', true)
+                ->where('module', $module)
+                ->whereNull('requester_jabatan_id')
+                ->first();
+
+            if ($defaultSetting && $defaultSetting->details->isNotEmpty()) {
+                return $defaultSetting->details->sortBy('level');
             }
 
             // 4. Fallback: Aturan global 'all' default semua jabatan

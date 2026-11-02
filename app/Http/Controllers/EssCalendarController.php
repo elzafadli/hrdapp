@@ -60,14 +60,14 @@ class EssCalendarController extends Controller
             $isApprover = false;
         }
 
-        // Scope Awal: 'my' (Pengajuan Saya) atau 'team' (Pengajuan Tim)
-        $scope = $request->input('scope', 'my');
-        if (!$isApprover) {
-            $scope = 'my';
-        }
+        // Scope Awal: 'team' (Semua Tim) sebagai default agar karyawan dapat melihat jadwal rekan kerja
+        $scope = $request->input('scope', 'team');
 
         $filterType   = $request->input('type', 'all');
         $filterStatus = $request->input('status', 'all');
+        if ($filterStatus === 'cancelled') {
+            $filterStatus = 'all';
+        }
 
         // Rentang Waktu Grid Kalender (Senin s/d Minggu)
         $startOfMonth = Carbon::createFromDate($year, $month, 1)->startOfDay();
@@ -97,21 +97,18 @@ class EssCalendarController extends Controller
                 'leaveRequest.approvals.jabatan',
                 'leaveRequest.approvals.approver',
                 'leaveRequest.files',
-            ])->whereBetween('date', [
+            ])->whereHas('leaveRequest', function ($q) {
+                $q->where('status', '!=', 'cancelled');
+            })->whereBetween('date', [
                 $startOfGrid->toDateString(),
                 $endOfGrid->toDateString()
             ]);
-
-            // Jika bukan approver/admin, batasi hanya data dirinya sendiri
-            if (!$isApprover && $employee) {
-                $leaveQuery->where('emp_id', $employee->id);
-            }
 
             $leaveDates = $leaveQuery->get();
 
             foreach ($leaveDates as $ld) {
                 $lr = $ld->leaveRequest;
-                if (!$lr) continue;
+                if (!$lr || $lr->status === 'cancelled') continue;
 
                 $dateStr = Carbon::parse($ld->date)->format('Y-m-d');
                 $eventPayload = $this->formatLeaveEvent($lr, $ld, $employee);
@@ -138,19 +135,17 @@ class EssCalendarController extends Controller
                 'approvals.jabatan',
                 'approvals.approver',
                 'files',
-            ])->whereBetween('date', [
+            ])->where('status', '!=', 'cancelled')
+            ->whereBetween('date', [
                 $startOfGrid->toDateString(),
                 $endOfGrid->toDateString()
             ]);
 
-            // Jika bukan approver/admin, batasi hanya data dirinya sendiri
-            if (!$isApprover && $employee) {
-                $otQuery->where('emp_id', $employee->id);
-            }
-
             $overtimes = $otQuery->get();
 
             foreach ($overtimes as $ot) {
+                if ($ot->status === 'cancelled') continue;
+
                 $dateStr = Carbon::parse($ot->date)->format('Y-m-d');
                 $eventPayload = $this->formatOvertimeEvent($ot, $employee);
                 $eventsByDate[$dateStr][] = $eventPayload;
@@ -223,7 +218,7 @@ class EssCalendarController extends Controller
                 $stats['total_ot_hours'] += $item['hours'];
             } elseif ($item['status'] === 'pending') {
                 $stats['pending']++;
-            } elseif (in_array($item['status'], ['rejected', 'cancelled'])) {
+            } elseif ($item['status'] === 'rejected') {
                 $stats['rejected']++;
             }
         }

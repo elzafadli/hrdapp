@@ -49,7 +49,8 @@
                             <div class="space-y-1.5">
                                 <x-input-label for="module" :value="__('Modul ESS')" />
                                 <x-select-input id="module" name="module" class="block w-full"
-                                    :options="$modules" :selected="old('module', $approvalSetting->module ?? 'leave')" :noSelect2="true" required />
+                                    :options="$modules" :selected="old('module', $approvalSetting->module ?? 'all')" :noSelect2="true" required />
+                                <span class="text-[11px] text-gray-400 block">Pilih <strong>Semua Modul (All)</strong> agar alur otomatis berlaku untuk seluruh modul ESS tanpa perlu konfigurasi terpisah.</span>
                                 <x-input-error class="mt-1" :messages="$errors->get('module')" />
                             </div>
 
@@ -73,7 +74,7 @@
                                 <x-input-label for="description" :value="__('Keterangan / Catatan Alur')" />
                                 <x-text-input id="description" name="description" type="text" class="block w-full"
                                     :value="old('description', $approvalSetting->description)"
-                                    placeholder="Contoh: Alur Persetujuan Cuti Khusus Staf Kasir" />
+                                    placeholder="Contoh: Alur Persetujuan Semua Modul - Khusus Kasir" />
                                 <x-input-error class="mt-1" :messages="$errors->get('description')" />
                             </div>
 

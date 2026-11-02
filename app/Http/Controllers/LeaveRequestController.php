@@ -11,6 +11,7 @@ use App\Models\LeaveBalance;
 use App\Models\LeaveRequest;
 use App\Models\LeaveRequestDate;
 use App\Models\LeaveRequestFile;
+use App\Models\SpecialLeaveType;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Http\Request;
@@ -49,10 +50,10 @@ class LeaveRequestController extends Controller
                 ['total_leave' => 12.0, 'used_leave' => 0.0, 'remaining_leave' => 12.0]
             );
 
-            // Riwayat pengajuan cuti karyawan ini
-            $leaveRequests = LeaveRequest::with(['dates', 'files', 'approvals.approvable', 'approvals.jabatan'])
+            // Riwayat pengajuan cuti karyawan ini (Tahunan & Khusus)
+            $leaveRequests = LeaveRequest::with(['specialLeaveType', 'dates', 'files', 'approvals.approvable', 'approvals.jabatan', 'approvals.approver.employee'])
                 ->where('emp_id', $employee->id)
-                ->where('leave_type', 'annual')
+                ->whereIn('leave_type', ['annual', 'special'])
                 ->latest()
                 ->paginate(10);
 
@@ -64,7 +65,7 @@ class LeaveRequestController extends Controller
     }
 
     /**
-     * Tampilkan formulir pengajuan cuti tahunan.
+     * Tampilkan formulir pengajuan cuti (tahunan atau khusus).
      */
     public function create()
     {
@@ -80,6 +81,18 @@ class LeaveRequestController extends Controller
             ['total_leave' => 12.0, 'used_leave' => 0.0, 'remaining_leave' => 12.0]
         );
 
+        // Ambil daftar tipe cuti khusus aktif sesuai jenis kelamin karyawan
+        $empGender = $employee->gender ?? 'male';
+        $specialLeaveTypes = SpecialLeaveType::active()
+            ->forGender($empGender)
+            ->orderBy('name')
+            ->get();
+        $typeOptions = $specialLeaveTypes->mapWithKeys(function ($t) {
+            $days = (float) $t->days_allowed;
+            $daysLabel = ($days == (int) $days) ? (int) $days : $days;
+            return [$t->id => "{$t->name} (Jatah: {$daysLabel} Hari)"];
+        })->toArray();
+
         // Ambil seluruh tanggal cuti yang sudah pernah diajukan oleh karyawan ini agar bisa di-disable di kalender
         $disabledDates = LeaveRequestDate::where('emp_id', $employee->id)
             ->whereHas('leaveRequest', function ($q) {
@@ -91,7 +104,7 @@ class LeaveRequestController extends Controller
             ->values()
             ->toArray();
 
-        return view('ess.leave.create', compact('employee', 'leaveBalance', 'disabledDates'));
+        return view('ess.leave.create', compact('employee', 'leaveBalance', 'disabledDates', 'specialLeaveTypes', 'typeOptions'));
     }
 
     /**
@@ -109,6 +122,88 @@ class LeaveRequestController extends Controller
 
         // Saldo remaining_leave sudah real-time (langsung dipotong saat submit)
         $currentRemaining = (float) $leaveBalance->remaining_leave;
+
+        $leaveCategory = $request->input('leave_category', 'annual');
+        if ($leaveCategory === 'special' || $request->input('leave_type') === 'special') {
+            $startDate = $request->input('start_date');
+            $specialTypeId = $request->input('special_leave_type_id');
+            $specialType = $specialTypeId ? SpecialLeaveType::find($specialTypeId) : null;
+            $daysNeeded = $specialType ? (float) $specialType->days_allowed : 1.0;
+
+            $minAllowedDate = Carbon::tomorrow()->toDateString();
+            $isBackdate = false;
+            if ($startDate && $startDate < $minAllowedDate) {
+                $isBackdate = true;
+            }
+
+            $workingDays = [];
+            $skippedDates = [];
+            $endDateStr = $startDate;
+
+            if ($startDate && !$isBackdate && $specialType) {
+                $currentDate = Carbon::parse($startDate)->startOfDay();
+                $totalDays = 0.0;
+                $safetyCounter = 0;
+
+                while ($totalDays < $daysNeeded && $safetyCounter < 120) {
+                    $dateStr = $currentDate->toDateString();
+                    $dayName = $currentDate->translatedFormat('l');
+
+                    if ($employee && $employee->isWorkDay($currentDate)) {
+                        $workingDays[] = [
+                            'date' => $dateStr,
+                            'formatted' => $currentDate->format('d/m/Y'),
+                            'day_name' => $dayName,
+                            'type' => 'Cuti Khusus',
+                            'val' => 1.0,
+                        ];
+                        $totalDays += 1.0;
+                        $endDateStr = $dateStr;
+                    } else {
+                        $isHoliday = Holiday::isHoliday($currentDate);
+                        $skippedDates[] = [
+                            'date' => $dateStr,
+                            'formatted' => $currentDate->format('d/m/Y'),
+                            'day_name' => $dayName,
+                            'reason' => $isHoliday ? 'Hari Libur Nasional' : 'Libur Akhir Pekan / Off',
+                        ];
+                    }
+
+                    if ($totalDays < $daysNeeded) {
+                        $currentDate->addDay();
+                    }
+                    $safetyCounter++;
+                }
+            }
+
+            $workingDateStrings = array_column($workingDays, 'date');
+            $conflicts = ($employee && !empty($workingDateStrings))
+                ? LeaveRequestDate::checkDateConflicts($employee->id, $workingDateStrings, false, null)
+                : [];
+            $hasConflict = !empty($conflicts);
+
+            return response()->json([
+                'leave_category'     => 'special',
+                'special_type_id'    => $specialType?->id,
+                'special_type_name'  => $specialType?->name,
+                'days_allowed'       => $daysNeeded,
+                'current_remaining'  => $currentRemaining,
+                'full_day_count'     => count($workingDays),
+                'half_day_count'     => 0,
+                'total_deduction'    => 0,
+                'remaining_after'    => $currentRemaining,
+                'is_exceeded'        => false,
+                'is_backdate'        => $isBackdate,
+                'has_conflict'       => $hasConflict,
+                'conflicts'          => $conflicts,
+                'conflict_message'   => $hasConflict ? implode('; ', array_column($conflicts, 'message')) : '',
+                'backdate_message'   => $isBackdate ? 'Tanggal cuti tidak boleh tanggal lampau (back-date). Sesuai ketentuan, pengajuan paling lambat H-1 (mulai ' . Carbon::tomorrow()->format('d/m/Y') . ').' : '',
+                'working_days'       => $workingDays,
+                'skipped_dates'      => $skippedDates,
+                'end_date'           => $endDateStr,
+                'end_date_formatted' => $endDateStr ? Carbon::parse($endDateStr)->format('d/m/Y') : '',
+            ]);
+        }
 
         // Dukungan input radio button: is_half_day / leave_duration_type
         $isHalfDay = $request->boolean('is_half_day') || $request->input('leave_duration_type') === 'half_day';
@@ -276,7 +371,7 @@ class LeaveRequestController extends Controller
     }
 
     /**
-     * Simpan pengajuan cuti tahunan baru.
+     * Simpan pengajuan cuti (tahunan atau khusus) baru.
      */
     public function store(Request $request)
     {
@@ -285,6 +380,143 @@ class LeaveRequestController extends Controller
             return back()->with('error', 'Data karyawan tidak ditemukan.');
         }
 
+        $leaveCategory = $request->input('leave_category', 'annual');
+
+        // ==========================================
+        // CABANG 1: PENGAJUAN CUTI KHUSUS
+        // ==========================================
+        if ($leaveCategory === 'special' || $request->input('leave_type') === 'special') {
+            $request->validate([
+                'special_leave_type_id' => 'required|exists:special_leave_types,id',
+                'start_date'            => 'required|date',
+                'reason'                => 'required|string|max:1000',
+                'files.*'               => 'nullable|file|max:3072',
+            ]);
+
+            $specialLeaveType = SpecialLeaveType::findOrFail($request->special_leave_type_id);
+            $empGender = $employee->gender ?? 'male';
+
+            // Validasi restriksi gender pada tipe cuti khusus
+            if ($specialLeaveType->gender_restriction !== 'all' && $specialLeaveType->gender_restriction !== $empGender) {
+                $forLabel = ($specialLeaveType->gender_restriction === 'female') ? 'karyawan perempuan' : 'karyawan laki-laki';
+                return back()->withInput()->with('error', "Jenis cuti {$specialLeaveType->name} khusus diperuntukkan bagi {$forLabel}.");
+            }
+
+            $startDate = $request->input('start_date');
+
+            // Validasi Back-Date (Ketentuan H-1)
+            $minAllowedDate = Carbon::tomorrow()->toDateString();
+            if ($startDate < $minAllowedDate) {
+                return back()->withInput()->with('error', 'Tanggal cuti tidak boleh tanggal lampau (back-date). Pengajuan paling lambat H-1 (mulai tanggal ' . Carbon::tomorrow()->format('d/m/Y') . ').');
+            }
+
+            // Hitung otomatis tanggal selesai & daftar hari kerja sesuai jatah cuti khusus
+            $daysNeeded = (float) $specialLeaveType->days_allowed;
+            $currentDate = Carbon::parse($startDate)->startOfDay();
+            $fullDayDates = [];
+            $totalDays = 0.0;
+            $safetyCounter = 0;
+
+            while ($totalDays < $daysNeeded && $safetyCounter < 120) {
+                if ($employee->isWorkDay($currentDate)) {
+                    $fullDayDates[] = $currentDate->toDateString();
+                    $totalDays += 1.0;
+                }
+                if ($totalDays < $daysNeeded) {
+                    $currentDate->addDay();
+                }
+                $safetyCounter++;
+            }
+
+            if ($totalDays <= 0) {
+                return back()->withInput()->with('error', 'Tanggal yang Anda pilih tidak memiliki hari kerja yang dapat diajukan.');
+            }
+
+            $endDate = !empty($fullDayDates) ? end($fullDayDates) : $startDate;
+
+            // Validasi Bentrok Tanggal
+            $conflicts = LeaveRequestDate::checkDateConflicts(
+                $employee->id,
+                $fullDayDates,
+                false,
+                null
+            );
+
+            if (!empty($conflicts)) {
+                $conflictStr = implode(' | ', array_column($conflicts, 'message'));
+                return back()->withInput()->with('error', "Tanggal pengajuan bentrok dengan cuti Anda yang sudah ada: {$conflictStr}");
+            }
+
+            DB::beginTransaction();
+            try {
+                $requestNumber = DocumentNumberHelper::generate('CK', $employee);
+
+                $leaveRequest = LeaveRequest::create([
+                    'request_number'        => $requestNumber,
+                    'emp_id'                => $employee->id,
+                    'user_id'               => auth()->id(),
+                    'leave_type'            => 'special',
+                    'special_leave_type_id' => $specialLeaveType->id,
+                    'full_day_start_date'   => $startDate,
+                    'full_day_end_date'     => $endDate,
+                    'full_day_count'        => $totalDays,
+                    'half_day_start_date'   => null,
+                    'half_day_end_date'     => null,
+                    'half_day_count'        => 0.0,
+                    'half_day_type'         => null,
+                    'total_days'            => $totalDays,
+                    'reason'                => $request->reason,
+                    'status'                => 'pending',
+                ]);
+
+                // Simpan rincian tanggal cuti
+                foreach ($fullDayDates as $date) {
+                    LeaveRequestDate::create([
+                        'leave_request_id' => $leaveRequest->id,
+                        'emp_id'           => $employee->id,
+                        'date'             => $date,
+                        'day_type'         => 'full_day',
+                        'deduction_value'  => 1.0,
+                    ]);
+                }
+
+                // Simpan file lampiran jika ada
+                if ($request->hasFile('files')) {
+                    foreach ($request->file('files') as $file) {
+                        try {
+                            $path = $file->store('leave_attachments', 'is3');
+                        } catch (\Throwable $e) {
+                            $path = $file->store('leave_attachments', 'public');
+                        }
+                        LeaveRequestFile::create([
+                            'leave_request_id' => $leaveRequest->id,
+                            'file_path'        => $path,
+                            'file_name'        => $file->getClientOriginalName(),
+                            'file_size'        => $file->getSize(),
+                            'mime_type'        => $file->getClientMimeType(),
+                        ]);
+                    }
+                }
+
+                // Inisialisasi alur approval (cuti khusus tidak memotong saldo cuti tahunan)
+                $leaveRequest->initializeApproval();
+
+                DB::commit();
+
+                $msg = $leaveRequest->status === 'completed'
+                    ? 'Pengajuan cuti khusus berhasil disetujui otomatis.'
+                    : 'Pengajuan cuti khusus berhasil diajukan dan sedang menunggu persetujuan.';
+
+                return redirect()->route('leave.index')->with('success', $msg);
+            } catch (\Exception $e) {
+                DB::rollBack();
+                return back()->withInput()->with('error', 'Gagal memproses pengajuan cuti khusus: ' . $e->getMessage());
+            }
+        }
+
+        // ==========================================
+        // CABANG 2: PENGAJUAN CUTI TAHUNAN (DEFAULT)
+        // ==========================================
         $request->validate([
             'leave_duration_type' => 'nullable|in:full_day,half_day',
             'is_half_day'         => 'nullable|boolean',
@@ -497,6 +729,7 @@ class LeaveRequestController extends Controller
     {
         $leaveRequest = LeaveRequest::with([
             'employee.jabatan',
+            'specialLeaveType',
             'dates',
             'files',
             'approvals.approvable', 'approvals.jabatan',

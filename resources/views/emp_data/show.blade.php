@@ -32,7 +32,15 @@
             @endif
 
             <div class="space-y-6" x-data="{
-                activeTab: 'data-karyawan',
+                activeTab: (function() {
+                    try {
+                        const p = new URLSearchParams(window.location.search).get('tab');
+                        if (p && ['data-karyawan', 'karir', 'pendidikan', 'pengalaman-kerja', 'pelatihan-skill', 'bpjs'].includes(p)) {
+                            return p;
+                        }
+                    } catch(e) {}
+                    return '{{ request('tab', 'data-karyawan') }}';
+                })(),
                 copyToast: false,
                 toastMessage: '',
                 copyKtp(text) {
@@ -118,7 +126,7 @@
 
                                     <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/20 font-mono text-[11px] border border-white/10">
                                         <i class="fa-regular fa-envelope text-[10px]"></i>
-                                        <span>{{ $employee->user?->email ?? '-' }}</span>
+                                        <span>{{ $employee->effective_email ?? '-' }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -164,11 +172,9 @@
                             class="block w-full rounded-xl border-gray-200 bg-white py-2.5 pl-3 pr-10 text-xs font-semibold text-gray-800 shadow-xs focus:border-blue-500 focus:ring-blue-500">
                             <option value="data-karyawan">👤 Data Karyawan</option>
                             <option value="karir">💼 Riwayat Karir</option>
-                            <option value="lama-bekerja">⏱️ Lama Bekerja</option>
                             <option value="pendidikan">🎓 Pendidikan</option>
                             <option value="pengalaman-kerja">🏢 Pengalaman Kerja</option>
                             <option value="pelatihan-skill">🏆 Pelatihan & Keahlian</option>
-                            <option value="penugasan-payroll">⚙️ Penugasan & Payroll</option>
                             <option value="bpjs">🛡️ Data BPJS</option>
                         </select>
                     </div>
@@ -191,13 +197,6 @@
                             <span>Karir</span>
                         </button>
 
-                        <button type="button" @click="activeTab = 'lama-bekerja'"
-                            class="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition cursor-pointer"
-                            :class="activeTab === 'lama-bekerja' ? 'bg-blue-600 text-white shadow-xs' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/70'">
-                            <i class="fa-regular fa-calendar-check text-xs"></i>
-                            <span>Lama Bekerja</span>
-                        </button>
-
                         <button type="button" @click="activeTab = 'pendidikan'"
                             class="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition cursor-pointer"
                             :class="activeTab === 'pendidikan' ? 'bg-blue-600 text-white shadow-xs' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/70'">
@@ -217,13 +216,6 @@
                             :class="activeTab === 'pelatihan-skill' ? 'bg-blue-600 text-white shadow-xs' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/70'">
                             <i class="fa-solid fa-award text-xs"></i>
                             <span>Pelatihan & Skill</span>
-                        </button>
-
-                        <button type="button" @click="activeTab = 'penugasan-payroll'"
-                            class="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition cursor-pointer"
-                            :class="activeTab === 'penugasan-payroll' ? 'bg-blue-600 text-white shadow-xs' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/70'">
-                            <i class="fa-solid fa-sliders text-xs"></i>
-                            <span>Penugasan & Payroll</span>
                         </button>
 
                         <button type="button" @click="activeTab = 'bpjs'"
@@ -422,53 +414,22 @@
                             </div>
                         </div>
 
-                        {{-- CARD 1C: PENDIDIKAN TERAKHIR --}}
-                        <div class="bg-white rounded-2xl border border-gray-100 shadow-xs overflow-hidden">
-                            <div class="px-6 py-4 border-b border-gray-100 flex items-center gap-2.5 bg-slate-50/60">
-                                <span class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-sm">
-                                    <i class="fa-solid fa-graduation-cap"></i>
-                                </span>
-                                <div>
-                                    <h2 class="text-sm font-bold text-gray-900">Pendidikan Terakhir</h2>
-                                    <p class="text-xs text-gray-500">Kualifikasi jenjang pendidikan formal terakhir</p>
-                                </div>
-                            </div>
-
-                            <div class="p-6">
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                                    <div>
-                                        <x-input-label :value="__('Jenjang Pendidikan Terakhir')" />
-                                        <x-text-input type="text"
-                                            class="mt-1 block w-full bg-slate-50 text-slate-800 cursor-not-allowed"
-                                            :value="$employee->last_education ?? '-'" disabled />
-                                    </div>
-
-                                    <div>
-                                        <x-input-label :value="__('Nama Institusi Pendidikan')" />
-                                        <x-text-input type="text"
-                                            class="mt-1 block w-full bg-slate-50 text-slate-800 cursor-not-allowed"
-                                            :value="$employee->education_institution ?? '-'" disabled />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {{-- CARD 1D: INFORMASI PERUSAHAAN & PAYROLL --}}
+                        {{-- CARD 1C: PENUGASAN & STATUS PAYROLL --}}
                         <div class="bg-white rounded-2xl border border-gray-100 shadow-xs overflow-hidden">
                             <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-slate-50/60">
                                 <div class="flex items-center gap-2.5">
                                     <span class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-sm">
-                                        <i class="fa-solid fa-building-user"></i>
+                                        <i class="fa-solid fa-briefcase"></i>
                                     </span>
                                     <div>
-                                        <h3 class="text-sm font-bold text-gray-900">Penugasan Perusahaan & Payroll</h3>
-                                        <p class="text-xs text-gray-500">Keterkaitan penempatan kerja, project, dan perpajakan</p>
+                                        <h2 class="text-sm font-bold text-gray-900">Penugasan & Status Payroll</h2>
+                                        <p class="text-xs text-gray-500">Keterkaitan penempatan kerja, jabatan, project, dan perpajakan</p>
                                     </div>
                                 </div>
-                                <a href="{{ route('employee.edit', ['employee' => $employee, 'tab' => 'penugasan-payroll']) }}"
+                                <a href="{{ route('employee.edit', ['employee' => $employee, 'tab' => 'data-karyawan']) }}"
                                     class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-semibold transition">
                                     <i class="fa-solid fa-pen text-xs"></i>
-                                    Ubah Penugasan
+                                    Ubah Data
                                 </a>
                             </div>
 
@@ -497,6 +458,46 @@
                                         <x-text-input type="text"
                                             class="mt-1 block w-full bg-slate-50 text-slate-800 cursor-not-allowed"
                                             :value="$employee->status_ptkp ?? '-'" disabled />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- CARD 1D: LAMA BEKERJA --}}
+                        <div class="bg-white rounded-2xl border border-gray-100 shadow-xs overflow-hidden">
+                            <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-slate-50/60">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm">
+                                        <i class="fa-regular fa-calendar-check"></i>
+                                    </span>
+                                    <div>
+                                        <h2 class="text-sm font-bold text-gray-900">Lama Bekerja</h2>
+                                        <p class="text-xs text-gray-500">Masa pengabdian dan tanggal mulai bergabung karyawan</p>
+                                    </div>
+                                </div>
+                                <a href="{{ route('employee.edit', ['employee' => $employee, 'tab' => 'data-karyawan']) }}"
+                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold transition">
+                                    <i class="fa-solid fa-pen text-xs"></i>
+                                    Ubah Data
+                                </a>
+                            </div>
+
+                            <div class="p-6">
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                                    <div>
+                                        <x-input-label :value="__('Mulai Kerja (Tanggal Bergabung)')" />
+                                        <x-text-input type="text"
+                                            class="mt-1 block w-full font-mono bg-slate-50 text-slate-800 cursor-not-allowed"
+                                            :value="$employee->formatted_join_date ?? '-'" disabled />
+                                        <p class="text-[11px] text-gray-400 mt-1">Tanggal resmi karyawan mulai bekerja di perusahaan</p>
+                                    </div>
+
+                                    <div>
+                                        <x-input-label :value="__('Total Masa Kerja (Kalkulasi Sistem)')" />
+                                        <x-text-input type="text"
+                                            class="mt-1 block w-full font-bold text-blue-700 bg-slate-50 cursor-not-allowed text-base"
+                                            :value="$employee->masa_kerja" disabled />
+                                        <p class="text-[11px] text-gray-400 mt-1">Dihitung otomatis secara real-time dari tanggal mulai kerja</p>
                                     </div>
                                 </div>
                             </div>
@@ -671,49 +672,7 @@
                         </div>
                     </div>
 
-                    {{-- TAB 3: LAMA BEKERJA (SESUAI GAMBAR 3) --}}
-                    <div x-show="activeTab === 'lama-bekerja'" class="space-y-6">
-                        <div class="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden">
-                            <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-                                <div class="flex items-center gap-2.5">
-                                    <span class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm">
-                                        <i class="fa-regular fa-calendar-check"></i>
-                                    </span>
-                                    <div>
-                                        <h2 class="text-base font-bold text-gray-900">Lama Bekerja</h2>
-                                        <p class="text-xs text-gray-500">Masa pengabdian dan tanggal mulai bergabung karyawan</p>
-                                    </div>
-                                </div>
-                                <a href="{{ route('employee.edit', ['employee' => $employee, 'tab' => 'lama-bekerja']) }}"
-                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold transition">
-                                    <i class="fa-solid fa-pen text-xs"></i>
-                                    Ubah Mulai Kerja
-                                </a>
-                            </div>
-
-                            <div class="p-6">
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                                    <div>
-                                        <x-input-label :value="__('Mulai Kerja (Tanggal Bergabung)')" />
-                                        <x-text-input type="text"
-                                            class="mt-1 block w-full font-mono bg-slate-50 text-slate-800 cursor-not-allowed"
-                                            :value="$employee->formatted_join_date ?? '-'" disabled />
-                                        <p class="text-[11px] text-gray-400 mt-1">Tanggal resmi karyawan mulai bekerja di perusahaan</p>
-                                    </div>
-
-                                    <div>
-                                        <x-input-label :value="__('Total Masa Kerja (Kalkulasi Sistem)')" />
-                                        <x-text-input type="text"
-                                            class="mt-1 block w-full font-bold text-blue-700 bg-slate-50 cursor-not-allowed text-base"
-                                            :value="$employee->masa_kerja" disabled />
-                                        <p class="text-[11px] text-gray-400 mt-1">Dihitung otomatis secara real-time dari tanggal mulai kerja</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {{-- TAB 4: PENDIDIKAN (BISA MULTI) --}}
+                    {{-- TAB 3: PENDIDIKAN (BISA MULTI) --}}
                     <div x-show="activeTab === 'pendidikan'" class="space-y-6">
                         @php
                             $educationList = ($employee->exists && \Illuminate\Support\Facades\Schema::hasTable('emp_educations')) ? $employee->educations : collect();
@@ -1005,63 +964,6 @@
                                         <a href="{{ route('employee.edit', ['employee' => $employee, 'tab' => 'pelatihan-skill']) }}" class="text-blue-600 font-bold hover:underline ml-1">Tambah Pelatihan Sekarang</a>
                                     </div>
                                 @endif
-                            </div>
-                        </div>
-                    </div>
-
-                    {{-- TAB 7: PENUGASAN & STATUS PAYROLL --}}
-                    <div x-show="activeTab === 'penugasan-payroll'" class="space-y-6">
-                        <div class="bg-white rounded-2xl border border-gray-200 shadow-xs overflow-hidden">
-                            <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-slate-50/60">
-                                <div class="flex items-center gap-2.5">
-                                    <span class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-sm">
-                                        <i class="fa-solid fa-briefcase"></i>
-                                    </span>
-                                    <div>
-                                        <h2 class="text-base font-bold text-gray-900">Penugasan & Status Payroll</h2>
-                                        <p class="text-xs text-gray-500">Perusahaan, jabatan struktural, project, dan status PTKP pajak</p>
-                                    </div>
-                                </div>
-                                <a href="{{ route('employee.edit', ['employee' => $employee, 'tab' => 'penugasan-payroll']) }}"
-                                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-semibold transition">
-                                    <i class="fa-solid fa-pen text-xs"></i>
-                                    Ubah Penugasan
-                                </a>
-                            </div>
-
-                            <div class="p-6">
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                                    <div>
-                                        <x-input-label :value="__('Perusahaan')" />
-                                        <x-text-input type="text"
-                                            class="mt-1 block w-full font-bold bg-slate-50 text-slate-800 cursor-not-allowed"
-                                            :value="($employee->effective_company?->name ?? '-') . ' (' . ($employee->effective_company?->code ?? '-') . ')'" disabled />
-                                    </div>
-                                    <div>
-                                        <x-input-label :value="__('Jabatan Struktural')" />
-                                        <x-text-input type="text"
-                                            class="mt-1 block w-full font-bold bg-slate-50 text-blue-600 cursor-not-allowed"
-                                            :value="$employee->jabatan?->jabatan ?? '-'" disabled />
-                                    </div>
-                                    <div>
-                                        <x-input-label :value="__('Project Penugasan')" />
-                                        <x-text-input type="text"
-                                            class="mt-1 block w-full bg-slate-50 text-slate-800 cursor-not-allowed"
-                                            :value="$employee->project?->name ?? 'Non-Project / Head Office'" disabled />
-                                    </div>
-                                    <div>
-                                        <x-input-label :value="__('Status PTKP Pajak')" />
-                                        <x-text-input type="text"
-                                            class="mt-1 block w-full bg-slate-50 text-slate-800 cursor-not-allowed"
-                                            :value="$employee->status_ptkp ?? '-'" disabled />
-                                    </div>
-                                    <div class="sm:col-span-2">
-                                        <x-input-label :value="__('Akun Login ESS Terhubung')" />
-                                        <x-text-input type="text"
-                                            class="mt-1 block w-full bg-slate-50 text-slate-800 cursor-not-allowed"
-                                            :value="$employee->user ? $employee->user->name . ' (' . $employee->user->email . ')' : 'Belum Terhubung'" disabled />
-                                    </div>
-                                </div>
                             </div>
                         </div>
                     </div>

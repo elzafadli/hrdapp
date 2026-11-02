@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="header">
         <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-            Detail Pengajuan Cuti Tahunan
+            Detail Pengajuan {{ $leaveRequest->leave_type === 'special' ? 'Cuti Khusus' : 'Cuti Tahunan' }}
         </h2>
     </x-slot>
 
@@ -259,8 +259,15 @@
                         <i class="fa-solid fa-arrow-left text-lg"></i>
                     </a>
                     <div>
-                        <h2 class="text-xl font-bold text-gray-900">Detail Pengajuan Cuti</h2>
-                        <p class="text-xs text-gray-400">Nomor: {{ $leaveRequest->request_number ?? 'CUTI-' . $leaveRequest->id }}</p>
+                        <h2 class="text-xl font-bold text-gray-900">
+                            Detail Pengajuan {{ $leaveRequest->leave_type === 'special' ? 'Cuti Khusus' : 'Cuti Tahunan' }}
+                        </h2>
+                        <p class="text-xs text-gray-400">
+                            Nomor: {{ $leaveRequest->request_number ?? 'CUTI-' . $leaveRequest->id }} &bull; 
+                            <span class="font-medium text-gray-600">
+                                {{ $leaveRequest->leave_type === 'special' ? ('Cuti Khusus (' . ($leaveRequest->specialLeaveType?->name ?? 'Khusus') . ')') : 'Cuti Tahunan' }}
+                            </span>
+                        </p>
                     </div>
                 </div>
                 <div>
@@ -312,45 +319,77 @@
                             <i class="fa-solid fa-calendar-days text-blue-500"></i>
                             Rincian Hari Cuti
                         </h3>
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            <div class="p-3.5 bg-blue-50/60 rounded-xl border border-blue-100">
-                                <span class="text-xs text-blue-600 font-semibold block">Cuti Sehari Penuh</span>
-                                <span class="text-lg font-extrabold text-blue-900 mt-0.5 block">
-                                    {{ (float) $leaveRequest->full_day_count }} <span class="text-xs font-medium">Hari</span>
-                                </span>
-                                @if($leaveRequest->full_day_count > 0)
-                                    <span class="text-[11px] text-blue-700 block mt-1">
+                        @if($leaveRequest->leave_type === 'special')
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <div class="p-3.5 bg-purple-50/60 rounded-xl border border-purple-100">
+                                    <span class="text-xs text-purple-600 font-semibold block">Jenis Cuti Khusus</span>
+                                    <span class="text-base font-extrabold text-purple-900 mt-0.5 block truncate">
+                                        {{ $leaveRequest->specialLeaveType?->name ?? 'Cuti Khusus' }}
+                                    </span>
+                                    <span class="text-[11px] text-purple-700 block mt-1">
+                                        Hak Ketentuan: {{ (float) ($leaveRequest->specialLeaveType?->days_allowed ?? $leaveRequest->total_days) }} Hari
+                                    </span>
+                                </div>
+
+                                <div class="p-3.5 bg-blue-50/60 rounded-xl border border-blue-100">
+                                    <span class="text-xs text-blue-600 font-semibold block">Rentang Tanggal</span>
+                                    <span class="text-base font-extrabold text-blue-900 mt-0.5 block">
                                         {{ $leaveRequest->full_day_start_date?->format('d/m/Y') }} - {{ $leaveRequest->full_day_end_date?->format('d/m/Y') }}
                                     </span>
-                                @endif
-                            </div>
-
-                            <div class="p-3.5 bg-amber-50/60 rounded-xl border border-amber-100">
-                                <span class="text-xs text-amber-600 font-semibold block">Cuti Setengah Hari</span>
-                                <span class="text-lg font-extrabold text-amber-900 mt-0.5 block">
-                                    {{ (float) $leaveRequest->half_day_count }} <span class="text-xs font-medium">Hari</span>
-                                </span>
-                                @if($leaveRequest->half_day_count > 0)
-                                    <span class="text-[11px] text-amber-700 block mt-1">
-                                        {{ $leaveRequest->half_day_start_date?->format('d/m/Y') }} ({{ $leaveRequest->half_day_type === 'first_half' ? 'Pagi' : 'Siang' }})
+                                    <span class="text-[11px] text-blue-700 block mt-1">
+                                        {{ (float) $leaveRequest->total_days }} Hari Kerja
                                     </span>
-                                @endif
-                            </div>
+                                </div>
 
-                            <div class="p-3.5 bg-emerald-50/60 rounded-xl border border-emerald-100">
-                                <span class="text-xs text-emerald-600 font-semibold block">Total Potong Saldo</span>
-                                <span class="text-lg font-extrabold text-emerald-900 mt-0.5 block">
-                                    {{ (float) $leaveRequest->total_days }} <span class="text-xs font-medium">Hari Kerja</span>
-                                </span>
-                                <span class="text-[11px] text-emerald-700 block mt-1">Hari off/libur tidak dihitung</span>
+                                <div class="p-3.5 bg-emerald-50/60 rounded-xl border border-emerald-100">
+                                    <span class="text-xs text-emerald-600 font-semibold block">Potongan Kuota Tahunan</span>
+                                    <span class="text-lg font-extrabold text-emerald-900 mt-0.5 block">
+                                        0.0 <span class="text-xs font-medium">Hari</span>
+                                    </span>
+                                    <span class="text-[11px] text-emerald-700 block mt-1">Tidak memotong kuota</span>
+                                </div>
                             </div>
-                        </div>
+                        @else
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <div class="p-3.5 bg-blue-50/60 rounded-xl border border-blue-100">
+                                    <span class="text-xs text-blue-600 font-semibold block">Cuti Sehari Penuh</span>
+                                    <span class="text-lg font-extrabold text-blue-900 mt-0.5 block">
+                                        {{ (float) $leaveRequest->full_day_count }} <span class="text-xs font-medium">Hari</span>
+                                    </span>
+                                    @if($leaveRequest->full_day_count > 0)
+                                        <span class="text-[11px] text-blue-700 block mt-1">
+                                            {{ $leaveRequest->full_day_start_date?->format('d/m/Y') }} - {{ $leaveRequest->full_day_end_date?->format('d/m/Y') }}
+                                        </span>
+                                    @endif
+                                </div>
+
+                                <div class="p-3.5 bg-amber-50/60 rounded-xl border border-amber-100">
+                                    <span class="text-xs text-amber-600 font-semibold block">Cuti Setengah Hari</span>
+                                    <span class="text-lg font-extrabold text-amber-900 mt-0.5 block">
+                                        {{ (float) $leaveRequest->half_day_count }} <span class="text-xs font-medium">Hari</span>
+                                    </span>
+                                    @if($leaveRequest->half_day_count > 0)
+                                        <span class="text-[11px] text-amber-700 block mt-1">
+                                            {{ $leaveRequest->half_day_start_date?->format('d/m/Y') }} ({{ $leaveRequest->half_day_type === 'first_half' ? 'Pagi' : 'Siang' }})
+                                        </span>
+                                    @endif
+                                </div>
+
+                                <div class="p-3.5 bg-emerald-50/60 rounded-xl border border-emerald-100">
+                                    <span class="text-xs text-emerald-600 font-semibold block">Total Potong Saldo</span>
+                                    <span class="text-lg font-extrabold text-emerald-900 mt-0.5 block">
+                                        {{ (float) $leaveRequest->total_days }} <span class="text-xs font-medium">Hari Kerja</span>
+                                    </span>
+                                    <span class="text-[11px] text-emerald-700 block mt-1">Hari off/libur tidak dihitung</span>
+                                </div>
+                            </div>
+                        @endif
                     </div>
 
                     <!-- Rincian Tanggal Efektif Terpotong -->
                     @if($leaveRequest->dates->isNotEmpty())
                         <div class="space-y-2">
-                            <h4 class="text-xs font-bold text-gray-700 uppercase tracking-wider">Jadwal Tanggal Terpotong:</h4>
+                            <h4 class="text-xs font-bold text-gray-700 uppercase tracking-wider">Jadwal Tanggal Kerja Terhitung:</h4>
                             <div class="flex flex-wrap gap-2">
                                 @foreach($leaveRequest->dates as $d)
                                     <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200">

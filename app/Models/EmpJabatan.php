@@ -11,4 +11,9 @@ class EmpJabatan extends Model
 
     protected $table = 'emp_jabatan';
     protected $fillable = ['jabatan'];
+
+    public function employees()
+    {
+        return $this->hasMany(EmpData::class, 'jabatan_id');
+    }
 }

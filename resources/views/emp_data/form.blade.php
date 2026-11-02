@@ -75,7 +75,7 @@
                     <i class="fa-solid fa-circle-info text-amber-500 text-base mt-0.5"></i>
                     <div>
                         <span class="font-bold block">Tahap Awal: Simpan Data Karyawan Terlebih Dahulu</span>
-                        <span>Tab Karir, Lama Bekerja, Pendidikan, dan Data BPJS saat ini terkunci.
+                        <span>Tab Karir, Pendidikan, Pengalaman Kerja, Pelatihan, dan Data BPJS saat ini terkunci.
                             Setelah Data Karyawan pertama kali disimpan, Anda dapat langsung mengelola setiap tab secara
                             mandiri tanpa refresh.</span>
                     </div>
@@ -91,9 +91,7 @@
 
             {{-- TAB CONTENTS --}}
             @include('emp_data.partials.tab-data-karyawan')
-            @include('emp_data.partials.tab-penugasan-payroll')
             @include('emp_data.partials.tab-karir')
-            @include('emp_data.partials.tab-lama-bekerja')
             @include('emp_data.partials.tab-pendidikan')
             @include('emp_data.partials.tab-pengalaman-kerja')
             @include('emp_data.partials.tab-pelatihan-skill')

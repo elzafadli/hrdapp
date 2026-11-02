@@ -18,12 +18,12 @@ class ApprovalSettingController extends Controller
     public static function moduleLabels(): array
     {
         return [
+            'all'           => 'Semua Modul (All)',
             'leave'         => 'Cuti Tahunan (CT)',
             'special_leave' => 'Cuti Khusus (CK)',
             'permit'        => 'Izin (IZ)',
             'sick'          => 'Sakit (SK)',
             'overtime'      => 'Lembur (SPL)',
-            'all'           => 'Semua Modul ESS (Global)',
         ];
     }
 
@@ -58,16 +58,25 @@ class ApprovalSettingController extends Controller
                         $key = $row->module;
                         $label = $labels[$key] ?? ucfirst(str_replace('_', ' ', $key));
                         $colors = [
-                            'all'           => 'bg-purple-50 text-purple-700 border-purple-200',
+                            'all'           => 'bg-purple-100 text-purple-800 border-purple-300 font-extrabold shadow-2xs',
                             'leave'         => 'bg-blue-50 text-blue-700 border-blue-200',
                             'special_leave' => 'bg-indigo-50 text-indigo-700 border-indigo-200',
                             'permit'        => 'bg-amber-50 text-amber-700 border-amber-200',
                             'sick'          => 'bg-emerald-50 text-emerald-700 border-emerald-200',
                             'overtime'      => 'bg-rose-50 text-rose-700 border-rose-200',
                         ];
+                        $icons = [
+                            'all'           => 'fa-cubes',
+                            'leave'         => 'fa-calendar-days',
+                            'special_leave' => 'fa-calendar-check',
+                            'permit'        => 'fa-clock',
+                            'sick'          => 'fa-notes-medical',
+                            'overtime'      => 'fa-stopwatch',
+                        ];
                         $cls = $colors[$key] ?? 'bg-gray-50 text-gray-700 border-gray-200';
-                        return '<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold border ' . $cls . '">
-                            <i class="fa-solid fa-folder-tree text-[11px]"></i> ' . e($label) . '
+                        $icon = $icons[$key] ?? 'fa-folder-tree';
+                        return '<span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs border ' . $cls . '">
+                            <i class="fa-solid ' . $icon . ' text-[11px]"></i> ' . e($label) . '
                         </span>';
                     })
                     ->addColumn('requester_jabatan', function ($row) {

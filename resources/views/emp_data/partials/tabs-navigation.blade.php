@@ -1,20 +1,12 @@
 {{-- TAB NAVIGATION BAR (MANDIRI DENGAN WARNING DIRTY) --}}
 <div class="bg-white rounded-2xl border border-gray-200 p-1.5 shadow-xs mb-6 flex flex-wrap items-center gap-1">
 
-    {{-- TAB 1: DATA KARYAWAN --}}
+    {{-- TAB 1: DATA KARYAWAN (TERMASUK PENUGASAN & LAMA BEKERJA) --}}
     <button type="button" @click="trySwitchTab('data-karyawan')"
-        class="flex-1 min-w-[130px] flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition"
+        class="flex-1 min-w-[140px] flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition"
         :class="activeTab === 'data-karyawan' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'">
         <i class="fa-regular fa-user"></i>
         <span>Data Karyawan</span>
-    </button>
-
-    {{-- TAB 2: PENUGASAN & PAYROLL (DI KANAN DATA KARYAWAN) --}}
-    <button type="button" @click="trySwitchTab('penugasan-payroll')"
-        class="flex-1 min-w-[150px] flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition"
-        :class="!empExists ? 'text-gray-300 bg-gray-50/50 cursor-not-allowed opacity-60' : (activeTab === 'penugasan-payroll' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100')">
-        <i class="fa-solid" :class="!empExists ? 'fa-lock' : 'fa-briefcase'"></i>
-        <span>Penugasan & Payroll</span>
     </button>
 
     {{-- TAB 2: KARIR --}}
@@ -29,15 +21,7 @@
         </span>
     </button>
 
-    {{-- TAB 3: LAMA BEKERJA --}}
-    <button type="button" @click="trySwitchTab('lama-bekerja')"
-        class="flex-1 min-w-[120px] flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition"
-        :class="!empExists ? 'text-gray-300 bg-gray-50/50 cursor-not-allowed opacity-60' : (activeTab === 'lama-bekerja' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100')">
-        <i class="fa-solid" :class="!empExists ? 'fa-lock' : 'fa-regular fa-calendar-check'"></i>
-        <span>Lama Bekerja</span>
-    </button>
-
-    {{-- TAB 4: PENDIDIKAN (BISA MULTI) --}}
+    {{-- TAB 3: PENDIDIKAN (BISA MULTI) --}}
     <button type="button" @click="trySwitchTab('pendidikan')"
         class="flex-1 min-w-[120px] flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition relative"
         :class="!empExists ? 'text-gray-300 bg-gray-50/50 cursor-not-allowed opacity-60' : (activeTab === 'pendidikan' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100')">
@@ -49,7 +33,7 @@
         </span>
     </button>
 
-    {{-- TAB 5: PENGALAMAN KERJA (BISA MULTI) --}}
+    {{-- TAB 4: PENGALAMAN KERJA (BISA MULTI) --}}
     <button type="button" @click="trySwitchTab('pengalaman-kerja')"
         class="flex-1 min-w-[145px] flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition relative"
         :class="!empExists ? 'text-gray-300 bg-gray-50/50 cursor-not-allowed opacity-60' : (activeTab === 'pengalaman-kerja' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100')">
@@ -62,7 +46,7 @@
         </span>
     </button>
 
-    {{-- TAB 6: TRAINING & SKILL (BISA MULTI) --}}
+    {{-- TAB 5: TRAINING & SKILL (BISA MULTI) --}}
     <button type="button" @click="trySwitchTab('pelatihan-skill')"
         class="flex-1 min-w-[140px] flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition relative"
         :class="!empExists ? 'text-gray-300 bg-gray-50/50 cursor-not-allowed opacity-60' : (activeTab === 'pelatihan-skill' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100')">
@@ -74,7 +58,7 @@
         </span>
     </button>
 
-    {{-- TAB: DATA BPJS --}}
+    {{-- TAB 6: DATA BPJS --}}
     <button type="button" @click="trySwitchTab('bpjs')"
         class="flex-1 min-w-[120px] flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition"
         :class="!empExists ? 'text-gray-300 bg-gray-50/50 cursor-not-allowed opacity-60' : (activeTab === 'bpjs' ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100')">
@@ -83,4 +67,3 @@
     </button>
 
 </div>
-

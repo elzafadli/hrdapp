@@ -7,12 +7,6 @@
         @submit.prevent="submitDataKaryawan($event)">
         @csrf
 
-        {{-- Hidden preservation for assignment fields when saving Tab 1 --}}
-        <input type="hidden" name="company_id" value="{{ old('company_id', $empData->company_id) }}">
-        <input type="hidden" name="jabatan_id" value="{{ old('jabatan_id', $empData->jabatan_id) }}">
-        <input type="hidden" name="project_id" value="{{ old('project_id', $empData->project_id) }}">
-        <input type="hidden" name="status_ptkp" value="{{ old('status_ptkp', $empData->status_ptkp) }}">
-
         <div class="space-y-6">
 
             {{-- CARD 1A: FOTO PROFIL & IDENTITAS UTAMA --}}
@@ -273,6 +267,133 @@
                             <p x-show="fieldErrors['blood_type']"
                                 x-text="fieldErrors['blood_type'] ? fieldErrors['blood_type'][0] : ''"
                                 class="mt-1.5 text-xs text-red-600 font-medium"></p>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            {{-- CARD 1C: PENUGASAN & STATUS PAYROLL --}}
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-xs overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-slate-50/60">
+                    <div class="flex items-center gap-2.5">
+                        <span
+                            class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-sm">
+                            <i class="fa-solid fa-briefcase"></i>
+                        </span>
+                        <div>
+                            <h2 class="text-sm font-bold text-gray-900">Penugasan & Status Payroll</h2>
+                            <p class="text-xs text-gray-500">Penempatan perusahaan, jabatan struktural, project, dan status PTKP pajak</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-6">
+                    <div class="grid grid-cols-1 sm:grid-cols-12 gap-5">
+
+                        {{-- Perusahaan (Company) --}}
+                        <div class="sm:col-span-6">
+                            <x-input-label for="company_id" :value="__('Perusahaan (Company)')" />
+                            <x-select-input id="company_id" name="company_id" class="mt-1 block w-full"
+                                :noSelect2="true"
+                                :options="$companyOptions" :selected="old('company_id', $empData->company_id)"
+                                placeholder="{{ __('Pilih Perusahaan') }}" />
+                            <x-input-error class="mt-1.5" :messages="$errors->get('company_id')" />
+                            <p x-show="fieldErrors['company_id']"
+                                x-text="fieldErrors['company_id'] ? fieldErrors['company_id'][0] : ''"
+                                class="mt-1.5 text-xs text-red-600 font-medium"></p>
+                        </div>
+
+                        {{-- Jabatan Karyawan --}}
+                        <div class="sm:col-span-6">
+                            <x-input-label for="jabatan_id" :value="__('Jabatan Karyawan')" :required="true" />
+                            <x-select-input id="jabatan_id" name="jabatan_id" class="mt-1 block w-full"
+                                :noSelect2="true"
+                                :options="$jabatanOptions" :selected="old('jabatan_id', $empData->jabatan_id)"
+                                placeholder="{{ __('Pilih Jabatan') }}" required />
+                            <x-input-error class="mt-1.5" :messages="$errors->get('jabatan_id')" />
+                            <p x-show="fieldErrors['jabatan_id']"
+                                x-text="fieldErrors['jabatan_id'] ? fieldErrors['jabatan_id'][0] : ''"
+                                class="mt-1.5 text-xs text-red-600 font-medium"></p>
+                        </div>
+
+                        {{-- Project --}}
+                        <div class="sm:col-span-6">
+                            <x-input-label for="project_id" :value="__('Project')" />
+                            <x-select-input id="project_id" name="project_id" class="mt-1 block w-full"
+                                :noSelect2="true"
+                                :options="$projectOptions" :selected="old('project_id', $empData->project_id)"
+                                placeholder="{{ __('Pilih Project (Opsional)') }}" />
+                            <x-input-error class="mt-1.5" :messages="$errors->get('project_id')" />
+                            <p x-show="fieldErrors['project_id']"
+                                x-text="fieldErrors['project_id'] ? fieldErrors['project_id'][0] : ''"
+                                class="mt-1.5 text-xs text-red-600 font-medium"></p>
+                        </div>
+
+                        {{-- Status PTKP --}}
+                        <div class="sm:col-span-6">
+                            <x-input-label for="status_ptkp" :value="__('Status PTKP (Pajak PPh 21)')" :required="true" />
+                            <x-select-input id="status_ptkp" name="status_ptkp" class="mt-1 block w-full"
+                                :noSelect2="true"
+                                :options="$ptkpOptions" :selected="old('status_ptkp', $empData->status_ptkp ?? 'TK0')"
+                                placeholder="{{ __('Pilih Status PTKP') }}" required />
+                            <x-input-error class="mt-1.5" :messages="$errors->get('status_ptkp')" />
+                            <p x-show="fieldErrors['status_ptkp']"
+                                x-text="fieldErrors['status_ptkp'] ? fieldErrors['status_ptkp'][0] : ''"
+                                class="mt-1.5 text-xs text-red-600 font-medium"></p>
+                            <p class="text-[11px] text-gray-400 mt-1 sm:col-span-12">
+                                Status PTKP menentukan skema tarif TER pajak PPh 21 pada modul penggajian.
+                            </p>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            {{-- CARD 1D: LAMA BEKERJA --}}
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-xs overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-slate-50/60">
+                    <div class="flex items-center gap-2.5">
+                        <span
+                            class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm">
+                            <i class="fa-regular fa-calendar-check"></i>
+                        </span>
+                        <div>
+                            <h2 class="text-sm font-bold text-gray-900">Lama Bekerja</h2>
+                            <p class="text-xs text-gray-500">Tanggal mulai kerja dan perhitungan akumulasi masa kerja</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-6">
+                    <div class="grid grid-cols-1 sm:grid-cols-12 gap-6">
+
+                        <div class="sm:col-span-6">
+                            <x-input-label for="tenure_join_date" :value="__('Mulai Kerja (Tanggal Masuk)')" />
+                            <div class="relative mt-1">
+                                <input type="text" id="tenure_join_date" name="join_date"
+                                    value="{{ old('join_date', $empData->join_date ? \Carbon\Carbon::parse($empData->join_date)->format('Y-m-d') : '') }}"
+                                    placeholder="Pilih Tanggal Mulai Kerja..."
+                                    class="border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-xl py-2 px-3 text-sm shadow-xs w-full bg-white cursor-pointer" />
+                            </div>
+                            <x-input-error class="mt-1.5" :messages="$errors->get('join_date')" />
+                            <p x-show="fieldErrors['join_date']"
+                                x-text="fieldErrors['join_date'] ? fieldErrors['join_date'][0] : ''"
+                                class="mt-1.5 text-xs text-red-600 font-medium"></p>
+                            <p class="text-xs text-gray-400 mt-1">
+                                Tanggal awal karyawan pertama kali terhitung aktif bekerja.
+                            </p>
+                        </div>
+
+                        <div class="sm:col-span-6">
+                            <x-input-label :value="__('Masa Kerja Terhitung')" />
+                            <x-text-input type="text"
+                                class="mt-1 block w-full font-bold text-blue-700 bg-slate-50 cursor-not-allowed"
+                                x-bind:value="tenureDisplay || '{{ addslashes($empData->masa_kerja ?? '-') }}'"
+                                placeholder="Otomatis dihitung sistem..." disabled />
+                            <p class="text-xs text-gray-400 mt-1">
+                                Dihitung otomatis secara real-time dari tanggal mulai kerja.
+                            </p>
                         </div>
 
                     </div>

@@ -61,7 +61,7 @@
                                     <x-input-label for="modal_edu_institusi" :value="__('Nama Institusi Pendidikan')" :required="true" />
                                     <x-text-input id="modal_edu_institusi" name="institusi" type="text"
                                         class="mt-1 block w-full" :value="old('institusi')"
-                                        placeholder="Contoh: Universitas Brawijaya / SMK Negeri 1 Malang" required />
+                                        placeholder="Contoh: Universitas Terbuka / SMK Negeri 1 Malang" required />
                                 </div>
 
                                 <div class="sm:col-span-6">
