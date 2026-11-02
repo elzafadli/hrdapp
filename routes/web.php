@@ -71,7 +71,9 @@ Route::middleware('auth')->group(function () {
         Route::resource('special-leave-types', \App\Http\Controllers\SpecialLeaveTypeController::class);
 
         Route::get('attendance-settings', [\App\Http\Controllers\AttendanceSettingController::class, 'index'])->name('attendance-settings.index');
-        Route::post('attendance-settings', [\App\Http\Controllers\AttendanceSettingController::class, 'update'])->name('attendance-settings.update');
+        Route::post('attendance-settings', [\App\Http\Controllers\AttendanceSettingController::class, 'store'])->name('attendance-settings.store');
+        Route::match(['post', 'put'], 'attendance-settings/update/{id?}', [\App\Http\Controllers\AttendanceSettingController::class, 'update'])->name('attendance-settings.update');
+        Route::delete('attendance-settings/{id}', [\App\Http\Controllers\AttendanceSettingController::class, 'destroy'])->name('attendance-settings.destroy');
 
         Route::post('leave-balances/generate-annual', [\App\Http\Controllers\LeaveBalanceController::class, 'generateAnnual'])->name('leave-balances.generate-annual');
         Route::resource('leave-balances', \App\Http\Controllers\LeaveBalanceController::class);

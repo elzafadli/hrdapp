@@ -110,11 +110,7 @@ class PermitRequestController extends Controller
         $startDate = $request->input('start_date');
         $endDate = $request->input('end_date') ?? $startDate;
 
-        // Validasi Back-Date (Ketentuan H-1)
-        $minAllowedDate = Carbon::tomorrow()->toDateString();
-        if ($startDate < $minAllowedDate) {
-            return back()->withInput()->with('error', 'Tanggal izin tidak boleh tanggal lampau (back-date). Pengajuan paling lambat H-1 (mulai tanggal ' . Carbon::tomorrow()->format('d/m/Y') . ').');
-        }
+        // Pengajuan izin bebas (tidak dibatasi back-date / H-1)
 
         // Ekstraksi tanggal hari kerja
         $fullDayDates = [];

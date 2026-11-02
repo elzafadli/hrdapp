@@ -160,7 +160,7 @@
     </div>
 
     <!-- Mobile Bottom Navigation Bar (Sesuai Tampilan Mobile App) -->
-    <nav class="sm:hidden fixed bottom-0 inset-x-0 bg-white border-t border-gray-200/90 z-50 px-2 py-1 shadow-lg pb-[max(0.35rem,env(safe-area-inset-bottom))]">
+    <nav class="sm:hidden fixed bottom-0 inset-x-0 bg-white border-t border-gray-200/90 z-30 px-2 py-1 shadow-lg pb-[max(0.35rem,env(safe-area-inset-bottom))]">
         <div class="flex items-center justify-around max-w-md mx-auto">
             <!-- Kalender -->
             <a href="{{ route('calendar.index') }}" class="flex flex-col items-center py-1 px-2.5 text-xs transition {{ request()->routeIs('calendar.*') ? 'text-blue-600 font-bold' : 'text-gray-500 hover:text-gray-900' }}">

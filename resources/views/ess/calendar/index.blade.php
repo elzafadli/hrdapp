@@ -667,7 +667,7 @@
         <div
             x-show="showDetailModal"
             x-cloak
-            class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+            class="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
             @keydown.escape.window="closeDetail()"
         >
             <!-- Backdrop Blur -->
@@ -892,7 +892,7 @@
         <div
             x-show="showDayModal"
             x-cloak
-            class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+            class="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
             @keydown.escape.window="closeDayList()"
         >
             <div

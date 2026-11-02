@@ -50,9 +50,15 @@ class AttendanceController extends Controller
         $startTime = $scheduleDay && $scheduleDay->start_time ? substr($scheduleDay->start_time, 0, 5) : '08:00';
         $endTime = $scheduleDay && $scheduleDay->end_time ? substr($scheduleDay->end_time, 0, 5) : '17:00';
 
-        $shiftLabel = $isHoliday
-            ? 'Libur Nasional • 00:00 - 23:59'
-            : (!$isWorkDay ? 'Day Off • 00:00 - 23:59' : ($schedule ? $schedule->name : 'Reguler') . ' • ' . $startTime . ' - ' . $endTime);
+        if ($isHoliday) {
+            $shiftLabel = 'Libur Nasional • 00:00 - 23:59';
+        } elseif (!$isWorkDay) {
+            $shiftLabel = 'Day Off • 00:00 - 23:59';
+        } else {
+            $schedName = $schedule ? $schedule->name : 'Reguler';
+            $timeRange = $startTime . ' - ' . $endTime;
+            $shiftLabel = str_contains($schedName, $timeRange) ? $schedName : ($schedName . ' • ' . $timeRange);
+        }
 
         return [
             'name'        => $schedule ? $schedule->name : 'Reguler',
@@ -86,7 +92,7 @@ class AttendanceController extends Controller
         $employee = $this->getEmployee();
         $today = Carbon::today()->toDateString();
         $shift = $this->getTodayShift($employee);
-        $officeSetting = AttendanceSetting::getActiveSetting();
+        $officeSetting = AttendanceSetting::getSettingForEmployee($employee);
 
         $todayAttendance = null;
         if ($employee && Schema::hasTable('attendances')) {
@@ -104,7 +110,7 @@ class AttendanceController extends Controller
         $employee = $this->getEmployee();
         $today = Carbon::today()->toDateString();
         $shift = $this->getTodayShift($employee);
-        $officeSetting = AttendanceSetting::getActiveSetting();
+        $officeSetting = AttendanceSetting::getSettingForEmployee($employee);
 
         $todayAttendance = null;
         if ($employee && Schema::hasTable('attendances')) {
@@ -156,10 +162,25 @@ class AttendanceController extends Controller
             ], 422);
         }
 
+        // Kalkulasi jarak GPS terhadap titik kantor & radius
+        $officeSetting = AttendanceSetting::getSettingForEmployee($employee);
+        $distance = null;
+        if ($officeSetting && $lat !== null && $lng !== null && $officeSetting->latitude !== null && $officeSetting->longitude !== null) {
+            $distance = $this->calculateDistance($lat, $lng, (float) $officeSetting->latitude, (float) $officeSetting->longitude);
+        }
+
+        // Validasi pembatasan radius presensi jika tidak mengizinkan presensi di luar radius
+        if ($officeSetting && !$officeSetting->allow_outside_radius && $distance !== null && $distance > $officeSetting->radius_meters) {
+            return response()->json([
+                'success' => false,
+                'message' => "Posisi Anda berada di luar radius presensi ({$distance} meter dari {$officeSetting->office_name}, batas maksimal {$officeSetting->radius_meters} meter).",
+            ], 422);
+        }
+
         $attendance->check_in_time = $now->toTimeString();
         $attendance->check_in_lat = $lat;
         $attendance->check_in_lng = $lng;
-        $attendance->check_in_distance = 0;
+        $attendance->check_in_distance = $distance ?? 0;
         $attendance->check_in_status = $isLate ? 'late' : 'on_time';
         $attendance->check_in_notes = $request->input('notes');
         $attendance->status = $isLate ? 'late' : 'present';
@@ -221,10 +242,25 @@ class AttendanceController extends Controller
         $checkInDateTime = Carbon::parse($today . ' ' . $attendance->check_in_time);
         $durationMinutes = $checkInDateTime->diffInMinutes($now);
 
+        // Kalkulasi jarak GPS terhadap titik kantor & radius
+        $officeSetting = AttendanceSetting::getSettingForEmployee($employee);
+        $distance = null;
+        if ($officeSetting && $lat !== null && $lng !== null && $officeSetting->latitude !== null && $officeSetting->longitude !== null) {
+            $distance = $this->calculateDistance($lat, $lng, (float) $officeSetting->latitude, (float) $officeSetting->longitude);
+        }
+
+        // Validasi pembatasan radius presensi jika tidak mengizinkan presensi di luar radius
+        if ($officeSetting && !$officeSetting->allow_outside_radius && $distance !== null && $distance > $officeSetting->radius_meters) {
+            return response()->json([
+                'success' => false,
+                'message' => "Posisi Anda berada di luar radius presensi ({$distance} meter dari {$officeSetting->office_name}, batas maksimal {$officeSetting->radius_meters} meter).",
+            ], 422);
+        }
+
         $attendance->check_out_time = $now->toTimeString();
         $attendance->check_out_lat = $lat;
         $attendance->check_out_lng = $lng;
-        $attendance->check_out_distance = 0;
+        $attendance->check_out_distance = $distance ?? 0;
         $attendance->check_out_status = $isEarly ? 'early_leave' : 'normal';
         $attendance->check_out_notes = $request->input('notes');
         $attendance->work_duration_minutes = $durationMinutes;
@@ -252,7 +288,7 @@ class AttendanceController extends Controller
 
         $schedule = $employee ? $employee->getWorkScheduleForDate() : \App\Models\WorkSchedule::getDefault();
         $todayShift = $this->getTodayShift($employee);
-        $officeSetting = AttendanceSetting::getActiveSetting();
+        $officeSetting = AttendanceSetting::getSettingForEmployee($employee);
 
         $attendances = collect();
         if ($employee && Schema::hasTable('attendances')) {

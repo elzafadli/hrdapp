@@ -48,7 +48,7 @@
         <div
             x-show="approveModal"
             x-cloak
-            class="fixed inset-0 z-50 flex items-center justify-center"
+            class="fixed inset-0 z-[100] flex items-center justify-center"
             @keydown.escape.window="approveModal = false"
         >
             {{-- Backdrop --}}
@@ -156,7 +156,7 @@
         <div
             x-show="rejectModal"
             x-cloak
-            class="fixed inset-0 z-50 flex items-center justify-center"
+            class="fixed inset-0 z-[100] flex items-center justify-center"
             @keydown.escape.window="rejectModal = false"
         >
             {{-- Backdrop --}}

@@ -211,7 +211,6 @@
                                 dateFormat: "Y-m-d",
                                 altInput: true,
                                 altFormat: "l, d F Y",
-                                minDate: "today",
                                 disable: [
                                     function (date) {
                                         const dStr = flatpickr.formatDate(date, "Y-m-d");
@@ -221,8 +220,8 @@
                                 onChange: function (selectedDates, dateStr) {
                                     self.startDate = dateStr;
                                     if (self.isHalfDay === '0' && self.fpEnd) {
-                                        self.fpEnd.set('minDate', dateStr);
-                                        if (self.endDate && self.endDate < dateStr) {
+                                        self.fpEnd.set('minDate', dateStr || null);
+                                        if (self.endDate && dateStr && self.endDate < dateStr) {
                                             self.fpEnd.setDate(dateStr, true);
                                             self.endDate = dateStr;
                                         }
@@ -237,7 +236,7 @@
                                 dateFormat: "Y-m-d",
                                 altInput: true,
                                 altFormat: "l, d F Y",
-                                minDate: "today",
+                                minDate: self.startDate || null,
                                 disable: [
                                     function (date) {
                                         const dStr = flatpickr.formatDate(date, "Y-m-d");

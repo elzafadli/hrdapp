@@ -28,6 +28,48 @@
                 </div>
             </div>
 
+            <!-- Kartu Info Titik Lokasi & Radius Geolocation Aktif -->
+            <div class="p-4 bg-white rounded-2xl shadow-sm border border-gray-200 flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-sm border border-blue-100 shrink-0">
+                        <i class="fa-solid fa-location-dot"></i>
+                    </div>
+                    <div>
+                        <span class="text-[11px] text-gray-400 font-medium block">Titik Presensi Geolocation</span>
+                        <span class="text-xs font-bold text-gray-800">{{ $officeSetting->office_name ?? 'Kantor Pusat' }}</span>
+                        @if(isset($officeSetting->project) && $officeSetting->project)
+                            <span class="text-[10px] text-blue-600 font-semibold block">• Proyek: {{ $officeSetting->project->name }}</span>
+                        @elseif(isset($officeSetting->company) && $officeSetting->company)
+                            <span class="text-[10px] text-gray-500 font-medium block">• {{ $officeSetting->company->name }}</span>
+                        @endif
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-4 sm:gap-6 text-xs text-gray-600">
+                    <div class="flex items-center gap-2">
+                        <div class="w-6 h-6 rounded-md bg-gray-100 flex items-center justify-center text-blue-600 text-[11px]">
+                            <i class="fa-solid fa-bullseye"></i>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-gray-400 block">Radius Toleransi</span>
+                            <span class="font-bold text-gray-900">{{ $officeSetting->radius_meters ?? 100 }} Meter</span>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <div class="w-6 h-6 rounded-md bg-gray-100 flex items-center justify-center {{ ($officeSetting->allow_outside_radius ?? true) ? 'text-amber-600' : 'text-emerald-600' }} text-[11px]">
+                            <i class="fa-solid {{ ($officeSetting->allow_outside_radius ?? true) ? 'fa-triangle-exclamation' : 'fa-circle-check' }}"></i>
+                        </div>
+                        <div>
+                            <span class="text-[10px] text-gray-400 block">Presensi Luar Radius</span>
+                            <span class="font-bold text-gray-900">
+                                {{ ($officeSetting->allow_outside_radius ?? true) ? 'Diizinkan (Catatan)' : 'Wajib Dalam Radius' }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Filter Bulan & Tahun -->
             <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-4">
                 <form action="{{ route('attendance.history') }}" method="GET" class="flex flex-wrap items-center gap-3">
@@ -102,6 +144,12 @@
                                     <td class="px-6 py-4 font-mono text-xs whitespace-nowrap">
                                         @if($att->check_in_time)
                                             <span class="font-bold text-gray-800">{{ substr($att->check_in_time, 0, 5) }}</span> WITA
+                                            @if($att->check_in_distance !== null)
+                                                <div class="text-[10px] text-gray-500 flex items-center gap-1 mt-0.5" title="Jarak GPS saat presensi masuk">
+                                                    <i class="fa-solid fa-location-crosshairs {{ ($officeSetting && $att->check_in_distance > $officeSetting->radius_meters) ? 'text-amber-500' : 'text-emerald-500' }}"></i>
+                                                    <span>{{ number_format($att->check_in_distance, 0) }} m</span>
+                                                </div>
+                                            @endif
                                         @else
                                             <span class="text-gray-400">-</span>
                                         @endif
@@ -109,6 +157,12 @@
                                     <td class="px-6 py-4 font-mono text-xs whitespace-nowrap">
                                         @if($att->check_out_time)
                                             <span class="font-bold text-gray-800">{{ substr($att->check_out_time, 0, 5) }}</span> WITA
+                                            @if($att->check_out_distance !== null)
+                                                <div class="text-[10px] text-gray-500 flex items-center gap-1 mt-0.5" title="Jarak GPS saat presensi keluar">
+                                                    <i class="fa-solid fa-location-crosshairs {{ ($officeSetting && $att->check_out_distance > $officeSetting->radius_meters) ? 'text-amber-500' : 'text-emerald-500' }}"></i>
+                                                    <span>{{ number_format($att->check_out_distance, 0) }} m</span>
+                                                </div>
+                                            @endif
                                         @else
                                             <span class="text-gray-400">-</span>
                                         @endif
