@@ -45,6 +45,8 @@ Route::middleware('auth')->group(function () {
         Route::post('emp-loans/{emp_loan}/post-to-budget', [\App\Http\Controllers\EmpLoanController::class, 'postToBudget'])->name('emp-loans.post-to-budget');
         Route::get('emp-loans/{emp_loan}/download-attachment', [\App\Http\Controllers\EmpLoanController::class, 'downloadAttachment'])->name('emp-loans.download-attachment');
         Route::resource('emp-loans', \App\Http\Controllers\EmpLoanController::class);
+        Route::post('potongan-karyawan/calculate-late', [\App\Http\Controllers\PotonganKaryawanController::class, 'calculateLateDeduction'])->name('potongan-karyawan.calculate-late');
+        Route::post('potongan-karyawan/{potonganKaryawan}/sync-late', [\App\Http\Controllers\PotonganKaryawanController::class, 'syncLateDeduction'])->name('potongan-karyawan.sync-late');
         Route::resource('potongan-karyawan', \App\Http\Controllers\PotonganKaryawanController::class);
 
         // Rekap Presensi Karyawan & Monitoring Klarifikasi Terlambat
@@ -53,6 +55,7 @@ Route::middleware('auth')->group(function () {
 
         Route::resource('payroll-results', \App\Http\Controllers\PayrollResultController::class)->only(['index', 'create']);
         Route::post('/payroll-results/process', [\App\Http\Controllers\PayrollResultController::class, 'process'])->name('payroll-results.process');
+        Route::post('/payroll-results/sync-late', [\App\Http\Controllers\PayrollResultController::class, 'syncLate'])->name('payroll-results.sync-late');
         Route::get('/payroll-results/{emp_id}/{month}/{year}/slip', [\App\Http\Controllers\PayrollResultController::class, 'slip'])->name('payroll-results.slip');
         Route::get('/payroll-results/export', [\App\Http\Controllers\PayrollResultController::class, 'export'])->name('payroll-results.export');
         Route::get('/payroll-results-deductions', [\App\Http\Controllers\PayrollResultController::class, 'deductions'])->name('payroll-results.deductions');

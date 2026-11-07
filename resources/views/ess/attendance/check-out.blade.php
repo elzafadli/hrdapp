@@ -198,7 +198,7 @@
                         </div>
                     </div>
                 @elseif(!$todayAttendance->check_out_time)
-                    <!-- 4. Foto Selfie Presensi Keluar (Wajib Kamera HP) -->
+                    <!-- 4. Foto Selfie Presensi Pulang (Wajib Live Kamera) -->
                     <div class="space-y-2">
                         <div class="flex items-center justify-between">
                             <label class="text-xs font-bold text-gray-800 flex items-center gap-1.5">
@@ -207,9 +207,6 @@
                             </label>
                             <span class="text-[11px] text-gray-400">Live Camera</span>
                         </div>
-
-                        <!-- Fallback Input Kamera Bawaan HP (capture="user" memaksa buka kamera depan, bukan galeri) -->
-                        <input type="file" id="cameraCaptureInput" accept="image/*" capture="user" class="hidden" @change="handleNativeCapture($event)">
 
                         <!-- Viewport Kamera / Hasil Foto -->
                         <div class="rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50/70 p-3 overflow-hidden">
@@ -234,25 +231,16 @@
                                 <div class="space-y-1">
                                     <p class="text-xs font-bold text-gray-800">Ambil Foto Selfie Kepulangan</p>
                                     <p class="text-[11px] text-gray-500 max-w-xs mx-auto">
-                                        Foto wajib diambil langsung dari kamera HP Anda (tidak diizinkan upload dari galeri).
+                                        Foto wajib diambil langsung secara real-time dari kamera perangkat Anda.
                                     </p>
                                 </div>
-                                <div class="flex flex-wrap items-center justify-center gap-2 pt-1">
+                                <div class="flex items-center justify-center pt-1">
                                     <button type="button" @click="startCamera()"
-                                        class="inline-flex items-center gap-2 px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-sm transition">
-                                        <i class="fa-solid fa-video text-xs"></i>
+                                        class="inline-flex items-center gap-2 px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-sm transition">
+                                        <i class="fa-solid fa-camera text-sm"></i>
                                         Nyalakan Kamera
                                     </button>
-                                    <button type="button" @click="triggerNativeCamera()"
-                                        class="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-white hover:bg-gray-100 border border-gray-200 text-gray-700 rounded-xl text-xs font-semibold shadow-xs transition"
-                                        title="Buka kamera bawaan smartphone">
-                                        <i class="fa-solid fa-mobile-screen text-xs text-rose-600"></i>
-                                        Kamera HP
-                                    </button>
                                 </div>
-                                <p class="text-[10px] text-gray-400 max-w-xs mx-auto pt-1">
-                                    *Tombol <strong>Nyalakan Kamera</strong> untuk kamera langsung di browser. Tombol <strong>Kamera HP</strong> untuk membuka aplikasi kamera bawaan HP.
-                                </p>
                             </div>
 
                             <!-- 2. Kondisi Kamera Aktif (Live Video Viewfinder) -->
@@ -271,16 +259,11 @@
                                     </button>
                                 </div>
 
-                                <div class="flex items-center justify-center gap-3">
+                                <div class="flex items-center justify-center">
                                     <button type="button" @click="capturePhoto()"
                                         class="inline-flex items-center gap-2 px-6 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold shadow-md transition">
                                         <i class="fa-solid fa-camera text-sm"></i>
                                         Ambil Foto (Snap)
-                                    </button>
-                                    <button type="button" @click="triggerNativeCamera()"
-                                        class="inline-flex items-center gap-1.5 px-3 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-semibold transition" title="Gunakan aplikasi kamera bawaan HP">
-                                        <i class="fa-solid fa-mobile-screen text-xs"></i>
-                                        Kamera Bawaan HP
                                     </button>
                                 </div>
                             </div>
@@ -488,12 +471,12 @@
 
                     // Periksa Secure Context (Kamera browser membutuhkan HTTPS atau localhost)
                     if (!window.isSecureContext && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
-                        this.cameraError = 'Akses live camera browser memerlukan koneksi aman HTTPS atau localhost. Jika membuka via IP jaringan lokal (HTTP), silakan gunakan tombol "Kamera HP".';
+                        this.cameraError = 'Akses kamera browser memerlukan koneksi aman HTTPS atau localhost.';
                         return;
                     }
 
                     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                        this.cameraError = 'Browser tidak mendukung akses kamera langsung (getUserMedia). Silakan gunakan tombol "Kamera HP".';
+                        this.cameraError = 'Browser perangkat Anda tidak mendukung akses kamera langsung (getUserMedia).';
                         return;
                     }
 
@@ -575,25 +558,6 @@
                 retakePhoto() {
                     this.photoData = null;
                     this.startCamera();
-                },
-
-                triggerNativeCamera() {
-                    const input = document.getElementById('cameraCaptureInput');
-                    if (input) {
-                        input.click();
-                    }
-                },
-
-                handleNativeCapture(event) {
-                    const file = event.target.files && event.target.files[0];
-                    if (!file) return;
-
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        this.photoData = e.target.result;
-                        this.stopCamera();
-                    };
-                    reader.readAsDataURL(file);
                 },
 
                 async submitCheckOut() {

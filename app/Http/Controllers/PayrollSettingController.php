@@ -8,6 +8,7 @@ use App\Models\PayrollComponent;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class PayrollSettingController extends Controller
 {
@@ -44,6 +45,8 @@ class PayrollSettingController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'is_aktif' => 'boolean',
+            'cutoff_start_day' => 'nullable|integer|min:1|max:31',
+            'cutoff_end_day' => 'nullable|integer|min:1|max:31',
             'details' => 'required|array|min:1',
             'details.*.payroll_component_id' => 'required|exists:payroll_components,id',
             'details.*.base_amount' => 'nullable|numeric',
@@ -54,10 +57,18 @@ class PayrollSettingController extends Controller
         ]);
 
         DB::transaction(function () use ($request) {
-            $payrollSetting = PayrollSetting::create([
+            $data = [
                 'name' => $request->name,
                 'is_aktif' => $request->has('is_aktif') ? 1 : 0,
-            ]);
+            ];
+            if (Schema::hasColumn('payroll_settings', 'cutoff_start_day')) {
+                $data['cutoff_start_day'] = $request->input('cutoff_start_day', 25);
+            }
+            if (Schema::hasColumn('payroll_settings', 'cutoff_end_day')) {
+                $data['cutoff_end_day'] = $request->input('cutoff_end_day', 25);
+            }
+
+            $payrollSetting = PayrollSetting::create($data);
 
             foreach ($request->details as $detail) {
                 $payrollSetting->details()->create($detail);
@@ -82,6 +93,8 @@ class PayrollSettingController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'is_aktif' => 'boolean',
+            'cutoff_start_day' => 'nullable|integer|min:1|max:31',
+            'cutoff_end_day' => 'nullable|integer|min:1|max:31',
             'details' => 'array',
             'details.*.payroll_component_id' => 'required|exists:payroll_components,id',
             'details.*.base_amount' => 'nullable|numeric',
@@ -92,10 +105,18 @@ class PayrollSettingController extends Controller
         ]);
 
         DB::transaction(function () use ($request, $payrollSetting) {
-            $payrollSetting->update([
+            $data = [
                 'name' => $request->name,
                 'is_aktif' => $request->has('is_aktif') ? 1 : 0,
-            ]);
+            ];
+            if (Schema::hasColumn('payroll_settings', 'cutoff_start_day')) {
+                $data['cutoff_start_day'] = $request->input('cutoff_start_day', 25);
+            }
+            if (Schema::hasColumn('payroll_settings', 'cutoff_end_day')) {
+                $data['cutoff_end_day'] = $request->input('cutoff_end_day', 25);
+            }
+
+            $payrollSetting->update($data);
 
             // Simple strategy: delete all and recreate
             // Alternatively, we could sync if we passed IDs

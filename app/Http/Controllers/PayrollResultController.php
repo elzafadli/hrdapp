@@ -6,6 +6,7 @@ use App\Models\EmpBpjs;
 use App\Models\EmpLoan;
 use App\Models\PotonganKaryawan;
 use App\Models\PotonganKaryawanDetail;
+use App\Services\LatenessDeductionService;
 use Illuminate\Http\Request;
 use App\Models\EmpData;
 use App\Models\EmpAllowance;
@@ -990,5 +991,36 @@ class PayrollResultController extends Controller
             $index = floor(($index - $temp) / 26);
         }
         return $letter;
+    }
+
+    /**
+     * Hitung & sinkronkan denda keterlambatan langsung ke Potongan Karyawan untuk Payroll.
+     */
+    public function syncLate(Request $request, LatenessDeductionService $service)
+    {
+        $request->validate([
+            'month' => 'required|integer|min:1|max:12',
+            'year'  => 'required|integer|min:2000|max:2100',
+        ]);
+
+        $month = (int) $request->month;
+        $year  = (int) $request->year;
+
+        $header = PotonganKaryawan::firstOrCreate([
+            'year'  => $year,
+            'month' => $month,
+        ]);
+
+        $calc = $service->syncToPotonganKaryawan($header);
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Potongan keterlambatan periode ' . $calc['period']['label'] . ' berhasil disinkronkan ke Potongan Karyawan.',
+                'data'    => $calc,
+            ]);
+        }
+
+        return back()->with('success', 'Potongan keterlambatan berhasil disinkronkan ke Potongan Karyawan.');
     }
 }

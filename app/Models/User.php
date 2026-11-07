@@ -54,6 +54,20 @@ class User extends Authenticatable
     }
 
     /**
+     * Dapatkan record EmpData terkait (berdasarkan user_id, email, atau nama).
+     */
+    public function getEmployeeRecord(): ?EmpData
+    {
+        if ($this->relationLoaded('employee')) {
+            return $this->employee;
+        }
+
+        return EmpData::where('user_id', $this->id)->first()
+            ?? (!empty($this->email) ? EmpData::where('email', $this->email)->first() : null)
+            ?? (!empty($this->name) ? EmpData::where('name', $this->name)->first() : null);
+    }
+
+    /**
      * Dapatkan nama karyawan terkait atau fallback ke nama user.
      */
     public function getEmployeeNameAttribute(): string

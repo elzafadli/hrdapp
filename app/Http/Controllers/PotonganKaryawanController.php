@@ -7,6 +7,7 @@ use App\Models\PayrollComponent;
 use App\Models\PayrollSettingDetail;
 use App\Models\PotonganKaryawanDetail;
 use App\Models\PotonganKaryawan;
+use App\Services\LatenessDeductionService;
 use Illuminate\Http\Request;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -31,7 +32,7 @@ class PotonganKaryawanController extends Controller
         return view('potongan_karyawan.index');
     }
 
-    public function create()
+    public function create(LatenessDeductionService $service)
     {
         $employees = EmpData::with('jabatan')->get();
         $components = PayrollSettingDetail::with('component')
@@ -44,7 +45,13 @@ class PotonganKaryawanController extends Controller
             ->filter();
         $existingDeductions = collect();
 
-        return view('potongan_karyawan.form', compact('employees', 'components', 'existingDeductions'));
+        $year = (int) date('Y');
+        $month = (int) date('n');
+        $cutoffPeriod = $service->getCutoffPeriod($year, $month);
+        $lateRate = $service->getLateRate();
+        $lateComponent = $service->getLateComponent();
+
+        return view('potongan_karyawan.form', compact('employees', 'components', 'existingDeductions', 'cutoffPeriod', 'lateRate', 'lateComponent'));
     }
 
     public function store(Request $request)
@@ -82,7 +89,7 @@ class PotonganKaryawanController extends Controller
         return redirect()->route('potongan-karyawan.index')->with('success', 'Deductions created successfully.');
     }
 
-    public function edit(PotonganKaryawan $potonganKaryawan)
+    public function edit(PotonganKaryawan $potonganKaryawan, LatenessDeductionService $service)
     {
         $header = $potonganKaryawan;
         $employees = EmpData::with('jabatan')->get();
@@ -106,7 +113,67 @@ class PotonganKaryawanController extends Controller
                 ];
             });
 
-        return view('potongan_karyawan.form', compact('header', 'employees', 'components', 'existingDeductions'));
+        $year = (int) $header->year;
+        $month = (int) $header->month;
+        $cutoffPeriod = $service->getCutoffPeriod($year, $month);
+        $lateRate = $service->getLateRate();
+        $lateComponent = $service->getLateComponent();
+
+        return view('potongan_karyawan.form', compact('header', 'employees', 'components', 'existingDeductions', 'cutoffPeriod', 'lateRate', 'lateComponent'));
+    }
+
+    /**
+     * Hitung preview akumulasi keterlambatan dan denda per karyawan (AJAX).
+     */
+    public function calculateLateDeduction(Request $request, LatenessDeductionService $service)
+    {
+        $request->validate([
+            'year'       => 'required|integer|min:2000|max:2100',
+            'month'      => 'required|integer|min:1|max:12',
+            'start_date' => 'nullable|date',
+            'end_date'   => 'nullable|date',
+            'rate'       => 'nullable|numeric|min:0',
+        ]);
+
+        $calc = $service->calculate(
+            (int) $request->year,
+            (int) $request->month,
+            $request->start_date,
+            $request->end_date,
+            $request->filled('rate') ? (float) $request->rate : null
+        );
+
+        return response()->json($calc);
+    }
+
+    /**
+     * Sinkronkan & simpan denda keterlambatan langsung ke tabel potongan_karyawan_details.
+     */
+    public function syncLateDeduction(Request $request, PotonganKaryawan $potonganKaryawan, LatenessDeductionService $service)
+    {
+        $request->validate([
+            'start_date' => 'nullable|date',
+            'end_date'   => 'nullable|date',
+            'rate'       => 'nullable|numeric|min:0',
+        ]);
+
+        $calc = $service->syncToPotonganKaryawan(
+            $potonganKaryawan,
+            $request->start_date,
+            $request->end_date,
+            $request->filled('rate') ? (float) $request->rate : null
+        );
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Potongan keterlambatan berhasil disinkronkan dan disimpan ke database.',
+                'data'    => $calc,
+            ]);
+        }
+
+        return redirect()->route('potongan-karyawan.edit', $potonganKaryawan->id)
+            ->with('success', 'Potongan keterlambatan berhasil disinkronkan dan disimpan.');
     }
 
     public function update(Request $request, PotonganKaryawan $potonganKaryawan)

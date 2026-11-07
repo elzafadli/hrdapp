@@ -20,29 +20,19 @@ class EmployeeAttendanceController extends Controller
      */
     public function index(Request $request)
     {
-        // 1. Filter Tanggal & Bulan (Periode Penggajian Cut-Off Tanggal 25)
-        $selectedMonth = $request->input('month');
-        $selectedYear = (int) $request->input('year', date('Y'));
-
+        // 1. Filter Rentang Tanggal (Default Cut-Off Penggajian Tanggal 25)
         if ($request->filled('start_date') && $request->filled('end_date')) {
             $startDate = Carbon::parse($request->input('start_date'))->startOfDay();
             $endDate = Carbon::parse($request->input('end_date'))->endOfDay();
-        } elseif ($selectedMonth) {
-            // Cut-off tanggal 25: dari 25 bulan sebelumnya s/d 25 bulan yang dipilih
-            $targetDate = Carbon::createFromDate($selectedYear, (int) $selectedMonth, 25);
-            $startDate = $targetDate->copy()->subMonth()->day(25)->startOfDay();
-            $endDate = $targetDate->copy()->day(25)->endOfDay();
         } else {
-            // Default ke periode cut-off penggajian berjalan (25 bulan sebelumnya s/d 25 bulan sekarang)
+            // Default: 25 bulan sebelumnya s/d 25 bulan sekarang
             $now = Carbon::today();
             if ($now->day < 25) {
                 $startDate = $now->copy()->subMonth()->day(25)->startOfDay();
                 $endDate = $now->copy()->day(25)->endOfDay();
-                $selectedMonth = (string) $now->month;
             } else {
                 $startDate = $now->copy()->day(25)->startOfDay();
                 $endDate = $now->copy()->addMonth()->day(25)->endOfDay();
-                $selectedMonth = (string) $now->copy()->addMonth()->month;
             }
         }
 
@@ -80,7 +70,7 @@ class EmployeeAttendanceController extends Controller
 
         $leaveDates = collect();
         if (Schema::hasTable('leave_request_dates') && !empty($empIds)) {
-            $leaveDates = LeaveRequestDate::with(['leaveRequest.approvals'])
+            $leaveDates = LeaveRequestDate::with(['leaveRequest.approvals', 'leaveRequest.files'])
                 ->whereIn('emp_id', $empIds)
                 ->whereBetween('date', [$startDateStr, $endDateStr])
                 ->get()
@@ -135,7 +125,7 @@ class EmployeeAttendanceController extends Controller
 
                 // Fallback jika tidak ada record di leave_request_dates tapi ada di leave_requests
                 if (!$leaveReq) {
-                    $leaveReq = LeaveRequest::with('approvals')
+                    $leaveReq = LeaveRequest::with(['approvals', 'files'])
                         ->where('emp_id', $emp->id)
                         ->where(function ($q) use ($dateStr) {
                             $q->where(function ($sub) use ($dateStr) {
@@ -199,6 +189,11 @@ class EmployeeAttendanceController extends Controller
                     $statusBadge = 'none';
                 }
 
+                $attachmentUrl = null;
+                if ($leaveReq && $leaveReq->files && $leaveReq->files->isNotEmpty()) {
+                    $attachmentUrl = $leaveReq->files->first()->url ?? null;
+                }
+
                 $lateDetails[] = [
                     'nama'              => $emp->name,
                     'nid'               => (string) ($emp->nik_karyawan ?: $emp->id),
@@ -210,6 +205,9 @@ class EmployeeAttendanceController extends Controller
                     'status_badge'      => $statusBadge,
                     'has_clarification' => $hasClarification,
                     'check_in_time'     => $late->check_in_time ? substr($late->check_in_time, 0, 5) : '-',
+                    'photo_url'         => $late->check_in_photo_url,
+                    'check_out_photo'   => $late->check_out_photo_url,
+                    'attachment_url'    => $attachmentUrl,
                     'notes'             => $late->check_in_notes ?: ($leaveReq?->reason ?: '-'),
                 ];
             }
@@ -234,8 +232,6 @@ class EmployeeAttendanceController extends Controller
             'recapData',
             'startDateStr',
             'endDateStr',
-            'selectedMonth',
-            'selectedYear',
             'allEmployees'
         ));
     }
@@ -256,7 +252,7 @@ class EmployeeAttendanceController extends Controller
             ->orderBy('date', 'asc')
             ->get();
 
-        $empLeaves = LeaveRequestDate::with(['leaveRequest.approvals'])
+        $empLeaves = LeaveRequestDate::with(['leaveRequest.approvals', 'leaveRequest.files'])
             ->where('emp_id', $employee->id)
             ->whereBetween('date', [$startDate, $endDate])
             ->get()
@@ -308,6 +304,11 @@ class EmployeeAttendanceController extends Controller
                 }
             }
 
+            $attachmentUrl = null;
+            if ($leaveReq && $leaveReq->files && $leaveReq->files->isNotEmpty()) {
+                $attachmentUrl = $leaveReq->files->first()->url ?? null;
+            }
+
             $details[] = [
                 'nama'              => $employee->name,
                 'nid'               => (string) ($employee->nik_karyawan ?: $employee->id),
@@ -318,6 +319,9 @@ class EmployeeAttendanceController extends Controller
                 'status_badge'      => $statusBadge,
                 'has_clarification' => $hasClarification,
                 'check_in_time'     => $late->check_in_time ? substr($late->check_in_time, 0, 5) : '-',
+                'photo_url'         => $late->check_in_photo_url,
+                'check_out_photo'   => $late->check_out_photo_url,
+                'attachment_url'    => $attachmentUrl,
                 'notes'             => $late->check_in_notes ?: ($leaveReq?->reason ?: '-'),
             ];
         }

@@ -1,61 +1,5 @@
 <x-app-layout>
-    <div class="py-6 bg-slate-50 min-h-screen"
-        x-data="{
-            modalOpen: false,
-            selectedEmployee: null,
-            lateDetails: [],
-            filterTab: 'all', // 'all', 'clarified', 'unclarified'
-            searchQuery: '{{ addslashes(request('search', '')) }}',
-            allRows: @json(collect($recapData)->map(fn($r) => ['nama' => $r->nama, 'nid' => (string)$r->nid])),
-            matchesSearch(nama, nid) {
-                if (!this.searchQuery || !this.searchQuery.trim()) return true;
-                const q = this.searchQuery.toLowerCase().trim();
-                return (nama && nama.toLowerCase().includes(q)) || 
-                       (nid && String(nid).toLowerCase().includes(q));
-            },
-            get visibleRowCount() {
-                if (!this.searchQuery || !this.searchQuery.trim()) return this.allRows.length;
-                const q = this.searchQuery.toLowerCase().trim();
-                return this.allRows.filter(r => (r.nama && r.nama.toLowerCase().includes(q)) || (r.nid && r.nid.toLowerCase().includes(q))).length;
-            },
-            onMonthChange(monthVal, yearVal = '{{ $selectedYear }}') {
-                if (!monthVal) return;
-                const m = parseInt(monthVal);
-                const y = parseInt(yearVal);
-                
-                // Tanggal akhir: 25 bulan yang dipilih
-                const endDate = new Date(y, m - 1, 25);
-                // Tanggal awal: 25 bulan sebelumnya
-                const startDate = new Date(y, m - 2, 25);
-
-                const pad = (n) => String(n).padStart(2, '0');
-                const startStr = `${startDate.getFullYear()}-${pad(startDate.getMonth() + 1)}-${pad(startDate.getDate())}`;
-                const endStr = `${endDate.getFullYear()}-${pad(endDate.getMonth() + 1)}-${pad(endDate.getDate())}`;
-
-                const sInput = document.getElementById('start_date');
-                const eInput = document.getElementById('end_date');
-                if (sInput) sInput.value = startStr;
-                if (eInput) eInput.value = endStr;
-            },
-            openLateModal(row, tab = 'all') {
-                this.selectedEmployee = row;
-                this.lateDetails = row.late_details || [];
-                this.filterTab = tab;
-                this.modalOpen = true;
-            },
-            closeLateModal() {
-                this.modalOpen = false;
-            },
-            get filteredLateDetails() {
-                if (this.filterTab === 'clarified') {
-                    return this.lateDetails.filter(d => d.has_clarification);
-                }
-                if (this.filterTab === 'unclarified') {
-                    return this.lateDetails.filter(d => !d.has_clarification);
-                }
-                return this.lateDetails;
-            }
-        }">
+    <div class="py-6 bg-slate-50 min-h-screen" x-data="employeeAttendanceApp()">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
             {{-- Top Header --}}
@@ -85,14 +29,14 @@
                             <i class="fa-solid fa-filter text-blue-600 text-xs"></i>
                             <span>Filter Presensi</span>
                         </div>
-                        @if(request()->hasAny(['start_date', 'end_date', 'month', 'employee_id', 'search']))
+                        @if(request()->hasAny(['start_date', 'end_date', 'employee_id', 'search']))
                             <a href="{{ route('employee-attendance.index') }}" class="text-xs text-rose-600 hover:text-rose-700 font-semibold flex items-center gap-1">
                                 <i class="fa-solid fa-rotate-left"></i> Reset Filter
                             </a>
                         @endif
                     </div>
 
-                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5 pt-1">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 pt-1">
                         {{-- Tgl dari --}}
                         <div>
                             <x-input-label for="start_date" :value="__('Tgl Dari')" class="text-xs font-semibold text-gray-700 mb-1" />
@@ -105,33 +49,14 @@
                             <x-text-input type="date" id="end_date" name="end_date" value="{{ $endDateStr }}" class="w-full text-xs" />
                         </div>
 
-                        {{-- Bulan Cepat (Cut-off 25) --}}
-                        <div>
-                            <x-input-label for="month" :value="__('Bulan (Cut-off 25)')" class="text-xs font-semibold text-gray-700 mb-1" />
-                            <x-select-input id="month" name="month" :placeholder="__('-- Pilih Bulan --')" class="w-full" :noSelect2="true" @change="onMonthChange($event.target.value)">
-                                @php
-                                    $months = [
-                                        '1' => 'Januari', '2' => 'Februari', '3' => 'Maret', '4' => 'April',
-                                        '5' => 'Mei', '6' => 'Juni', '7' => 'Juli', '8' => 'Agustus',
-                                        '9' => 'September', '10' => 'Oktober', '11' => 'November', '12' => 'Desember'
-                                    ];
-                                @endphp
-                                @foreach($months as $val => $label)
-                                    <option value="{{ $val }}" {{ (string)$selectedMonth === (string)$val ? 'selected' : '' }}>
-                                        {{ $label }}
-                                    </option>
-                                @endforeach
-                            </x-select-input>
-                        </div>
-
                         {{-- Nama / NID (Client-Side Instant Search) --}}
                         <div>
-                            <x-input-label for="search" :value="__('Cari Nama / NID (Live)')" class="text-xs font-semibold text-gray-700 mb-1" />
+                            <x-input-label for="search" :value="__('Cari Nama / NID')" class="text-xs font-semibold text-gray-700 mb-1" />
                             <div class="relative">
-                                <x-text-input type="text" id="search" name="search" 
-                                    x-model="searchQuery" 
-                                    placeholder="Ketik nama atau NID..." 
-                                    class="w-full text-xs pl-8 pr-7" 
+                                <x-text-input type="text" id="search" name="search"
+                                    x-model="searchQuery"
+                                    placeholder="Ketik nama atau NID..."
+                                    class="w-full text-xs pl-8 pr-7"
                                     @keydown.enter.prevent="" />
                                 <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
                                 <button type="button" x-show="searchQuery" @click="searchQuery = ''" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs" style="display: none;">
@@ -415,6 +340,7 @@
                                         <th class="px-4 py-3">Izin / Cuti</th>
                                         <th class="px-4 py-3 text-center">Status</th>
                                         <th class="px-4 py-3">Jam Masuk & Catatan</th>
+                                        <th class="px-4 py-3 text-center">Foto Presensi</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-100">
@@ -470,12 +396,40 @@
                                                     <span class="text-gray-500 truncate max-w-[200px]" x-text="item.notes" :title="item.notes"></span>
                                                 </div>
                                             </td>
+
+                                            {{-- Foto Presensi / Lampiran Berkas --}}
+                                            <td class="px-4 py-3 text-center">
+                                                <div class="flex items-center justify-center gap-2">
+                                                    <template x-if="item.photo_url">
+                                                        <div class="flex items-center gap-1.5">
+                                                            <button type="button" @click="previewImage = item.photo_url" class="group relative inline-block shrink-0" title="Klik untuk memperbesar foto selfie">
+                                                                <img :src="item.photo_url" alt="Foto Selfie Presensi" class="w-8 h-8 rounded-lg object-cover border border-blue-200 shadow-xs group-hover:scale-105 group-hover:ring-2 group-hover:ring-blue-400 transition">
+                                                                <span class="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-blue-600 text-white flex items-center justify-center text-[7px]">
+                                                                    <i class="fa-solid fa-camera"></i>
+                                                                </span>
+                                                            </button>
+                                                            <a :href="item.photo_url" target="_blank" class="p-1 rounded-md text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition" title="Buka foto di tab baru">
+                                                                <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                                                            </a>
+                                                        </div>
+                                                    </template>
+                                                    <template x-if="item.attachment_url">
+                                                        <a :href="item.attachment_url" target="_blank" class="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-[10px] font-semibold transition shadow-xs" title="Lihat berkas lampiran izin/cuti">
+                                                            <i class="fa-solid fa-paperclip text-[9px]"></i>
+                                                            <span>Berkas</span>
+                                                        </a>
+                                                    </template>
+                                                    <template x-if="!item.photo_url && !item.attachment_url">
+                                                        <span class="text-gray-300 italic text-[11px] font-mono">-</span>
+                                                    </template>
+                                                </div>
+                                            </td>
                                         </tr>
                                     </template>
 
                                     <template x-if="filteredLateDetails.length === 0">
                                         <tr>
-                                            <td colspan="6" class="px-6 py-10 text-center text-gray-400">
+                                            <td colspan="7" class="px-6 py-10 text-center text-gray-400">
                                                 <i class="fa-solid fa-circle-check text-2xl text-emerald-400 mb-2"></i>
                                                 <p class="font-medium">Tidak ada data keterlambatan untuk kategori ini.</p>
                                             </td>
@@ -498,7 +452,101 @@
                 </div>
             </div>
 
+            {{-- LIGHTBOX MODAL PREVIEW FOTO PRESENSI --}}
+            <div
+                x-show="previewImage"
+                x-cloak
+                class="fixed inset-0 z-[120] flex items-center justify-center p-4 sm:p-6"
+                @keydown.escape.window="previewImage = null"
+            >
+                <div
+                    class="fixed inset-0 bg-black/80 backdrop-blur-xs transition-opacity"
+                    @click="previewImage = null"
+                    x-show="previewImage"
+                    x-transition:enter="ease-out duration-200"
+                    x-transition:enter-start="opacity-0"
+                    x-transition:enter-end="opacity-100"
+                    x-transition:leave="ease-in duration-150"
+                    x-transition:leave-start="opacity-100"
+                    x-transition:leave-end="opacity-0"
+                ></div>
+
+                <div
+                    class="relative z-10 bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden p-4 space-y-3"
+                    x-show="previewImage"
+                    x-transition:enter="ease-out duration-200"
+                    x-transition:enter-start="opacity-0 scale-95"
+                    x-transition:enter-end="opacity-100 scale-100"
+                    x-transition:leave="ease-in duration-150"
+                    x-transition:leave-start="opacity-100 scale-100"
+                    x-transition:leave-end="opacity-0 scale-95"
+                    @click.stop
+                >
+                    <div class="flex items-center justify-between pb-2 border-b border-gray-100">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2 h-2 rounded-full bg-blue-600"></span>
+                            <span class="text-xs font-bold text-gray-800">Foto Selfie Presensi Karyawan</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <a :href="previewImage" target="_blank" class="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 text-xs font-semibold flex items-center gap-1 transition shadow-xs" title="Buka gambar ukuran penuh di tab baru">
+                                <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                                Tab Baru
+                            </a>
+                            <button type="button" @click="previewImage = null" class="w-7 h-7 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-700 flex items-center justify-center transition">
+                                <i class="fa-solid fa-xmark text-sm"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="rounded-xl overflow-hidden bg-slate-950 flex items-center justify-center min-h-[260px] max-h-[70vh] border border-gray-100">
+                        <img :src="previewImage" alt="Foto Presensi" class="w-full h-auto object-contain max-h-[70vh]">
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
+
+    <script>
+        function employeeAttendanceApp() {
+            return {
+                modalOpen: false,
+                selectedEmployee: null,
+                lateDetails: [],
+                previewImage: null,
+                filterTab: 'all', // 'all', 'clarified', 'unclarified'
+                searchQuery: '{{ addslashes(request('search', '')) }}',
+                allRows: @json(collect($recapData)->map(fn($r) => ['nama' => $r->nama, 'nid' => (string)$r->nid])),
+                matchesSearch(nama, nid) {
+                    if (!this.searchQuery || !this.searchQuery.trim()) return true;
+                    const q = this.searchQuery.toLowerCase().trim();
+                    return (nama && nama.toLowerCase().includes(q)) ||
+                           (nid && String(nid).toLowerCase().includes(q));
+                },
+                get visibleRowCount() {
+                    if (!this.searchQuery || !this.searchQuery.trim()) return this.allRows.length;
+                    const q = this.searchQuery.toLowerCase().trim();
+                    return this.allRows.filter(r => (r.nama && r.nama.toLowerCase().includes(q)) || (r.nid && r.nid.toLowerCase().includes(q))).length;
+                },
+                openLateModal(row, tab = 'all') {
+                    this.selectedEmployee = row;
+                    this.lateDetails = row.late_details || [];
+                    this.filterTab = tab;
+                    this.modalOpen = true;
+                },
+                closeLateModal() {
+                    this.modalOpen = false;
+                },
+                get filteredLateDetails() {
+                    if (this.filterTab === 'clarified') {
+                        return this.lateDetails.filter(d => d.has_clarification);
+                    }
+                    if (this.filterTab === 'unclarified') {
+                        return this.lateDetails.filter(d => !d.has_clarification);
+                    }
+                    return this.lateDetails;
+                }
+            };
+        }
+    </script>
 </x-app-layout>
 

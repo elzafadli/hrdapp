@@ -50,6 +50,24 @@ class LoginRequest extends FormRequest
         }
 
         RateLimiter::clear($this->throttleKey());
+
+        // Validasi wajib memiliki data Pegawai (Employee)
+        $user = Auth::user();
+        $employee = $user ? $user->getEmployeeRecord() : null;
+
+        if (!$employee) {
+            Auth::guard('web')->logout();
+
+            throw ValidationException::withMessages([
+                'email' => 'User belum mempunyai data Pegawai. Silakan hubungi Administrator atau HRD.',
+            ]);
+        }
+
+        // Hubungkan user_id ke employee jika sebelumnya belum terisi
+        if (!$employee->user_id) {
+            $employee->user_id = $user->id;
+            $employee->saveQuietly();
+        }
     }
 
     /**

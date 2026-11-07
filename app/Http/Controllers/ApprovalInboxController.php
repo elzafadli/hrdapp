@@ -9,6 +9,7 @@ use App\Models\LeaveRequest;
 use App\Models\OvertimeRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 
 class ApprovalInboxController extends Controller
 {
