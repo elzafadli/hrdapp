@@ -124,6 +124,21 @@ class PayrollResultController extends Controller
                 ->where('payroll_setting_id', $setting->id)
                 ->delete();
 
+            // Pastikan potongan keterlambatan sinkron ke Potongan Karyawan jika belum ada
+            $potonganHeader = PotonganKaryawan::firstOrCreate([
+                'year'  => $year,
+                'month' => $month,
+            ]);
+            $lateComp = app(LatenessDeductionService::class)->getLateComponent();
+            if ($lateComp) {
+                $hasLateDetail = PotonganKaryawanDetail::where('header_id', $potonganHeader->id)
+                    ->where('payroll_component_id', $lateComp->id)
+                    ->exists();
+                if (!$hasLateDetail) {
+                    app(LatenessDeductionService::class)->syncToPotonganKaryawan($potonganHeader);
+                }
+            }
+
             $employees = EmpData::all();
 
             foreach ($employees as $employee) {

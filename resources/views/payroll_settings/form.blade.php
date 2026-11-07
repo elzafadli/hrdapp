@@ -35,6 +35,30 @@
                             </div>
                         </div>
 
+                        <!-- Cut-off Period Setting (Default 25 s/d 25) -->
+                        <div class="mb-6 p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                            <div class="flex items-center gap-2 mb-3">
+                                <span class="w-2 h-2 rounded-full bg-indigo-500"></span>
+                                <h4 class="text-sm font-semibold text-slate-800">Pengaturan Periode Cut-Off Payroll & Presensi</h4>
+                            </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <x-input-label for="cutoff_start_day" :value="__('Cut-Off Tanggal Awal (Bulan Sebelumnya)')" />
+                                    <x-text-input id="cutoff_start_day" name="cutoff_start_day" type="number" min="1" max="31" class="mt-1 block w-full"
+                                        :value="old('cutoff_start_day', $payrollSetting->cutoff_start_day ?? 25)" />
+                                    <p class="text-xs text-slate-500 mt-1">Tanggal mulai perhitungan absensi/keterlambatan dari bulan sebelumnya (default: 25).</p>
+                                    <x-input-error class="mt-1" :messages="$errors->get('cutoff_start_day')" />
+                                </div>
+                                <div>
+                                    <x-input-label for="cutoff_end_day" :value="__('Cut-Off Tanggal Akhir (Bulan Berjalan)')" />
+                                    <x-text-input id="cutoff_end_day" name="cutoff_end_day" type="number" min="1" max="31" class="mt-1 block w-full"
+                                        :value="old('cutoff_end_day', $payrollSetting->cutoff_end_day ?? 25)" />
+                                    <p class="text-xs text-slate-500 mt-1">Tanggal akhir perhitungan absensi/keterlambatan pada bulan berjalan (default: 25).</p>
+                                    <x-input-error class="mt-1" :messages="$errors->get('cutoff_end_day')" />
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Details Table -->
                         <div class="border rounded-lg overflow-hidden">
                             <div class="bg-blue-50 px-4 py-2 border-b">

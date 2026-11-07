@@ -57,6 +57,31 @@
                             </div>
                         </div>
 
+                        <!-- Card Sinkronisasi Denda Keterlambatan Presensi -->
+                        <div class="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div class="flex items-start gap-2.5">
+                                    <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-amber-500 text-white shrink-0 mt-0.5">
+                                        <i class="fa-solid fa-clock-rotate-left text-xs"></i>
+                                    </span>
+                                    <div>
+                                        <h4 class="text-xs sm:text-sm font-bold text-slate-900">Potongan Keterlambatan Presensi (Cut-off 25 s/d 25)</h4>
+                                        <p class="text-xs text-slate-600 mt-0.5">
+                                            Denda Rp 15.000 untuk setiap presensi masuk &gt; 08:30 WIB. Klik tombol di samping untuk memproses keterlambatan presensi dan menyinkronkan data ke Potongan Karyawan sebelum proses payroll.
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="shrink-0">
+                                    <button type="button" id="btn-sync-late-payroll"
+                                        class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white text-xs font-semibold rounded-lg shadow-xs transition cursor-pointer">
+                                        <i class="fa-solid fa-bolt text-xs"></i>
+                                        <span id="btn-sync-late-text">Proses Terlambat</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="payroll-late-result-notice" class="hidden mt-3 pt-2.5 border-t border-amber-200 text-xs text-amber-900 font-medium"></div>
+                        </div>
+
                         <div class="flex justify-end gap-3">
                             <a href="{{ route('payroll-results.index') }}"
                                 class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-gray-700 bg-gray-100 hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
@@ -123,6 +148,56 @@
                             if (window.performance && window.performance.navigation.type === 1) {
                                 // Page was reloaded
                                 history.replaceState(null, null, ' ');
+                            }
+
+                            // Handler Hitung & Sinkronkan Keterlambatan Presensi
+                            const btnSyncLate = document.getElementById('btn-sync-late-payroll');
+                            if (btnSyncLate) {
+                                btnSyncLate.addEventListener('click', function() {
+                                    const month = document.getElementById('month').value;
+                                    const year = document.getElementById('year').value;
+
+                                    if (!month || !year) {
+                                        alert('Pilih Bulan dan Tahun terlebih dahulu.');
+                                        return;
+                                    }
+
+                                    const btnText = document.getElementById('btn-sync-late-text');
+                                    const origText = btnText.textContent;
+                                    btnSyncLate.disabled = true;
+                                    btnText.innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-1"></i> Memproses...';
+
+                                    fetch("{{ route('payroll-results.sync-late') }}", {
+                                        method: 'POST',
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                                            'Accept': 'application/json'
+                                        },
+                                        body: JSON.stringify({
+                                            month: month,
+                                            year: year
+                                        })
+                                    })
+                                    .then(response => response.json())
+                                    .then(res => {
+                                        btnSyncLate.disabled = false;
+                                        btnText.textContent = origText;
+                                        if (res.success) {
+                                            const notice = document.getElementById('payroll-late-result-notice');
+                                            notice.classList.remove('hidden');
+                                            notice.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-600 mr-1.5"></i> ${res.message} (Ditemukan <strong>${res.data.summary.total_late_events}x</strong> keterlambatan pada <strong>${res.data.summary.total_late_employees}</strong> karyawan, Total: <strong>Rp ${res.data.summary.formatted_total}</strong>).`;
+                                            alert(`Keterlambatan berhasil diproses!\nDitemukan: ${res.data.summary.total_late_events}x keterlambatan.\nTotal Denda: Rp ${res.data.summary.formatted_total}\n\nData denda telah disinkronkan ke Potongan Karyawan.`);
+                                        } else {
+                                            alert(res.message || 'Gagal memproses denda keterlambatan.');
+                                        }
+                                    })
+                                    .catch(err => {
+                                        btnSyncLate.disabled = false;
+                                        btnText.textContent = origText;
+                                        alert('Terjadi kesalahan jaringan/server saat memproses keterlambatan.');
+                                    });
+                                });
                             }
                         </script>
                     </form>

@@ -2,9 +2,11 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Models\User;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -41,30 +43,46 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
+        $email = trim((string) $this->input('email'));
+        $password = (string) $this->input('password');
+
+        // 1. Cek apakah user dengan email tersebut terdaftar
+        $user = User::where('email', $email)->first();
+
+        if (! $user) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
-                'email' => trans('auth.failed'),
+                'email' => 'Email tidak terdaftar dalam sistem.',
             ]);
         }
 
-        RateLimiter::clear($this->throttleKey());
+        // 2. Cek apakah user memiliki data Pegawai (Employee)
+        $employee = $user->getEmployeeRecord();
 
-        // Validasi wajib memiliki data Pegawai (Employee)
-        $user = Auth::user();
-        $employee = $user ? $user->getEmployeeRecord() : null;
-
-        if (!$employee) {
-            Auth::guard('web')->logout();
+        if (! $employee) {
+            RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
                 'email' => 'User belum mempunyai data Pegawai. Silakan hubungi Administrator atau HRD.',
             ]);
         }
 
-        // Hubungkan user_id ke employee jika sebelumnya belum terisi
-        if (!$employee->user_id) {
+        // 3. Verifikasi Password
+        if (! Hash::check($password, $user->password)) {
+            RateLimiter::hit($this->throttleKey());
+
+            throw ValidationException::withMessages([
+                'password' => 'Password yang Anda masukkan salah.',
+            ]);
+        }
+
+        // 4. Lakukan Login
+        Auth::login($user, $this->boolean('remember'));
+        RateLimiter::clear($this->throttleKey());
+
+        // 5. Hubungkan user_id ke data employee jika belum terisi
+        if (! $employee->user_id) {
             $employee->user_id = $user->id;
             $employee->saveQuietly();
         }
