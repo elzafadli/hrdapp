@@ -186,7 +186,12 @@ class SickLeaveController extends Controller
             // Simpan lampiran file jika ada (Surat Dokter / Resep)
             if ($request->hasFile('files')) {
                 foreach ($request->file('files') as $file) {
-                    $path = $file->store('sick_attachments', 'is3');
+                    $folder = 'sick_attachments/' . date('Y') . '/' . date('m');
+                    try {
+                        $path = $file->store($folder, 'is3');
+                    } catch (\Throwable $e) {
+                        $path = $file->store($folder, 'public');
+                    }
                     LeaveRequestFile::create([
                         'leave_request_id' => $leaveRequest->id,
                         'file_path'        => $path,

@@ -18,7 +18,7 @@ class EmpLoanController extends Controller
     public function index(Request $request)
     {
         if ($request->ajax()) {
-            $query = EmpLoan::with(['employee.project', 'budget', 'project']);
+            $query = EmpLoan::with(['employee.project', 'employee.jabatan', 'budget', 'project']);
 
             if ($request->filled('emp_id')) {
                 $query->where('emp_id', $request->emp_id);
@@ -27,50 +27,76 @@ class EmpLoanController extends Controller
             return DataTables::of($query)
                 ->addIndexColumn()
                 ->addColumn('employee_name', function ($row) {
-                    return $row->employee ? $row->employee->name : '-';
+                    $name = $row->employee ? e($row->employee->name) : '-';
+                    $jabatan = $row->employee && $row->employee->jabatan ? e($row->employee->jabatan->jabatan) : '';
+                    return '<div class="font-bold text-slate-900 whitespace-nowrap leading-tight">' . $name . '</div>'
+                        . ($jabatan ? '<div class="text-[11px] text-slate-500 leading-tight mt-0.5">' . $jabatan . '</div>' : '');
                 })
                 ->addColumn('project_name', function ($row) {
                     if ($row->project) {
-                        return e($row->project->name);
+                        return '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-800 whitespace-nowrap">' . e($row->project->name) . '</span>';
                     }
                     if ($row->employee && $row->employee->project) {
-                        return '<span class="text-gray-500 italic">' . e($row->employee->project->name) . '</span>';
+                        return '<span class="text-slate-500 text-xs italic whitespace-nowrap">' . e($row->employee->project->name) . '</span>';
                     }
-                    return '-';
+                    return '<span class="text-slate-400 text-xs">-</span>';
                 })
                 ->addColumn('formatted_amount', function ($row) {
-                    return number_format($row->amount, 2);
+                    return '<span class="font-bold text-slate-900 font-mono text-xs whitespace-nowrap">Rp ' . number_format($row->amount, 0, ',', '.') . '</span>';
                 })
                 ->addColumn('formatted_installment', function ($row) {
-                    return number_format($row->installment_amount, 2);
+                    return '<span class="font-semibold text-slate-700 font-mono text-xs whitespace-nowrap">Rp ' . number_format($row->installment_amount, 0, ',', '.') . '</span>';
                 })
-                ->addColumn('start_date', function ($row) {
-                    return $row->start_date ? $row->start_date->format('Y-m-d') : '-';
+                ->addColumn('paid_amount', function ($row) {
+                    $paid = $row->getPaidAmount();
+                    return '<span class="font-semibold text-emerald-600 font-mono text-xs whitespace-nowrap">Rp ' . number_format($paid, 0, ',', '.') . '</span>';
                 })
-                ->addColumn('end_date', function ($row) {
-                    return $row->end_date ? $row->end_date->format('Y-m-d') : '-';
+                ->addColumn('remaining_balance', function ($row) {
+                    $paid = $row->getPaidAmount();
+                    $remaining = $row->remaining_balance;
+                    $percent = $row->amount > 0 ? min(100, round(($paid / $row->amount) * 100)) : 100;
+
+                    if ($remaining <= 0 || $row->status === 'closed') {
+                        return '<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 whitespace-nowrap"><i class="fa-solid fa-check text-[10px]"></i> Lunas</span>';
+                    }
+
+                    return '<div class="min-w-[125px]">
+                        <div class="flex items-center justify-between text-xs font-mono">
+                            <span class="font-bold text-amber-700 whitespace-nowrap">Rp ' . number_format($remaining, 0, ',', '.') . '</span>
+                            <span class="text-[10px] text-slate-400 font-normal">' . $percent . '%</span>
+                        </div>
+                        <div class="w-full bg-slate-100 rounded-full h-1.5 mt-1 overflow-hidden">
+                            <div class="bg-indigo-600 h-1.5 rounded-full" style="width: ' . $percent . '%"></div>
+                        </div>
+                        <div class="text-[10px] text-amber-600 font-semibold mt-0.5 whitespace-nowrap">Belum Lunas</div>
+                    </div>';
+                })
+                ->addColumn('period', function ($row) {
+                    $start = $row->start_date ? $row->start_date->translatedFormat('d M Y') : '-';
+                    $end = $row->end_date ? $row->end_date->translatedFormat('d M Y') : '-';
+                    return '<div class="text-xs font-mono whitespace-nowrap text-slate-700">' . $start . '</div>'
+                        . '<div class="text-[11px] font-mono whitespace-nowrap text-slate-400">s/d ' . $end . '</div>';
                 })
                 ->addColumn('attachment_badge', function ($row) {
                     if (!empty($row->attachment)) {
-                        return '<a href="' . route('emp-loans.download-attachment', $row->id) . '" target="_blank" class="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition" title="Unduh / Lihat Lampiran">
+                        return '<a href="' . route('emp-loans.download-attachment', $row->id) . '" target="_blank" class="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition whitespace-nowrap" title="Unduh / Lihat Lampiran">
                             <i class="fa-solid fa-paperclip text-[10px]"></i> Lampiran
                         </a>';
                     }
-                    return '<span class="text-gray-400 text-xs italic">Tidak ada</span>';
+                    return '<span class="text-slate-400 text-xs italic whitespace-nowrap">Tidak ada</span>';
                 })
                 ->addColumn('status', function ($row) {
                     return view('components.status-badge', ['status' => $row->status])->render();
                 })
                 ->addColumn('budget_reference', function ($row) {
                     if (!empty($row->budget_reference_number)) {
-                        return '<div class="inline-flex items-center gap-1.5 flex-wrap">
-                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200" title="Budget ID: #' . $row->budget_id . '">
+                        return '<div class="inline-flex items-center gap-1.5 flex-nowrap whitespace-nowrap">
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200" title="Budget ID: #' . $row->budget_id . '">
                                 <i class="fa-solid fa-receipt text-[10px]"></i> ' . e($row->budget_reference_number) . '
                             </span>
-                            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold uppercase bg-amber-100 text-amber-800 border border-amber-200">Draft</span>
                         </div>';
                     }
-                    return '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs text-gray-400 bg-gray-50 border border-gray-200">
+                    return '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] text-slate-400 bg-slate-50 border border-slate-200 whitespace-nowrap">
                         <i class="fa-regular fa-clock text-[10px]"></i> Belum Diposting
                     </span>';
                 })
@@ -79,9 +105,9 @@ class EmpLoanController extends Controller
                     $methodDelete = method_field('DELETE');
 
                     $detailBtn = '<a href="' . route('emp-loans.show', $row->id) . '"
-                        class="inline-flex items-center px-2 py-1.5 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:ring ring-blue-300 transition ease-in-out duration-150 mr-1.5"
+                        class="inline-flex items-center p-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-xs font-semibold shadow-2xs transition mr-1"
                         title="Detail Pinjaman">
-                        <i class="fa-solid fa-eye"></i>
+                        <i class="fa-solid fa-eye text-xs"></i>
                     </a>';
 
                     $budgetAction = '';
@@ -89,36 +115,36 @@ class EmpLoanController extends Controller
                         $budgetAction = '<form action="' . route('emp-loans.post-to-budget', $row->id) . '" method="POST" class="inline-block" onsubmit="return confirm(\'Posting pinjaman ini ke Budgeting dengan status Draft?\');">
                             ' . $csrf . '
                             <button type="submit"
-                                class="inline-flex items-center px-2 py-1.5 bg-emerald-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-emerald-700 active:bg-emerald-800 focus:outline-none focus:ring ring-emerald-300 transition ease-in-out duration-150 mr-1.5"
+                                class="inline-flex items-center p-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-xs font-semibold shadow-2xs transition mr-1"
                                 title="Post ke Budgeting (Draft)">
-                                <i class="fa-solid fa-file-invoice-dollar"></i>
+                                <i class="fa-solid fa-file-invoice-dollar text-xs"></i>
                             </button>
                         </form>';
                     } else {
-                        $budgetAction = '<span class="inline-flex items-center px-2 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-300 rounded-md text-xs font-semibold mr-1.5" title="Sudah diposting ke Budgeting: ' . e($row->budget_reference_number) . '">
+                        $budgetAction = '<span class="inline-flex items-center p-1.5 bg-emerald-50 text-emerald-700 border border-emerald-300 rounded-md text-xs font-semibold mr-1" title="Sudah diposting ke Budgeting: ' . e($row->budget_reference_number) . '">
                             <i class="fa-solid fa-check-double text-xs"></i>
                         </span>';
                     }
 
                     $editBtn = '<a href="' . route('emp-loans.edit', $row->id) . '"
-                        class="inline-flex items-center px-2 py-1.5 bg-yellow-500 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-yellow-600 active:bg-yellow-700 focus:outline-none focus:ring ring-yellow-300 transition ease-in-out duration-150 mr-1.5"
+                        class="inline-flex items-center p-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-md text-xs font-semibold shadow-2xs transition mr-1"
                         title="Edit Pinjaman">
-                        <i class="fa-solid fa-pen"></i>
+                        <i class="fa-solid fa-pen text-xs"></i>
                     </a>';
 
                     $deleteBtn = '<form action="' . route('emp-loans.destroy', $row->id) . '" method="POST" class="inline-block" onsubmit="return confirm(\'Apakah Anda yakin ingin menghapus data pinjaman ini?\');">
                         ' . $csrf . '
                         ' . $methodDelete . '
                         <button type="submit"
-                            class="inline-flex items-center px-2 py-1.5 bg-red-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-red-700 active:bg-red-900 focus:outline-none focus:ring ring-red-300 transition ease-in-out duration-150"
+                            class="inline-flex items-center p-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-md text-xs font-semibold shadow-2xs transition"
                             title="Hapus Pinjaman">
-                            <i class="fa-solid fa-trash"></i>
+                            <i class="fa-solid fa-trash text-xs"></i>
                         </button>
                     </form>';
 
-                    return '<div class="flex items-center flex-nowrap whitespace-nowrap">' . $detailBtn . $budgetAction . $editBtn . $deleteBtn . '</div>';
+                    return '<div class="flex items-center justify-center flex-nowrap whitespace-nowrap">' . $detailBtn . $budgetAction . $editBtn . $deleteBtn . '</div>';
                 })
-                ->rawColumns(['status', 'budget_reference', 'project_name', 'attachment_badge', 'action'])
+                ->rawColumns(['employee_name', 'project_name', 'formatted_amount', 'formatted_installment', 'paid_amount', 'remaining_balance', 'period', 'status', 'budget_reference', 'attachment_badge', 'action'])
                 ->make(true);
         }
 
@@ -127,14 +153,52 @@ class EmpLoanController extends Controller
             $employee = EmpData::find($request->emp_id);
         }
 
-        return view('emp_loans.index', compact('employee'));
+        $statsQuery = EmpLoan::query();
+        if ($request->filled('emp_id')) {
+            $statsQuery->where('emp_id', $request->emp_id);
+        }
+        $loans = $statsQuery->get();
+        $totalLoansCount = $loans->count();
+        $openLoansCount = $loans->where('status', 'open')->count();
+        $closedLoansCount = $loans->where('status', 'closed')->count();
+        $totalLoanAmount = (float) $loans->sum('amount');
+        $totalPaidAmount = 0.0;
+        $totalRemainingAmount = 0.0;
+
+        foreach ($loans as $l) {
+            $paid = $l->getPaidAmount();
+            $totalPaidAmount += $paid;
+            $totalRemainingAmount += $l->remaining_balance;
+        }
+
+        $stats = [
+            'total_count'      => $totalLoansCount,
+            'open_count'       => $openLoansCount,
+            'closed_count'     => $closedLoansCount,
+            'total_amount'     => $totalLoanAmount,
+            'paid_amount'      => $totalPaidAmount,
+            'remaining_amount' => $totalRemainingAmount,
+        ];
+
+        return view('emp_loans.index', compact('employee', 'stats'));
     }
 
     public function create(Request $request)
     {
-        $employees = EmpData::select('id', 'name', 'project_id')->orderBy('name')->get();
+        $employees = EmpData::with(['jabatan', 'project'])->orderBy('name')->get();
         $employeeOptions = $employees->pluck('name', 'id');
         $employeeProjects = $employees->pluck('project_id', 'id');
+        $employeeDetails = $employees->mapWithKeys(function ($emp) {
+            return [
+                $emp->id => [
+                    'id'          => $emp->id,
+                    'name'        => $emp->name,
+                    'project_id'  => $emp->project_id,
+                    'project_name'=> $emp->project ? ($emp->project->name . ($emp->project->no_project ? ' (' . $emp->project->no_project . ')' : '')) : '-',
+                    'jabatan'     => $emp->jabatan ? $emp->jabatan->jabatan : '-',
+                ]
+            ];
+        });
 
         $projects = Project::orderBy('name')->get()->mapWithKeys(function ($p) {
             $label = $p->name . ($p->no_project ? ' (' . $p->no_project . ')' : '');
@@ -146,11 +210,12 @@ class EmpLoanController extends Controller
         $defaultProjectId = $selectedEmp ? $selectedEmp->project_id : null;
 
         return view('emp_loans.form', [
-            'empLoan' => new EmpLoan(),
-            'employees' => $employeeOptions,
+            'empLoan'          => new EmpLoan(),
+            'employees'        => $employeeOptions,
             'employeeProjects' => $employeeProjects,
-            'projects' => $projects,
-            'selectedEmpId' => $selectedEmpId,
+            'employeeDetails'  => $employeeDetails,
+            'projects'         => $projects,
+            'selectedEmpId'    => $selectedEmpId,
             'defaultProjectId' => $defaultProjectId,
         ]);
     }
@@ -176,6 +241,11 @@ class EmpLoanController extends Controller
 
             $data = $request->except(['attachment']);
 
+            // Auto-fill project_id from employee data if not provided
+            if (empty($data['project_id']) && !empty($data['emp_id'])) {
+                $data['project_id'] = EmpData::where('id', $data['emp_id'])->value('project_id');
+            }
+
             // Convert month/year to dates
             $data['start_date'] = sprintf('%04d-%02d-01', $data['start_year'], $data['start_month']);
 
@@ -197,7 +267,8 @@ class EmpLoanController extends Controller
             if ($request->hasFile('attachment')) {
                 $file = $request->file('attachment');
                 try {
-                    $data['attachment'] = $file->store('loan_attachments', 'public');
+                    $folder = 'loan_attachments/' . date('Y') . '/' . date('m');
+                    $data['attachment'] = $file->store($folder, 'public');
                 } catch (\Throwable $e) {
                     \Log::error('Upload loan attachment failed: ' . $e->getMessage());
                 }
@@ -262,22 +333,37 @@ class EmpLoanController extends Controller
 
     public function edit(EmpLoan $empLoan)
     {
-        $employees = EmpData::select('id', 'name', 'project_id')->orderBy('name')->get();
+        $employees = EmpData::with(['jabatan', 'project'])->orderBy('name')->get();
         $employeeOptions = $employees->pluck('name', 'id');
         $employeeProjects = $employees->pluck('project_id', 'id');
+        $employeeDetails = $employees->mapWithKeys(function ($emp) {
+            return [
+                $emp->id => [
+                    'id'          => $emp->id,
+                    'name'        => $emp->name,
+                    'project_id'  => $emp->project_id,
+                    'project_name'=> $emp->project ? ($emp->project->name . ($emp->project->no_project ? ' (' . $emp->project->no_project . ')' : '')) : '-',
+                    'jabatan'     => $emp->jabatan ? $emp->jabatan->jabatan : '-',
+                ]
+            ];
+        });
 
         $projects = Project::orderBy('name')->get()->mapWithKeys(function ($p) {
             $label = $p->name . ($p->no_project ? ' (' . $p->no_project . ')' : '');
             return [$p->id => $label];
         });
 
+        $selectedEmp = $employees->firstWhere('id', $empLoan->emp_id);
+        $defaultProjectId = $empLoan->project_id ?: ($selectedEmp ? $selectedEmp->project_id : null);
+
         return view('emp_loans.form', [
-            'empLoan' => $empLoan,
-            'employees' => $employeeOptions,
+            'empLoan'          => $empLoan,
+            'employees'        => $employeeOptions,
             'employeeProjects' => $employeeProjects,
-            'projects' => $projects,
-            'selectedEmpId' => $empLoan->emp_id,
-            'defaultProjectId' => $empLoan->project_id ?? ($empLoan->employee->project_id ?? null),
+            'employeeDetails'  => $employeeDetails,
+            'projects'         => $projects,
+            'selectedEmpId'    => $empLoan->emp_id,
+            'defaultProjectId' => $defaultProjectId,
         ]);
     }
 
@@ -301,6 +387,11 @@ class EmpLoanController extends Controller
             DB::beginTransaction();
 
             $data = $request->except(['attachment']);
+
+            // Auto-fill project_id from employee data if not provided
+            if (empty($data['project_id']) && !empty($data['emp_id'])) {
+                $data['project_id'] = EmpData::where('id', $data['emp_id'])->value('project_id');
+            }
 
             // Convert month/year to dates
             $data['start_date'] = sprintf('%04d-%02d-01', $data['start_year'], $data['start_month']);
@@ -326,7 +417,8 @@ class EmpLoanController extends Controller
                     if ($empLoan->attachment && Storage::disk('public')->exists($empLoan->attachment)) {
                         Storage::disk('public')->delete($empLoan->attachment);
                     }
-                    $data['attachment'] = $file->store('loan_attachments', 'public');
+                    $folder = 'loan_attachments/' . date('Y') . '/' . date('m');
+                    $data['attachment'] = $file->store($folder, 'public');
                 } catch (\Throwable $e) {
                     \Log::error('Upload loan attachment failed: ' . $e->getMessage());
                 }

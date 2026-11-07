@@ -4,11 +4,13 @@ namespace App\Services;
 
 use App\Models\Attendance;
 use App\Models\EmpData;
+use App\Models\EmpLoan;
 use App\Models\PayrollComponent;
 use App\Models\PayrollSetting;
 use App\Models\PayrollSettingDetail;
 use App\Models\PotonganKaryawan;
 use App\Models\PotonganKaryawanDetail;
+use App\Models\WorkSchedule;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Schema;
 
@@ -87,6 +89,114 @@ class LatenessDeductionService
     }
 
     /**
+     * Dapatkan Master Component untuk Pinjaman Karyawan.
+     */
+    public function getLoanComponent(): ?PayrollComponent
+    {
+        return PayrollComponent::where('name', 'like', '%Pinjaman%')
+            ->orWhere('id', 13)
+            ->first();
+    }
+
+    /**
+     * Hitung akumulasi cicilan pinjaman karyawan yang aktif pada bulan dan tahun tersebut.
+     */
+    public function calculateLoans(int $year, int $month): array
+    {
+        $currentDate = Carbon::createFromDate($year, $month, 15)->endOfMonth();
+        $component = $this->getLoanComponent();
+        $componentId = $component ? $component->id : 13;
+
+        // Ambil pinjaman aktif yang masih berjalan pada periode ini
+        $activeLoans = EmpLoan::with(['employee.jabatan', 'project'])
+            ->where('status', 'open')
+            ->where(function ($query) use ($currentDate) {
+                $query->whereDate('start_date', '<=', $currentDate)
+                    ->where(function ($q) use ($currentDate) {
+                        $q->whereNull('end_date')
+                            ->orWhereDate('end_date', '>=', $currentDate);
+                    });
+            })
+            ->get();
+
+        $employees = EmpData::with('jabatan')->get();
+        $results = [];
+        $totalLoanEmployees = 0;
+        $totalLoanAmount = 0;
+
+        foreach ($employees as $emp) {
+            $empLoans = $activeLoans->where('emp_id', $emp->id);
+            $installmentTotal = 0;
+            $saldoBeforeTotal = 0;
+            $saldoAfterTotal = 0;
+            $loanList = [];
+
+            foreach ($empLoans as $loan) {
+                $balance = $loan->calculateBalanceForPeriod($year, $month);
+                $saldoBefore = $balance['saldo_before'];
+
+                // Hanya proses jika saldo pinjaman masih ada
+                if ($saldoBefore > 0) {
+                    $installment = $balance['installment_due'];
+                    $installmentTotal += $installment;
+                    $saldoBeforeTotal += $saldoBefore;
+                    $saldoAfterTotal += $balance['saldo_after'];
+
+                    $loanList[] = [
+                        'id'                    => $loan->id,
+                        'loan_amount'           => (float) $loan->amount,
+                        'formatted_loan'        => number_format((float) $loan->amount, 2, ',', '.'),
+                        'total_paid_before'     => $balance['total_paid_before'],
+                        'formatted_paid_before' => number_format($balance['total_paid_before'], 2, ',', '.'),
+                        'saldo_before'          => $saldoBefore,
+                        'formatted_saldo_before'=> number_format($saldoBefore, 2, ',', '.'),
+                        'installment_amount'    => $installment,
+                        'formatted_inst'        => number_format($installment, 2, ',', '.'),
+                        'saldo_after'           => $balance['saldo_after'],
+                        'formatted_saldo_after' => number_format($balance['saldo_after'], 2, ',', '.'),
+                        'is_paid_off'           => $balance['is_paid_off'],
+                        'duration'              => $loan->duration,
+                        'start_date'            => $loan->start_date ? Carbon::parse($loan->start_date)->translatedFormat('d M Y') : '-',
+                        'end_date'              => $loan->end_date ? Carbon::parse($loan->end_date)->translatedFormat('d M Y') : '-',
+                        'description'           => $loan->description,
+                    ];
+                }
+            }
+
+            if ($installmentTotal > 0) {
+                $totalLoanEmployees++;
+                $totalLoanAmount += $installmentTotal;
+            }
+
+            $results[$emp->id] = [
+                'employee_id'           => $emp->id,
+                'name'                  => $emp->name,
+                'jabatan'               => $emp->jabatan->jabatan ?? '-',
+                'has_active_loan'       => count($loanList) > 0,
+                'installment_total'     => $installmentTotal,
+                'formatted_amount'      => number_format($installmentTotal, 2, '.', ''),
+                'saldo_before_total'    => $saldoBeforeTotal,
+                'formatted_saldo_before'=> number_format($saldoBeforeTotal, 2, ',', '.'),
+                'saldo_after_total'     => $saldoAfterTotal,
+                'formatted_saldo_after' => number_format($saldoAfterTotal, 2, ',', '.'),
+                'loans'                 => $loanList,
+            ];
+        }
+
+        return [
+            'success'                   => true,
+            'component_id'              => $componentId,
+            'component_name'            => $component ? $component->name : 'Potongan Pinjaman/Lain-lain',
+            'summary'                   => [
+                'total_loan_employees'   => $totalLoanEmployees,
+                'total_loan_amount'      => $totalLoanAmount,
+                'formatted_total'        => number_format($totalLoanAmount, 2, ',', '.'),
+            ],
+            'deductions'                => $results,
+        ];
+    }
+
+    /**
      * Hitung akumulasi keterlambatan presensi dan denda potongan per karyawan.
      */
     public function calculate(
@@ -126,17 +236,36 @@ class LatenessDeductionService
         foreach ($employees as $emp) {
             $empAtts = $attendances->get($emp->id, collect());
 
-            // Filter presensi yang terlambat (check_in_status === 'late' atau status === 'late' atau jam masuk > 08:30)
+            // Filter presensi yang terlambat berdasarkan status presensi atau jadwal kerja karyawan
             $lateRecords = [];
             foreach ($empAtts as $att) {
                 $isLate = false;
                 $checkInTime = $att->check_in_time ? substr($att->check_in_time, 0, 8) : null;
+                $attDate = $att->date ? Carbon::parse($att->date) : null;
+
+                // Tentukan batas toleransi keterlambatan dari Jadwal Kerja (WorkSchedule)
+                $lateLimit = '08:30';
+                $scheduleName = 'Reguler';
+                if ($attDate) {
+                    $schedule = $emp->getWorkScheduleForDate($attDate) ?? WorkSchedule::getDefault();
+                    if ($schedule) {
+                        $scheduleName = $schedule->name;
+                        $dayOfWeek = $attDate->dayOfWeekIso;
+                        $scheduleDay = $schedule->days ? $schedule->days->where('day_of_week', $dayOfWeek)->first() : null;
+                        if ($scheduleDay && !empty($scheduleDay->late_tolerance_time)) {
+                            $lateLimit = substr($scheduleDay->late_tolerance_time, 0, 5);
+                        } elseif ($scheduleDay && !empty($scheduleDay->start_time)) {
+                            $tolMin = $schedule->late_tolerance_minutes ?? 30;
+                            $lateLimit = Carbon::parse($scheduleDay->start_time)->addMinutes($tolMin)->format('H:i');
+                        }
+                    }
+                }
 
                 if ($att->check_in_status === 'late' || $att->status === 'late') {
                     $isLate = true;
                 } elseif (!empty($checkInTime)) {
                     $timeShort = substr($checkInTime, 0, 5);
-                    if ($timeShort > '08:30') {
+                    if ($timeShort > $lateLimit) {
                         $isLate = true;
                     }
                 }
@@ -144,9 +273,11 @@ class LatenessDeductionService
                 if ($isLate) {
                     $lateRecords[] = [
                         'id'            => $att->id,
-                        'date'          => $att->date ? Carbon::parse($att->date)->format('Y-m-d') : null,
-                        'date_label'    => $att->date ? Carbon::parse($att->date)->translatedFormat('d M Y') : '-',
+                        'date'          => $attDate ? $attDate->format('Y-m-d') : null,
+                        'date_label'    => $attDate ? $attDate->translatedFormat('d M Y') : '-',
                         'check_in_time' => $checkInTime,
+                        'late_limit'    => $lateLimit,
+                        'schedule_name' => $scheduleName,
                         'status'        => $att->check_in_status ?? $att->status,
                         'notes'         => $att->check_in_notes,
                     ];
@@ -199,7 +330,44 @@ class LatenessDeductionService
     }
 
     /**
-     * Sinkronkan hasil kalkulasi keterlambatan langsung ke tabel potongan_karyawan_details.
+     * Hitung sekaligus Keterlambatan dan Pinjaman Karyawan.
+     */
+    public function calculateAll(
+        int $year,
+        int $month,
+        ?string $customStartDate = null,
+        ?string $customEndDate = null,
+        ?float $customRate = null
+    ): array {
+        $late = $this->calculate($year, $month, $customStartDate, $customEndDate, $customRate);
+        $loans = $this->calculateLoans($year, $month);
+
+        return [
+            'success'   => true,
+            'year'      => $year,
+            'month'     => $month,
+            'period'    => $late['period'],
+            'late'      => $late,
+            'loans'     => $loans,
+            // Format kompatibilitas dengan handler sebelumnya
+            'component_id' => $late['component_id'],
+            'loan_component_id' => $loans['component_id'],
+            'summary'   => [
+                'total_late_events'      => $late['summary']['total_late_events'],
+                'total_late_employees'   => $late['summary']['total_late_employees'],
+                'total_late_amount'      => $late['summary']['total_deduction_amount'],
+                'total_loan_employees'   => $loans['summary']['total_loan_employees'],
+                'total_loan_amount'      => $loans['summary']['total_loan_amount'],
+                'grand_total_amount'     => $late['summary']['total_deduction_amount'] + $loans['summary']['total_loan_amount'],
+                'formatted_grand_total'  => number_format($late['summary']['total_deduction_amount'] + $loans['summary']['total_loan_amount'], 2, ',', '.'),
+            ],
+            'deductions' => $late['deductions'],
+            'loan_deductions' => $loans['deductions'],
+        ];
+    }
+
+    /**
+     * Sinkronkan hasil kalkulasi keterlambatan & pinjaman langsung ke tabel potongan_karyawan_details.
      */
     public function syncToPotonganKaryawan(
         PotonganKaryawan $potonganKaryawan,
@@ -207,7 +375,7 @@ class LatenessDeductionService
         ?string $customEndDate = null,
         ?float $customRate = null
     ): array {
-        $calc = $this->calculate(
+        $all = $this->calculateAll(
             (int) $potonganKaryawan->year,
             (int) $potonganKaryawan->month,
             $customStartDate,
@@ -215,19 +383,19 @@ class LatenessDeductionService
             $customRate
         );
 
-        $componentId = $calc['component_id'];
+        $lateComponentId = $all['late']['component_id'];
+        $loanComponentId = $all['loans']['component_id'];
         $updatedCount = 0;
 
-        foreach ($calc['deductions'] as $empId => $data) {
+        // 1. Simpan Keterlambatan
+        foreach ($all['late']['deductions'] as $empId => $data) {
             $val = $data['deduction_amount'];
-
-            // Jika nilai > 0 atau sudah ada record sebelumnya, updateOrCreate
             if ($val > 0) {
                 PotonganKaryawanDetail::updateOrCreate(
                     [
                         'header_id'            => $potonganKaryawan->id,
                         'employee_id'          => $empId,
-                        'payroll_component_id' => $componentId,
+                        'payroll_component_id' => $lateComponentId,
                     ],
                     [
                         'value' => $val,
@@ -237,7 +405,25 @@ class LatenessDeductionService
             }
         }
 
-        $calc['synced_count'] = $updatedCount;
-        return $calc;
+        // 2. Simpan Pinjaman Karyawan
+        foreach ($all['loans']['deductions'] as $empId => $data) {
+            $val = $data['installment_total'];
+            if ($val > 0) {
+                PotonganKaryawanDetail::updateOrCreate(
+                    [
+                        'header_id'            => $potonganKaryawan->id,
+                        'employee_id'          => $empId,
+                        'payroll_component_id' => $loanComponentId,
+                    ],
+                    [
+                        'value' => $val,
+                    ]
+                );
+                $updatedCount++;
+            }
+        }
+
+        $all['synced_count'] = $updatedCount;
+        return $all;
     }
 }

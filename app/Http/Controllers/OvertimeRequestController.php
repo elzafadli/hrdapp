@@ -256,7 +256,12 @@ class OvertimeRequestController extends Controller
             // Simpan lampiran file jika ada
             if ($request->hasFile('files')) {
                 foreach ($request->file('files') as $file) {
-                    $path = $file->store('overtime_attachments', 'is3');
+                    $folder = 'overtime_attachments/' . date('Y') . '/' . date('m');
+                    try {
+                        $path = $file->store($folder, 'is3');
+                    } catch (\Throwable $e) {
+                        $path = $file->store($folder, 'public');
+                    }
                     OvertimeRequestFile::create([
                         'overtime_request_id' => $overtime->id,
                         'file_path'           => $path,

@@ -57,18 +57,25 @@
                             </div>
                         </div>
 
-                        <!-- Card Sinkronisasi Denda Keterlambatan Presensi -->
-                        <div class="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                        <!-- Card Sinkronisasi Denda Keterlambatan Presensi & Potongan Karyawan -->
+                        <div class="mt-4 p-4 bg-gradient-to-r from-amber-50 via-white to-indigo-50/40 border border-amber-200 rounded-xl">
                             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                 <div class="flex items-start gap-2.5">
-                                    <span class="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-amber-500 text-white shrink-0 mt-0.5">
-                                        <i class="fa-solid fa-clock-rotate-left text-xs"></i>
+                                    <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-amber-500 text-white shrink-0 mt-0.5">
+                                        <i class="fa-solid fa-clock-rotate-left text-sm"></i>
                                     </span>
                                     <div>
-                                        <h4 class="text-xs sm:text-sm font-bold text-slate-900">Potongan Keterlambatan Presensi (Cut-off 25 s/d 25)</h4>
+                                        <h4 class="text-xs sm:text-sm font-bold text-slate-900">Potongan Keterlambatan Presensi &amp; Deduction Terintegrasi</h4>
                                         <p class="text-xs text-slate-600 mt-0.5">
-                                            Denda Rp 15.000 untuk setiap presensi masuk &gt; 08:30 WIB. Klik tombol di samping untuk memproses keterlambatan presensi dan menyinkronkan data ke Potongan Karyawan sebelum proses payroll.
+                                            Saat tombol <strong>Process Payroll</strong> ditekan, seluruh potongan (denda keterlambatan, cicilan pinjaman, dan potongan manual) otomatis ditarik dari modul <strong>Potongan Karyawan</strong> untuk periode tersebut.
                                         </p>
+                                        <div class="mt-1.5 flex items-center gap-3">
+                                            <a href="{{ route('potongan-karyawan.index') }}" target="_blank"
+                                                class="text-xs text-indigo-600 hover:text-indigo-800 font-semibold inline-flex items-center gap-1 underline">
+                                                <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                                                Lihat / Kelola Data Potongan Karyawan
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="shrink-0">

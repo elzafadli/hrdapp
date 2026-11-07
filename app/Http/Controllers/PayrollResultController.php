@@ -139,9 +139,17 @@ class PayrollResultController extends Controller
                 }
             }
 
+            // Ambil seluruh rincian Potongan Karyawan untuk periode ini
+            $allPotonganDetails = PotonganKaryawanDetail::where('header_id', $potonganHeader->id)
+                ->get()
+                ->groupBy('employee_id');
+
             $employees = EmpData::all();
 
             foreach ($employees as $employee) {
+                // Rincian Potongan Karyawan (Deduction) spesifik untuk karyawan ini
+                $potonganDetails = $allPotonganDetails->get($employee->id, collect())->keyBy('payroll_component_id');
+
                 $totalAllowance = 0;
                 $totalSubsidiBpjs = 0;
                 $totalThr = 0;
@@ -265,7 +273,7 @@ class PayrollResultController extends Controller
                     PayrollResult::insert($bpjsResults);
                 }
 
-                // 4. hitung pinjaman
+                // 4. hitung pinjaman dengan validasi saldo
                 $loanResults = [];
                 foreach ($setting->details as $detail) {
                     if (stripos(strtolower($detail->component->name), 'pinjaman') !== false) {
@@ -283,9 +291,36 @@ class PayrollResultController extends Controller
                             })
                             ->first();
 
-                        // If there is an active loan, take the installment amount
-                        $amount = $empLoan ? $empLoan->installment_amount : 0;
+                        $amount = 0;
+                        if ($empLoan) {
+                            $balance = $empLoan->calculateBalanceForPeriod($year, $month);
+                            if ($balance['saldo_before'] > 0) {
+                                // Cek apakah ada input nilai di Potongan Karyawan
+                                $potonganDetail = $potonganDetails ? $potonganDetails->get($detail->payroll_component_id) : null;
+                                if ($potonganDetail && $potonganDetail->value !== null && $potonganDetail->value !== '') {
+                                    $amount = min((float) $potonganDetail->value, $balance['saldo_before']);
+                                } else {
+                                    $amount = $balance['installment_due'];
+                                }
 
+                                // Update sisa saldo pinjaman di tabel emp_loans
+                                $newRemaining = max(0.0, $balance['saldo_before'] - $amount);
+                                if (\Illuminate\Support\Facades\Schema::hasTable('emp_loans') && \Illuminate\Support\Facades\Schema::hasColumn('emp_loans', 'remaining_amount')) {
+                                    $empLoan->remaining_amount = $newRemaining;
+                                }
+                                if ($newRemaining <= 0) {
+                                    $empLoan->status = 'closed'; // Lunas
+                                }
+                                $empLoan->save();
+                            } else {
+                                $empLoan->status = 'closed';
+                                if (\Illuminate\Support\Facades\Schema::hasTable('emp_loans') && \Illuminate\Support\Facades\Schema::hasColumn('emp_loans', 'remaining_amount')) {
+                                    $empLoan->remaining_amount = 0;
+                                }
+                                $empLoan->save();
+                                $amount = 0;
+                            }
+                        }
 
                         $loanResults[] = [
                             'month' => $month,
@@ -306,20 +341,8 @@ class PayrollResultController extends Controller
                     PayrollResult::insert($loanResults);
                 }
 
-                // 5. Process Potongan Karyawan (Employee Deductions)
+                // 5. Process Potongan Karyawan (Employee Deductions, termasuk Keterlambatan)
                 $potonganKaryawanResults = [];
-                $potonganHeader = PotonganKaryawan::where('month', $month)
-                    ->where('year', $year)
-                    ->first();
-
-                // Get all potongan details for this employee if header exists
-                $potonganDetails = collect();
-                if ($potonganHeader) {
-                    $potonganDetails = PotonganKaryawanDetail::where('header_id', $potonganHeader->id)
-                        ->where('employee_id', $employee->id)
-                        ->get()
-                        ->keyBy('payroll_component_id');
-                }
 
                 // Loop through deduction components and check if potongan exists
                 foreach ($setting->details as $detail) {

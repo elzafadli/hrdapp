@@ -96,10 +96,11 @@ class EssProfileController extends Controller
 
         if ($request->hasFile('photo')) {
             $file = $request->file('photo');
+            $folder = 'employee_photos/' . date('Y') . '/' . date('m');
             try {
-                $validated['photo'] = $file->store('employee_photos', 'is3');
+                $validated['photo'] = $file->store($folder, 'is3');
             } catch (\Throwable $e) {
-                $validated['photo'] = $file->store('employee_photos', 'public');
+                $validated['photo'] = $file->store($folder, 'public');
             }
         }
 

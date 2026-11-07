@@ -210,7 +210,12 @@ class SpecialLeaveController extends Controller
             // Simpan file lampiran jika ada
             if ($request->hasFile('files')) {
                 foreach ($request->file('files') as $file) {
-                    $path = $file->store('special_leave_attachments', 'is3');
+                    $folder = 'special_leave_attachments/' . date('Y') . '/' . date('m');
+                    try {
+                        $path = $file->store($folder, 'is3');
+                    } catch (\Throwable $e) {
+                        $path = $file->store($folder, 'public');
+                    }
                     LeaveRequestFile::create([
                         'leave_request_id' => $leaveRequest->id,
                         'file_path'        => $path,

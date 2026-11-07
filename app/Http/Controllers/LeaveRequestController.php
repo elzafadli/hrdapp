@@ -499,13 +499,14 @@ class LeaveRequestController extends Controller
                     ]);
                 }
 
-                // Simpan file lampiran jika ada
+                // Simpan file lampiran jika ada (dikelompokkan per tahun & bulan)
                 if ($request->hasFile('files')) {
+                    $folder = 'leave_attachments/' . date('Y') . '/' . date('m');
                     foreach ($request->file('files') as $file) {
                         try {
-                            $path = $file->store('leave_attachments', 'is3');
+                            $path = $file->store($folder, 'is3');
                         } catch (\Throwable $e) {
-                            $path = $file->store('leave_attachments', 'public');
+                            $path = $file->store($folder, 'public');
                         }
                         LeaveRequestFile::create([
                             'leave_request_id' => $leaveRequest->id,
@@ -704,12 +705,13 @@ class LeaveRequestController extends Controller
                 ]);
             }
 
-            // Simpan lampiran berkas jika ada
+            // Simpan lampiran berkas jika ada (dikelompokkan per tahun & bulan)
             if ($request->hasFile('files')) {
+                $folder = 'leave_attachments/' . date('Y') . '/' . date('m');
                 foreach ($request->file('files') as $file) {
                     // Selalu coba IS3 terlebih dahulu; fallback ke local public jika gagal
                     try {
-                        $path = $file->store('leave_attachments', 'is3');
+                        $path = $file->store($folder, 'is3');
                     } catch (\Throwable $e) {
                         // IS3 gagal — fallback ke public disk & log error
                         \Log::error('[LeaveRequest] IS3 upload gagal, fallback ke public disk', [
@@ -717,7 +719,7 @@ class LeaveRequestController extends Controller
                             'file'     => $file->getClientOriginalName(),
                             'leave_id' => $leaveRequest->id,
                         ]);
-                        $path = $file->store('leave_attachments', 'public');
+                        $path = $file->store($folder, 'public');
                     }
                     LeaveRequestFile::create([
                         'leave_request_id' => $leaveRequest->id,

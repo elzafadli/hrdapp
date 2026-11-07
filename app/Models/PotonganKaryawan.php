@@ -12,6 +12,15 @@ class PotonganKaryawan extends Model
     protected $fillable = [
         'year',
         'month',
+        'period_date',
+        'start_date',
+        'end_date',
+    ];
+
+    protected $casts = [
+        'period_date' => 'date',
+        'start_date'  => 'date',
+        'end_date'    => 'date',
     ];
 
     public function details()

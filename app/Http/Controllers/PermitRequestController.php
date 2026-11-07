@@ -224,7 +224,12 @@ class PermitRequestController extends Controller
             // Simpan lampiran file jika ada
             if ($request->hasFile('files')) {
                 foreach ($request->file('files') as $file) {
-                    $path = $file->store('permit_attachments', 'is3');
+                    $folder = 'permit_attachments/' . date('Y') . '/' . date('m');
+                    try {
+                        $path = $file->store($folder, 'is3');
+                    } catch (\Throwable $e) {
+                        $path = $file->store($folder, 'public');
+                    }
                     LeaveRequestFile::create([
                         'leave_request_id' => $leaveRequest->id,
                         'file_path'        => $path,

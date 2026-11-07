@@ -52,6 +52,18 @@
                                     :selected="old('emp_id', $empLoan->emp_id ?? $selectedEmpId)"
                                     placeholder="{{ __('Select Employee') }}" required />
                                 <x-input-error class="mt-1.5" :messages="$errors->get('emp_id')" />
+
+                                <!-- Info Badge Jabatan & Proyek Karyawan -->
+                                <div id="emp-info-box" class="mt-2.5 flex flex-wrap items-center gap-2">
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-100 text-slate-700 text-xs font-medium border border-slate-200 shadow-2xs">
+                                        <i class="fa-solid fa-briefcase text-indigo-500"></i>
+                                        Jabatan: <strong id="emp-jabatan-text" class="text-slate-900">-</strong>
+                                    </span>
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 text-xs font-medium border border-blue-200 shadow-2xs">
+                                        <i class="fa-solid fa-diagram-project text-blue-500"></i>
+                                        Proyek Karyawan: <strong id="emp-project-text" class="text-blue-900">-</strong>
+                                    </span>
+                                </div>
                             </div>
                         </div>
 
@@ -241,17 +253,36 @@
             if (startMonthSelect) startMonthSelect.addEventListener('change', updateStartDate);
             if (startYearSelect) startYearSelect.addEventListener('change', updateStartDate);
 
-            // Auto-select project when employee is changed (if project is not yet chosen)
+            const employeeDetails = @json($employeeDetails ?? []);
+
+            function updateEmployeeInfo(empId, syncProject = true) {
+                if (empId && employeeDetails[empId]) {
+                    const emp = employeeDetails[empId];
+                    $('#emp-jabatan-text').text(emp.jabatan || '-');
+                    $('#emp-project-text').text(emp.project_name || '-');
+
+                    // Otomatis sinkronkan project_id dari data employee
+                    if (syncProject && emp.project_id) {
+                        $('#project_id').val(emp.project_id).trigger('change');
+                    }
+                } else {
+                    $('#emp-jabatan-text').text('-');
+                    $('#emp-project-text').text('-');
+                }
+            }
+
+            // Saat dropdown employee berubah: update jabatan & otomatis sinkronkan proyek dari data employee
             $('#emp_id').on('change', function() {
                 const empId = $(this).val();
-                if (empId && employeeProjects[empId]) {
-                    const projId = employeeProjects[empId];
-                    const $proj = $('#project_id');
-                    if (!$proj.val()) {
-                        $proj.val(projId).trigger('change');
-                    }
-                }
+                updateEmployeeInfo(empId, true);
             });
+
+            // Inisialisasi awal saat form dimuat
+            const initialEmpId = $('#emp_id').val();
+            if (initialEmpId) {
+                const hasProjectSelected = Boolean($('#project_id').val());
+                updateEmployeeInfo(initialEmpId, !hasProjectSelected);
+            }
 
             updateStartDate();
         });

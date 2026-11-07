@@ -140,13 +140,17 @@ class AttendanceController extends Controller
      */
     protected function handleAttendancePhoto(Request $request, string $prefix, int $employeeId): ?string
     {
+        $year = date('Y');
+        $month = date('m');
+        $folder = "attendances/{$year}/{$month}";
+
         // 1. Jika dikirim via file upload kamera langsung
         if ($request->hasFile('photo')) {
             $file = $request->file('photo');
             try {
-                return $file->store('attendances', 'is3');
+                return $file->store($folder, 'is3');
             } catch (\Throwable $e) {
-                return $file->store('attendances', 'public');
+                return $file->store($folder, 'public');
             }
         }
 
@@ -167,7 +171,7 @@ class AttendanceController extends Controller
             $decoded = base64_decode($photoData);
             if ($decoded !== false && strlen($decoded) > 100) {
                 $fileName = $prefix . '_' . $employeeId . '_' . date('Ymd_His') . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
-                $relativePath = 'attendances/' . $fileName;
+                $relativePath = $folder . '/' . $fileName;
 
                 try {
                     \Illuminate\Support\Facades\Storage::disk('is3')->put($relativePath, $decoded);
