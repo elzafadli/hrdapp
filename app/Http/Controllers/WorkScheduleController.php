@@ -38,14 +38,16 @@ class WorkScheduleController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name'        => 'required|string|max:255',
-            'code'        => 'required|string|max:50|unique:work_schedules,code',
-            'is_default'  => 'nullable|boolean',
-            'description' => 'nullable|string',
-            'days'        => 'required|array',
-            'days.*.is_work_day' => 'nullable|boolean',
-            'days.*.start_time'  => 'nullable|string',
-            'days.*.end_time'    => 'nullable|string',
+            'name'                   => 'required|string|max:255',
+            'code'                   => 'required|string|max:50|unique:work_schedules,code',
+            'is_default'             => 'nullable|boolean',
+            'description'            => 'nullable|string',
+            'late_tolerance_minutes' => 'nullable|integer|min:0|max:480',
+            'days'                   => 'required|array',
+            'days.*.is_work_day'          => 'nullable|boolean',
+            'days.*.start_time'           => 'nullable|string',
+            'days.*.late_tolerance_time'  => 'nullable|string',
+            'days.*.end_time'             => 'nullable|string',
         ]);
 
         try {
@@ -56,11 +58,14 @@ class WorkScheduleController extends Controller
                 WorkSchedule::where('is_default', true)->update(['is_default' => false]);
             }
 
+            $lateToleranceMinutes = $request->filled('late_tolerance_minutes') ? (int) $request->input('late_tolerance_minutes') : 30;
+
             $schedule = WorkSchedule::create([
-                'name'        => $validated['name'],
-                'code'        => strtoupper($validated['code']),
-                'is_default'  => $isDefault,
-                'description' => $validated['description'] ?? null,
+                'name'                   => $validated['name'],
+                'code'                   => strtoupper($validated['code']),
+                'is_default'             => $isDefault,
+                'description'            => $validated['description'] ?? null,
+                'late_tolerance_minutes' => $lateToleranceMinutes,
             ]);
 
             $dayNames = [
@@ -76,14 +81,26 @@ class WorkScheduleController extends Controller
             foreach ($dayNames as $dayNumber => $dayName) {
                 $dayData = $request->input("days.{$dayNumber}", []);
                 $isWorkDay = !empty($dayData['is_work_day']);
+                $startTime = $isWorkDay ? ($dayData['start_time'] ?? '08:00:00') : null;
+                $endTime = $isWorkDay ? ($dayData['end_time'] ?? '17:00:00') : null;
+
+                $lateToleranceTime = null;
+                if ($isWorkDay) {
+                    if (!empty($dayData['late_tolerance_time'])) {
+                        $lateToleranceTime = $dayData['late_tolerance_time'];
+                    } elseif ($startTime) {
+                        $lateToleranceTime = \Carbon\Carbon::parse($startTime)->addMinutes($lateToleranceMinutes)->format('H:i:s');
+                    }
+                }
 
                 WorkScheduleDay::create([
-                    'work_schedule_id' => $schedule->id,
-                    'day_of_week'      => $dayNumber,
-                    'day_name'         => $dayName,
-                    'is_work_day'      => $isWorkDay,
-                    'start_time'       => $isWorkDay ? ($dayData['start_time'] ?? '08:00:00') : null,
-                    'end_time'         => $isWorkDay ? ($dayData['end_time'] ?? '17:00:00') : null,
+                    'work_schedule_id'    => $schedule->id,
+                    'day_of_week'         => $dayNumber,
+                    'day_name'            => $dayName,
+                    'is_work_day'         => $isWorkDay,
+                    'start_time'          => $startTime,
+                    'late_tolerance_time' => $lateToleranceTime,
+                    'end_time'            => $endTime,
                 ]);
             }
 
@@ -121,14 +138,16 @@ class WorkScheduleController extends Controller
     public function update(Request $request, WorkSchedule $workSchedule)
     {
         $validated = $request->validate([
-            'name'        => 'required|string|max:255',
-            'code'        => 'required|string|max:50|unique:work_schedules,code,' . $workSchedule->id,
-            'is_default'  => 'nullable|boolean',
-            'description' => 'nullable|string',
-            'days'        => 'required|array',
-            'days.*.is_work_day' => 'nullable|boolean',
-            'days.*.start_time'  => 'nullable|string',
-            'days.*.end_time'    => 'nullable|string',
+            'name'                   => 'required|string|max:255',
+            'code'                   => 'required|string|max:50|unique:work_schedules,code,' . $workSchedule->id,
+            'is_default'             => 'nullable|boolean',
+            'description'            => 'nullable|string',
+            'late_tolerance_minutes' => 'nullable|integer|min:0|max:480',
+            'days'                   => 'required|array',
+            'days.*.is_work_day'          => 'nullable|boolean',
+            'days.*.start_time'           => 'nullable|string',
+            'days.*.late_tolerance_time'  => 'nullable|string',
+            'days.*.end_time'             => 'nullable|string',
         ]);
 
         try {
@@ -139,11 +158,14 @@ class WorkScheduleController extends Controller
                 WorkSchedule::where('id', '!=', $workSchedule->id)->update(['is_default' => false]);
             }
 
+            $lateToleranceMinutes = $request->filled('late_tolerance_minutes') ? (int) $request->input('late_tolerance_minutes') : 30;
+
             $workSchedule->update([
-                'name'        => $validated['name'],
-                'code'        => strtoupper($validated['code']),
-                'is_default'  => $isDefault,
-                'description' => $validated['description'] ?? null,
+                'name'                   => $validated['name'],
+                'code'                   => strtoupper($validated['code']),
+                'is_default'             => $isDefault,
+                'description'            => $validated['description'] ?? null,
+                'late_tolerance_minutes' => $lateToleranceMinutes,
             ]);
 
             $dayNames = [
@@ -159,6 +181,17 @@ class WorkScheduleController extends Controller
             foreach ($dayNames as $dayNumber => $dayName) {
                 $dayData = $request->input("days.{$dayNumber}", []);
                 $isWorkDay = !empty($dayData['is_work_day']);
+                $startTime = $isWorkDay ? ($dayData['start_time'] ?? '08:00:00') : null;
+                $endTime = $isWorkDay ? ($dayData['end_time'] ?? '17:00:00') : null;
+
+                $lateToleranceTime = null;
+                if ($isWorkDay) {
+                    if (!empty($dayData['late_tolerance_time'])) {
+                        $lateToleranceTime = $dayData['late_tolerance_time'];
+                    } elseif ($startTime) {
+                        $lateToleranceTime = \Carbon\Carbon::parse($startTime)->addMinutes($lateToleranceMinutes)->format('H:i:s');
+                    }
+                }
 
                 WorkScheduleDay::updateOrCreate(
                     [
@@ -166,10 +199,11 @@ class WorkScheduleController extends Controller
                         'day_of_week'      => $dayNumber,
                     ],
                     [
-                        'day_name'    => $dayName,
-                        'is_work_day' => $isWorkDay,
-                        'start_time'  => $isWorkDay ? ($dayData['start_time'] ?? '08:00:00') : null,
-                        'end_time'    => $isWorkDay ? ($dayData['end_time'] ?? '17:00:00') : null,
+                        'day_name'            => $dayName,
+                        'is_work_day'         => $isWorkDay,
+                        'start_time'          => $startTime,
+                        'late_tolerance_time' => $lateToleranceTime,
+                        'end_time'            => $endTime,
                     ]
                 );
             }

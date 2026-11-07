@@ -200,8 +200,20 @@
                                 <tbody class="divide-y divide-gray-100">
                                     @foreach($permitRequests as $req)
                                         <tr class="hover:bg-gray-50/60 transition">
-                                            <td class="px-4 py-3.5 font-semibold text-gray-900">
-                                                {{ $req->request_number ?? 'IZIN-' . $req->id }}
+                                            <td class="px-4 py-3.5">
+                                                <div class="font-semibold text-gray-900">
+                                                    {{ $req->request_number ?? 'IZIN-' . $req->id }}
+                                                </div>
+                                                <div class="inline-flex items-center gap-1.5 mt-0.5">
+                                                    <span class="text-xs font-semibold text-blue-600">
+                                                        {{ $req->permitType?->name ?? 'Izin Kerja' }}
+                                                    </span>
+                                                    @if($req->permitType)
+                                                        <span class="text-[10px] px-1.5 py-0.2 rounded font-medium {{ $req->permitType->is_paid ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700' }}">
+                                                            {{ $req->permitType->is_paid ? 'Paid' : 'Unpaid' }}
+                                                        </span>
+                                                    @endif
+                                                </div>
                                             </td>
                                             <td class="px-4 py-3.5 text-xs text-gray-500">
                                                 {{ $req->created_at->format('d M Y') }}

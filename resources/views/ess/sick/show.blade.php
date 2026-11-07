@@ -450,7 +450,11 @@
                                             @if($approval->status === 'approved')
                                                 Disetujui oleh: <strong class="text-gray-800">{{ $approval->approver_name }}</strong> ({{ $approval->approver_jabatan_name }}) pada {{ $approval->action_at?->format('d M Y, H:i') }}
                                             @elseif($approval->status === 'rejected')
-                                                Ditolak oleh: <strong class="text-rose-700">{{ $approval->approver_name }}</strong> ({{ $approval->approver_jabatan_name }})<br>Catatan: {{ $approval->notes }}
+                                                @if($approval->approver_name)
+                                                    Ditolak oleh: <strong class="text-rose-700">{{ $approval->approver_name }}</strong> ({{ $approval->approver_jabatan_name }})<br>Catatan: {{ $approval->notes }}
+                                                @else
+                                                    <span class="text-rose-600 font-medium">{{ $approval->notes ?? 'Dibatalkan otomatis karena alur persetujuan ditolak.' }}</span>
+                                                @endif
                                             @else
                                                 Menunggu persetujuan jabatan <strong>{{ $approval->jabatan_name }}</strong>.
                                             @endif

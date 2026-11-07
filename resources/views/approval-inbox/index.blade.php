@@ -463,8 +463,12 @@
                                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold bg-blue-50 text-blue-700 border border-blue-100">
                                         Level {{ $approval->level }}
                                     </span>
-                                    <div class="text-[11px] text-gray-400 mt-0.5 whitespace-nowrap">
-                                        {{ $approval->jabatan?->jabatan ?? '-' }}
+                                    <div class="text-[11px] text-gray-500 mt-0.5 whitespace-nowrap font-medium">
+                                        @if($approval->approver_emp_id)
+                                            <span class="text-blue-600 font-semibold"><i class="fa-solid fa-user-shield text-[10px]"></i> Pengganti: {{ $approval->approverEmployee?->name ?? 'Karyawan' }}</span>
+                                        @else
+                                            {{ $approval->jabatan?->jabatan ?? '-' }}
+                                        @endif
                                     </div>
                                 </td>
                                 {{-- Status --}}

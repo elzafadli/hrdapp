@@ -78,6 +78,14 @@
                             <h3 class="font-bold text-gray-900 text-base mt-2.5">{{ $item->name }}</h3>
                             <p class="text-xs text-gray-500 mt-1 line-clamp-2">{{ $item->description ?: 'Tidak ada keterangan tambahan.' }}</p>
 
+                            <!-- Toleransi Keterlambatan Badge -->
+                            <div class="mt-3">
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200 shadow-2xs">
+                                    <i class="fa-solid fa-clock-rotate-left text-amber-600 text-[11px]"></i>
+                                    Toleransi: <strong>{{ $item->late_tolerance_minutes ?? 30 }} Menit</strong>
+                                </span>
+                            </div>
+
                             <!-- Weekly Day Matrix Pill -->
                             <div class="mt-4 pt-3 border-t border-gray-100 space-y-1.5">
                                 <span class="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-2">Hari & Jam Operasional:</span>
@@ -89,7 +97,12 @@
                                         <div class="p-1.5 rounded-lg {{ $day->is_work_day ? 'bg-blue-50 border border-blue-200 text-blue-900 font-bold' : 'bg-gray-50 text-gray-400 border border-gray-100' }}">
                                             <div class="text-[10px] uppercase font-bold">{{ substr($day->day_name, 0, 3) }}</div>
                                             <div class="text-[9px] mt-0.5 {{ $day->is_work_day ? 'text-blue-700 font-mono font-medium' : 'text-gray-400' }}">
-                                                {{ $day->is_work_day ? substr($day->start_time, 0, 5) : 'OFF' }}
+                                                @if($day->is_work_day)
+                                                    <div>{{ substr($day->start_time, 0, 5) }}</div>
+                                                    <div class="text-[8px] text-amber-700 font-bold">s/d {{ $day->late_tolerance_time ? substr($day->late_tolerance_time, 0, 5) : '08:30' }}</div>
+                                                @else
+                                                    OFF
+                                                @endif
                                             </div>
                                         </div>
                                     @endforeach

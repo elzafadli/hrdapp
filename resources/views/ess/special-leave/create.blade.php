@@ -41,7 +41,6 @@
                     <div>
                         <x-input-label for="special_leave_type_id" :value="__('Jenis Cuti Khusus')" />
                         <x-select-input id="special_leave_type_id" name="special_leave_type_id" class="mt-1.5 block w-full"
-                            :noSelect2="true"
                             :options="$typeOptions"
                             :selected="old('special_leave_type_id', $types->first()?->id)"
                             x-model="selectedTypeId"
@@ -174,7 +173,10 @@
                                 this.selectedTypeId = selEl.value;
                                 this.onTypeSelected();
                             });
-                            if (window.jQuery) {
+                            if (window.jQuery && window.jQuery.fn.select2) {
+                                if (!window.jQuery(selEl).data('select2')) {
+                                    window.jQuery(selEl).select2({ width: '100%', placeholder: 'Pilih jenis cuti khusus...' });
+                                }
                                 window.jQuery(selEl).on('change select2:select', (e) => {
                                     this.selectedTypeId = e.target.value;
                                     this.onTypeSelected();

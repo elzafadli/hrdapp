@@ -45,17 +45,28 @@ class ApprovalInboxController extends Controller
             'overtime'      => OvertimeRequest::class,
         ];
 
-        // Query DocumentApproval yang jabatannya sesuai dengan jabatan user ini
+        // Query DocumentApproval yang jabatannya sesuai dengan jabatan user ini atau ditunjuk langsung sebagai approver (misal: pengganti)
         $query = DocumentApproval::with([
             'approvable.employee.jabatan',
             'approvable.approvals.jabatan',
+            'approverEmployee',
             'jabatan',
             'approver',
         ]);
 
-        // Filter berdasarkan jabatan user (hanya tampilkan yang relevan)
+        // Filter berdasarkan jabatan user / karyawan penanggung jawab
         if ($employee) {
-            $query->where('jabatan_id', $employee->jabatan_id);
+            if (Schema::hasColumn('document_approvals', 'approver_emp_id')) {
+                $query->where(function ($q) use ($employee) {
+                    $q->where('approver_emp_id', $employee->id)
+                      ->orWhere(function ($sub) use ($employee) {
+                          $sub->whereNull('approver_emp_id')
+                              ->where('jabatan_id', $employee->jabatan_id);
+                      });
+                });
+            } else {
+                $query->where('jabatan_id', $employee->jabatan_id);
+            }
 
             // Tidak tampilkan pengajuan diri sendiri
             $query->where(function ($q) use ($employee, $morphClasses) {
@@ -71,7 +82,9 @@ class ApprovalInboxController extends Controller
         }
 
         // Filter status
-        if ($filterStatus !== 'all') {
+        if ($filterStatus === 'pending') {
+            $query->actionablePending();
+        } elseif ($filterStatus !== 'all') {
             $query->where('status', $filterStatus);
         }
 
@@ -99,8 +112,20 @@ class ApprovalInboxController extends Controller
         // Hitung ringkasan statistik
         $stats = [];
         if ($employee) {
-            $baseQuery = DocumentApproval::where('jabatan_id', $employee->jabatan_id)
-                ->where(function ($q) use ($employee, $morphClasses) {
+            $baseQuery = DocumentApproval::query();
+            if (Schema::hasColumn('document_approvals', 'approver_emp_id')) {
+                $baseQuery->where(function ($q) use ($employee) {
+                    $q->where('approver_emp_id', $employee->id)
+                      ->orWhere(function ($sub) use ($employee) {
+                          $sub->whereNull('approver_emp_id')
+                              ->where('jabatan_id', $employee->jabatan_id);
+                      });
+                });
+            } else {
+                $baseQuery->where('jabatan_id', $employee->jabatan_id);
+            }
+
+            $baseQuery->where(function ($q) use ($employee, $morphClasses) {
                     foreach ($morphClasses as $class) {
                         $q->orWhere(function ($sub) use ($employee, $class) {
                             $sub->where('approvable_type', $class)
@@ -111,7 +136,7 @@ class ApprovalInboxController extends Controller
                     }
                 });
 
-            $stats['pending']  = (clone $baseQuery)->where('status', 'pending')->count();
+            $stats['pending']  = (clone $baseQuery)->actionablePending()->count();
             $stats['approved'] = (clone $baseQuery)->where('status', 'approved')->count();
             $stats['rejected'] = (clone $baseQuery)->where('status', 'rejected')->count();
             $stats['total']    = (clone $baseQuery)->count();

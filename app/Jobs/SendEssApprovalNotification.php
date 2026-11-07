@@ -104,7 +104,7 @@ class SendEssApprovalNotification implements ShouldQueue
             $typeLabel = match ($this->approvable->leave_type) {
                 'annual' => 'Cuti Tahunan',
                 'special' => 'Cuti Khusus (' . ($this->approvable->specialLeaveType?->name ?? 'Khusus') . ')',
-                'permit' => 'Izin Tidak Masuk',
+                'permit' => 'Izin (' . ($this->approvable->permitType?->name ?? 'Izin Kerja') . ')',
                 'sick' => 'Izin Sakit',
                 default => 'Permohonan Cuti/Izin',
             };
@@ -181,12 +181,17 @@ class SendEssApprovalNotification implements ShouldQueue
                 return $receivers;
             }
 
-            // Cari semua user dengan jabatan_id yang sama dengan approval step ini
-            // (kecuali karyawan pemohon itu sendiri)
-            $approverEmployees = EmpData::with('user')
-                ->where('jabatan_id', $step->jabatan_id)
-                ->where('id', '!=', $this->approvable->emp_id)
-                ->get();
+            // Cari penerima persetujuan:
+            // 1. Jika tahapan menunjuk spesifik karyawan (misal: pengganti level 1)
+            // 2. Jika tidak, cari semua user dengan jabatan_id yang sama dengan approval step ini
+            if ($step->approver_emp_id) {
+                $approverEmployees = EmpData::with('user')->where('id', $step->approver_emp_id)->get();
+            } else {
+                $approverEmployees = EmpData::with('user')
+                    ->where('jabatan_id', $step->jabatan_id)
+                    ->where('id', '!=', $this->approvable->emp_id)
+                    ->get();
+            }
 
             foreach ($approverEmployees as $emp) {
                 $phone = $emp->user?->phone ?? null;

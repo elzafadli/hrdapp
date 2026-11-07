@@ -20,8 +20,10 @@ class LeaveRequest extends Model
         'request_number',
         'emp_id',
         'user_id',
+        'substitute_emp_id',
         'leave_type',
         'special_leave_type_id',
+        'permit_type_id',
         'full_day_start_date',
         'full_day_end_date',
         'full_day_count',
@@ -56,9 +58,19 @@ class LeaveRequest extends Model
         return $this->belongsTo(EmpData::class, 'emp_id');
     }
 
+    public function substitute(): BelongsTo
+    {
+        return $this->belongsTo(EmpData::class, 'substitute_emp_id');
+    }
+
     public function specialLeaveType(): BelongsTo
     {
         return $this->belongsTo(SpecialLeaveType::class, 'special_leave_type_id');
+    }
+
+    public function permitType(): BelongsTo
+    {
+        return $this->belongsTo(PermitType::class, 'permit_type_id');
     }
 
     public function user(): BelongsTo
@@ -107,8 +119,9 @@ class LeaveRequest extends Model
 
     /**
      * Inisialisasi approval saat pengajuan cuti dibuat:
-     * - Kalo belum ada setting approval nya, langsung completed / disetujui.
-     * - Kalo ada setting nya, buat daftar approval per level jabatan.
+     * - Karyawan pengganti (jika ada) bertindak sebagai Approver Level 1 (wajib).
+     * - Tingkatan approval berikutnya diambil dari setting approval berjenjang.
+     * - Jika belum ada setting approval dan tidak ada pengganti, langsung disetujui otomatis.
      */
     public function initializeApproval(): void
     {
@@ -125,9 +138,11 @@ class LeaveRequest extends Model
             $workflow = ApprovalSetting::getActiveWorkflow('leave', $requesterJabatanId);
         }
 
-        // Kalo belum ada setting nya, langsung otomatis COMPLETED
-        // Saldo sudah dipotong saat submit, tidak perlu deduct lagi di sini.
-        if ($workflow->isEmpty()) {
+        // Cek karyawan pengganti / penanggung jawab tugas
+        $substitute = $this->substitute_emp_id ? ($this->substitute ?? EmpData::find($this->substitute_emp_id)) : null;
+
+        // Kalo belum ada setting nya dan TIDAK ada karyawan pengganti, langsung otomatis COMPLETED
+        if ($workflow->isEmpty() && !$substitute) {
             $this->update([
                 'status' => 'completed',
                 'approved_at' => now(),
@@ -141,14 +156,30 @@ class LeaveRequest extends Model
         // Catat pengajuan awal ke log riwayat
         ApprovalHistory::log($this, 'submitted', $this->user, 'Pengajuan cuti diajukan.');
 
-        // Kalo ada setting approval, generate daftar approval sesuai level & jabatan
+        $currentLevel = 1;
+
+        // Level 1: Karyawan Pengganti / Penanggung Jawab Tugas
+        if ($substitute) {
+            $this->approvals()->create([
+                'module' => 'leave',
+                'level' => $currentLevel,
+                'jabatan_id' => $substitute->jabatan_id ?? ($requesterJabatanId ?? 1),
+                'approver_emp_id' => $substitute->id,
+                'status' => 'pending',
+            ]);
+            $currentLevel++;
+        }
+
+        // Level berikutnya: Alur persetujuan struktural/atasan dari setting approval
         foreach ($workflow as $step) {
             $this->approvals()->create([
                 'module' => 'leave',
-                'level' => $step->level,
+                'level' => $currentLevel,
                 'jabatan_id' => $step->jabatan_id ?? $step->approver_jabatan_id,
+                'approver_emp_id' => null,
                 'status' => 'pending',
             ]);
+            $currentLevel++;
         }
 
         // Notifikasi ke Approver Level 1

@@ -99,4 +99,23 @@ class User extends Authenticatable
 
         return false;
     }
+
+    /**
+     * Cek apakah role user termasuk role approver / manajerial khusus
+     * (admin, superadmin, hrd, project_manager).
+     */
+    public function hasApproverRole(): bool
+    {
+        return is_approver_role($this);
+    }
+
+    /**
+     * Cek apakah user berwenang sebagai approver:
+     * - Default ($includeRoles = false): Hanya approver fungsional yang jabatannya aktif di setting approval.
+     * - Jika $includeRoles = true: Termasuk juga jika user memiliki role manajerial/admin.
+     */
+    public function isApprover(bool $includeRoles = false): bool
+    {
+        return is_user_approver($this, $includeRoles);
+    }
 }

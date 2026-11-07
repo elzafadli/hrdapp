@@ -19,10 +19,12 @@ class WorkSchedule extends Model
         'code',
         'is_default',
         'description',
+        'late_tolerance_minutes',
     ];
 
     protected $casts = [
         'is_default' => 'boolean',
+        'late_tolerance_minutes' => 'integer',
     ];
 
     public function days(): HasMany

@@ -13,7 +13,7 @@
     <div class="py-6" x-data="leaveForm()">
         <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
             <form action="{{ route('leave.store') }}" method="POST" enctype="multipart/form-data" 
-                  @submit="if(isSubmitting) { $event.preventDefault(); return false; } isSubmitting = true;" 
+                  @submit="if(isSubmitting) { $event.preventDefault(); return false; } if(!substituteEmpId) { alert('Silakan pilih karyawan pengganti / penanggung jawab terlebih dahulu.'); $event.preventDefault(); return false; } isSubmitting = true;" 
                   class="space-y-5">
                 @csrf
                 <input type="hidden" name="leave_category" :value="leaveCategory">
@@ -304,7 +304,6 @@
                         <div>
                             <x-input-label for="special_leave_type_id" :value="__('Jenis Cuti Khusus')" />
                             <x-select-input id="special_leave_type_id" name="special_leave_type_id" class="mt-1.5 block w-full"
-                                :noSelect2="true"
                                 :options="$typeOptions ?? []"
                                 :selected="old('special_leave_type_id', $specialLeaveTypes->first()?->id)"
                                 x-model="selectedTypeId"
@@ -348,6 +347,40 @@
                         <i class="fa-solid fa-circle-info text-blue-500"></i>
                         <span>Tanggal lampau dan tanggal cuti yang sudah pernah diajukan otomatis <strong>dinonaktifkan (dicoret)</strong> pada kalender.</span>
                     </p>
+
+                    <!-- STEP: Karyawan Pengganti / Penanggung Jawab (Wajib Diisi - Menjadi Approver Level 1) -->
+                    <div class="space-y-2 pt-3 border-t border-gray-100">
+                        <div class="flex items-center justify-between">
+                            <x-input-label for="substitute_emp_id" class="font-bold text-gray-900">
+                                <span class="flex items-center gap-1.5">
+                                    <i class="fa-solid fa-user-shield text-blue-600"></i>
+                                    <span>{{ __('Karyawan Pengganti / Penanggung Jawab') }}</span>
+                                    <span class="text-rose-500 font-bold">*</span>
+                                </span>
+                            </x-input-label>
+                            <span class="text-[11px] font-semibold text-blue-700 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-100 flex items-center gap-1">
+                                <i class="fa-solid fa-check-to-slot text-[10px]"></i> Approver Level 1
+                            </span>
+                        </div>
+
+                        <x-select-input id="substitute_emp_id" name="substitute_emp_id" class="mt-1 block w-full"
+                            :placeholder="'-- Pilih Karyawan Pengganti / Penanggung Jawab --'"
+                            :options="$substituteOptions ?? []"
+                            :selected="old('substitute_emp_id')"
+                            x-model="substituteEmpId"
+                            required />
+                        <x-input-error class="mt-1.5" :messages="$errors->get('substitute_emp_id')" />
+
+                        <div class="p-3 bg-blue-50/60 border border-blue-100 rounded-xl flex items-start gap-2.5 text-xs text-blue-900">
+                            <i class="fa-solid fa-circle-info text-blue-600 mt-0.5 text-sm shrink-0"></i>
+                            <div>
+                                <span class="font-bold text-blue-950">Pelimpahan Tanggung Jawab & Approver Level 1:</span>
+                                <p class="text-blue-800 mt-0.5 leading-relaxed">
+                                    Karyawan yang Anda pilih wajib menyetujui serah terima tugas (sebagai <strong>Approver Level 1</strong>) sebelum permohonan cuti dilanjutkan ke tahapan persetujuan berikutnya.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
 
                     <!-- STEP 3: Keterangan / Keperluan -->
                     <div class="space-y-2 pt-2 border-t border-gray-100">
@@ -408,7 +441,7 @@
                             Batal
                         </a>
                         <button type="submit" 
-                            x-bind:disabled="isSubmitting || isLoading || isBackDate || hasConflict || !startDate || (leaveCategory === 'annual' && (isExceeded || deduction <= 0)) || (leaveCategory === 'special' && (specialDaysCount <= 0 || !selectedTypeId))"
+                            x-bind:disabled="isSubmitting || isLoading || isBackDate || hasConflict || !startDate || !substituteEmpId || (leaveCategory === 'annual' && (isExceeded || deduction <= 0)) || (leaveCategory === 'special' && (specialDaysCount <= 0 || !selectedTypeId))"
                             class="inline-flex items-center justify-center gap-2 px-7 py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-sm rounded-xl shadow-md shadow-blue-500/20 transition ease-in-out duration-150 disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-300">
                             <!-- Saat sedang submit permohonan ke backend -->
                             <span x-show="isSubmitting" class="inline-flex items-center gap-2" style="display: none;">
@@ -425,7 +458,11 @@
                             <!-- Validasi lainnya -->
                             <span x-show="!isSubmitting && !isLoading && isBackDate" style="display: none;">Tanggal Back-date</span>
                             <span x-show="!isSubmitting && !isLoading && !isBackDate && hasConflict" style="display: none;">Tanggal Bentrok</span>
-                            <span x-show="!isSubmitting && !isLoading && !isBackDate && !hasConflict" class="inline-flex items-center gap-1.5">
+                            <span x-show="!isSubmitting && !isLoading && !isBackDate && !hasConflict && !substituteEmpId && startDate" style="display: none;" class="inline-flex items-center gap-1.5">
+                                <i class="fa-solid fa-user-clock text-xs"></i>
+                                <span>Pilih Pengganti</span>
+                            </span>
+                            <span x-show="!isSubmitting && !isLoading && !isBackDate && !hasConflict && (substituteEmpId || !startDate)" class="inline-flex items-center gap-1.5">
                                 <i class="fa-solid fa-paper-plane text-xs"></i>
                                 <span>{{ __('Ajukan Cuti') }}</span>
                             </span>
@@ -459,6 +496,7 @@
                 skippedDates: [],
                 isLoading: false,
                 isSubmitting: false,
+                substituteEmpId: '{{ old('substitute_emp_id', '') }}',
 
                 // Special Leave Data
                 specialTypes: @json($specialTypesJson),
@@ -493,6 +531,18 @@
                         this.initFlatpickr();
                         if (this.startDate) {
                             this.calculate();
+                        }
+                        const self = this;
+                        const $sub = $('#substitute_emp_id');
+                        if (typeof $.fn.select2 !== 'undefined' && $sub.length) {
+                            if (!$sub.data('select2')) {
+                                $sub.select2({
+                                    width: '100%',
+                                    placeholder: '-- Pilih Karyawan Pengganti / Penanggung Jawab --'
+                                }).on('change select2:select', (e) => {
+                                    self.substituteEmpId = e.target.value;
+                                });
+                            }
                         }
                     });
                 },
@@ -586,8 +636,24 @@
                 },
 
                 onCategoryChange() {
-                    if (this.leaveCategory === 'special' && !this.selectedTypeId && this.specialTypes.length > 0) {
-                        this.selectedTypeId = this.specialTypes[0].id;
+                    if (this.leaveCategory === 'special') {
+                        if (!this.selectedTypeId && this.specialTypes.length > 0) {
+                            this.selectedTypeId = this.specialTypes[0].id;
+                        }
+                        this.$nextTick(() => {
+                            const $sel = $('#special_leave_type_id');
+                            if (typeof $.fn.select2 !== 'undefined' && $sel.length) {
+                                if (!$sel.data('select2')) {
+                                    $sel.select2({
+                                        width: '100%',
+                                        placeholder: 'Cari & pilih cuti khusus...'
+                                    }).on('change select2:select', (e) => {
+                                        this.selectedTypeId = e.target.value;
+                                        this.onSpecialTypeSelected();
+                                    });
+                                }
+                            }
+                        });
                     }
                     this.calculate();
                 },

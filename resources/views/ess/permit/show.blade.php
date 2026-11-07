@@ -312,18 +312,32 @@
                             <i class="fa-solid fa-calendar-day text-blue-500"></i>
                             Rincian Hari Izin
                         </h3>
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                            <div class="p-3.5 bg-amber-50/60 rounded-xl border border-amber-100">
+                                <span class="text-xs text-amber-700 font-semibold block">Jenis Izin</span>
+                                <span class="text-sm font-extrabold text-amber-950 mt-1 block">
+                                    {{ $leaveRequest->permitType?->name ?? 'Izin Kerja' }}
+                                </span>
+                                @if($leaveRequest->permitType)
+                                    <span class="text-[11px] font-medium block mt-0.5 {{ $leaveRequest->permitType->is_paid ? 'text-emerald-700' : 'text-amber-800' }}">
+                                        {{ $leaveRequest->permitType->is_paid ? 'Dibayar (Paid)' : 'Potong Gaji/Cuti' }}
+                                    </span>
+                                @else
+                                    <span class="text-[11px] text-gray-500 block mt-0.5">-</span>
+                                @endif
+                            </div>
+
                             <div class="p-3.5 bg-blue-50/60 rounded-xl border border-blue-100">
-                                <span class="text-xs text-blue-600 font-semibold block">Tipe Izin</span>
+                                <span class="text-xs text-blue-600 font-semibold block">Durasi Kerja</span>
                                 <span class="text-sm font-extrabold text-blue-900 mt-1 block">
-                                    {{ $leaveRequest->half_day_count > 0 ? 'Izin Setengah Hari' : 'Izin Sehari Penuh' }}
+                                    {{ $leaveRequest->half_day_count > 0 ? 'Setengah Hari' : 'Sehari Penuh' }}
                                 </span>
                                 @if($leaveRequest->half_day_count > 0)
                                     <span class="text-[11px] text-amber-700 block mt-0.5 font-medium">
                                         ({{ $leaveRequest->half_day_type === 'first_half' ? 'Pagi s/d Siang' : 'Siang s/d Sore' }})
                                     </span>
                                 @else
-                                    <span class="text-[11px] text-blue-700 block mt-0.5">Izin Penuh Jam Kerja</span>
+                                    <span class="text-[11px] text-blue-700 block mt-0.5">Penuh Jam Kerja</span>
                                 @endif
                             </div>
 
@@ -346,7 +360,7 @@
                                 <span class="text-lg font-extrabold text-emerald-900 mt-0.5 block">
                                     {{ (float) $leaveRequest->total_days }} <span class="text-xs font-medium">Hari</span>
                                 </span>
-                                <span class="text-[11px] text-emerald-700 block mt-1">Hari off/libur tidak dihitung</span>
+                                <span class="text-[11px] text-emerald-700 block mt-1">Hari libur tidak dihitung</span>
                             </div>
                         </div>
                     </div>
@@ -454,7 +468,11 @@
                                             @if($approval->status === 'approved')
                                                 Disetujui oleh: <strong class="text-gray-800">{{ $approval->approver_name }}</strong> ({{ $approval->approver_jabatan_name }}) pada {{ $approval->action_at?->format('d M Y, H:i') }}
                                             @elseif($approval->status === 'rejected')
-                                                Ditolak oleh: <strong class="text-rose-700">{{ $approval->approver_name }}</strong> ({{ $approval->approver_jabatan_name }})<br>Catatan: {{ $approval->notes }}
+                                                @if($approval->approver_name)
+                                                    Ditolak oleh: <strong class="text-rose-700">{{ $approval->approver_name }}</strong> ({{ $approval->approver_jabatan_name }})<br>Catatan: {{ $approval->notes }}
+                                                @else
+                                                    <span class="text-rose-600 font-medium">{{ $approval->notes ?? 'Dibatalkan otomatis karena alur persetujuan ditolak.' }}</span>
+                                                @endif
                                             @else
                                                 Menunggu persetujuan jabatan <strong>{{ $approval->jabatan_name }}</strong>.
                                             @endif

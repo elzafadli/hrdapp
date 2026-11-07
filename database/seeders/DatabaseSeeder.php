@@ -25,6 +25,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             TarifTerSeeder::class,
             ApprovalSettingSeeder::class,
+            PermitTypeSeeder::class,
         ]);
     }
 }

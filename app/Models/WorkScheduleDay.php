@@ -18,6 +18,7 @@ class WorkScheduleDay extends Model
         'day_name',
         'is_work_day',
         'start_time',
+        'late_tolerance_time',
         'end_time',
     ];
 

@@ -37,7 +37,7 @@
                         @endif
 
                         <!-- Profil Jadwal -->
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
                             <div class="md:col-span-2">
                                 <x-input-label for="name" :value="__('Nama Jadwal Kerja')" :required="true" />
                                 <x-text-input id="name" name="name" type="text" placeholder="Contoh: Reguler 5 Hari (08:00 - 17:00)" class="mt-1 block w-full"
@@ -50,6 +50,14 @@
                                 <x-text-input id="code" name="code" type="text" placeholder="Contoh: REGULER_5D, SHIFT_PAGI" class="mt-1 block w-full uppercase"
                                     :value="old('code', $schedule->code)" required />
                                 <x-input-error class="mt-1.5" :messages="$errors->get('code')" />
+                            </div>
+
+                            <div>
+                                <x-input-label for="late_tolerance_minutes" :value="__('Toleransi Keterlambatan (Menit)')" :required="true" />
+                                <x-text-input id="late_tolerance_minutes" name="late_tolerance_minutes" type="number" min="0" max="480"
+                                    placeholder="30" class="mt-1 block w-full"
+                                    :value="old('late_tolerance_minutes', $schedule->late_tolerance_minutes ?? 30)" required />
+                                <x-input-error class="mt-1.5" :messages="$errors->get('late_tolerance_minutes')" />
                             </div>
                         </div>
 
@@ -74,7 +82,7 @@
                             <div class="flex items-center justify-between mb-3">
                                 <div>
                                     <h3 class="font-bold text-sm text-gray-900">Matriks 7 Hari Operasional (Senin - Minggu)</h3>
-                                    <p class="text-xs text-gray-500">Centang "Hari Kerja" untuk mengaktifkan jam masuk dan jam pulang pada hari tersebut.</p>
+                                    <p class="text-xs text-gray-500">Tentukan jam masuk, batas toleransi keterlambatan (maksimal kehadiran tepat waktu), dan jam pulang.</p>
                                 </div>
                             </div>
 
@@ -82,9 +90,10 @@
                                 <table class="min-w-full divide-y divide-gray-200 text-xs">
                                     <thead class="bg-gray-50 font-semibold text-gray-600">
                                         <tr>
-                                            <th class="px-4 py-3 text-left w-36">Hari</th>
+                                            <th class="px-4 py-3 text-left w-32">Hari</th>
                                             <th class="px-4 py-3 text-center w-36">Status Hari Kerja</th>
                                             <th class="px-4 py-3 text-left">Jam Masuk (Format 24 Jam)</th>
+                                            <th class="px-4 py-3 text-left">Batas Toleransi (Maks. Tepat Waktu)</th>
                                             <th class="px-4 py-3 text-left">Jam Pulang (Format 24 Jam)</th>
                                         </tr>
                                     </thead>
@@ -94,6 +103,8 @@
                                                 $dayData = $scheduleDays[$dayNum] ?? null;
                                                 $isWorkDay = old("days.{$dayNum}.is_work_day", $dayData ? $dayData->is_work_day : ($dayNum <= 5));
                                                 $startTime = old("days.{$dayNum}.start_time", $dayData ? substr($dayData->start_time, 0, 5) : '08:00');
+                                                $defaultTolTime = $dayData && $dayData->late_tolerance_time ? substr($dayData->late_tolerance_time, 0, 5) : '08:30';
+                                                $lateToleranceTime = old("days.{$dayNum}.late_tolerance_time", $defaultTolTime);
                                                 $endTime = old("days.{$dayNum}.end_time", $dayData ? substr($dayData->end_time, 0, 5) : '17:00');
                                             @endphp
                                             <tr class="hover:bg-gray-50/70 transition" id="row-day-{{ $dayNum }}">
@@ -115,12 +126,18 @@
                                                 </td>
                                                 <td class="px-4 py-3">
                                                     <x-text-input type="time" name="days[{{ $dayNum }}][start_time]" id="start_time_{{ $dayNum }}"
-                                                        :value="$startTime" class="w-40 {{ $isWorkDay ? '' : 'bg-gray-100 text-gray-400' }}"
+                                                        :value="$startTime" class="w-36 {{ $isWorkDay ? '' : 'bg-gray-100 text-gray-400' }}"
+                                                        onchange="autoUpdateTolerance({{ $dayNum }})"
+                                                        :disabled="!$isWorkDay" />
+                                                </td>
+                                                <td class="px-4 py-3">
+                                                    <x-text-input type="time" name="days[{{ $dayNum }}][late_tolerance_time]" id="late_tolerance_time_{{ $dayNum }}"
+                                                        :value="$lateToleranceTime" class="w-36 {{ $isWorkDay ? '' : 'bg-gray-100 text-gray-400' }}"
                                                         :disabled="!$isWorkDay" />
                                                 </td>
                                                 <td class="px-4 py-3">
                                                     <x-text-input type="time" name="days[{{ $dayNum }}][end_time]" id="end_time_{{ $dayNum }}"
-                                                        :value="$endTime" class="w-40 {{ $isWorkDay ? '' : 'bg-gray-100 text-gray-400' }}"
+                                                        :value="$endTime" class="w-36 {{ $isWorkDay ? '' : 'bg-gray-100 text-gray-400' }}"
                                                         :disabled="!$isWorkDay" />
                                                 </td>
                                             </tr>
@@ -152,21 +169,46 @@
             function toggleDayInputs(dayNum) {
                 const isChecked = document.getElementById('work_day_' + dayNum).checked;
                 const startInput = document.getElementById('start_time_' + dayNum);
+                const tolInput = document.getElementById('late_tolerance_time_' + dayNum);
                 const endInput = document.getElementById('end_time_' + dayNum);
                 const label = document.getElementById('label_work_day_' + dayNum);
 
                 if (isChecked) {
                     startInput.disabled = false;
+                    if (tolInput) tolInput.disabled = false;
                     endInput.disabled = false;
                     startInput.classList.remove('bg-gray-100', 'text-gray-400');
+                    if (tolInput) tolInput.classList.remove('bg-gray-100', 'text-gray-400');
                     endInput.classList.remove('bg-gray-100', 'text-gray-400');
                     label.textContent = 'Kerja';
                 } else {
                     startInput.disabled = true;
+                    if (tolInput) tolInput.disabled = true;
                     endInput.disabled = true;
                     startInput.classList.add('bg-gray-100', 'text-gray-400');
+                    if (tolInput) tolInput.classList.add('bg-gray-100', 'text-gray-400');
                     endInput.classList.add('bg-gray-100', 'text-gray-400');
                     label.textContent = 'Libur (OFF)';
+                }
+            }
+
+            function autoUpdateTolerance(dayNum) {
+                const startInput = document.getElementById('start_time_' + dayNum);
+                const tolInput = document.getElementById('late_tolerance_time_' + dayNum);
+                const minutesInput = document.getElementById('late_tolerance_minutes');
+
+                if (!startInput || !tolInput || !startInput.value) return;
+
+                const minutes = parseInt(minutesInput ? minutesInput.value : 30) || 30;
+                const parts = startInput.value.split(':');
+                if (parts.length >= 2) {
+                    let h = parseInt(parts[0]);
+                    let m = parseInt(parts[1]) + minutes;
+                    h = (h + Math.floor(m / 60)) % 24;
+                    m = m % 60;
+                    const hStr = String(h).padStart(2, '0');
+                    const mStr = String(m).padStart(2, '0');
+                    tolInput.value = `${hStr}:${mStr}`;
                 }
             }
         </script>

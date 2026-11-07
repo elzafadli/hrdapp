@@ -32,13 +32,16 @@ class AttendanceController extends Controller
         $targetDate = $date ? Carbon::parse($date) : Carbon::today();
         $isHoliday = Holiday::isHoliday($targetDate);
 
+        $isWorkDayFallback = !$isHoliday && !in_array($targetDate->dayOfWeekIso, [6, 7]);
         if (!$employee) {
             return [
-                'name'        => 'Reguler',
-                'start_time'  => '08:00',
-                'end_time'    => '17:00',
-                'is_work_day' => !$isHoliday && !in_array($targetDate->dayOfWeekIso, [6, 7]),
-                'label'       => $isHoliday ? 'Libur Nasional' : (in_array($targetDate->dayOfWeekIso, [6, 7]) ? 'Day Off • 00:00 - 23:59' : 'Reguler • 08:00 - 17:00'),
+                'name'                   => 'Reguler',
+                'start_time'             => '08:00',
+                'end_time'               => '17:00',
+                'late_tolerance_minutes' => 30,
+                'late_tolerance_time'    => $isWorkDayFallback ? '08:30' : null,
+                'is_work_day'            => $isWorkDayFallback,
+                'label'                  => $isHoliday ? 'Libur Nasional' : (!$isWorkDayFallback ? 'Day Off (Hari Libur)' : 'Reguler • 08:00 - 17:00'),
             ];
         }
 
@@ -50,10 +53,20 @@ class AttendanceController extends Controller
         $startTime = $scheduleDay && $scheduleDay->start_time ? substr($scheduleDay->start_time, 0, 5) : '08:00';
         $endTime = $scheduleDay && $scheduleDay->end_time ? substr($scheduleDay->end_time, 0, 5) : '17:00';
 
+        $lateToleranceMinutes = $schedule ? ($schedule->late_tolerance_minutes ?? 30) : 30;
+        $lateToleranceTime = null;
+        if ($isWorkDay) {
+            if ($scheduleDay && !empty($scheduleDay->late_tolerance_time)) {
+                $lateToleranceTime = substr($scheduleDay->late_tolerance_time, 0, 5);
+            } else {
+                $lateToleranceTime = Carbon::parse($startTime)->addMinutes($lateToleranceMinutes)->format('H:i');
+            }
+        }
+
         if ($isHoliday) {
-            $shiftLabel = 'Libur Nasional • 00:00 - 23:59';
+            $shiftLabel = 'Libur Nasional';
         } elseif (!$isWorkDay) {
-            $shiftLabel = 'Day Off • 00:00 - 23:59';
+            $shiftLabel = 'Day Off (Hari Libur)';
         } else {
             $schedName = $schedule ? $schedule->name : 'Reguler';
             $timeRange = $startTime . ' - ' . $endTime;
@@ -61,11 +74,13 @@ class AttendanceController extends Controller
         }
 
         return [
-            'name'        => $schedule ? $schedule->name : 'Reguler',
-            'start_time'  => $startTime,
-            'end_time'    => $endTime,
-            'is_work_day' => $isWorkDay,
-            'label'       => $shiftLabel,
+            'name'                   => $schedule ? $schedule->name : 'Reguler',
+            'start_time'             => $startTime,
+            'end_time'               => $endTime,
+            'late_tolerance_minutes' => $lateToleranceMinutes,
+            'late_tolerance_time'    => $lateToleranceTime,
+            'is_work_day'            => $isWorkDay,
+            'label'                  => $shiftLabel,
         ];
     }
 
@@ -121,6 +136,53 @@ class AttendanceController extends Controller
     }
 
     /**
+     * Simpan foto selfie presensi (dari base64 webcam/kamera HP atau upload file kamera).
+     */
+    protected function handleAttendancePhoto(Request $request, string $prefix, int $employeeId): ?string
+    {
+        // 1. Jika dikirim via file upload kamera langsung
+        if ($request->hasFile('photo')) {
+            $file = $request->file('photo');
+            try {
+                return $file->store('attendances', 'is3');
+            } catch (\Throwable $e) {
+                return $file->store('attendances', 'public');
+            }
+        }
+
+        // 2. Jika dikirim via base64 data URL (Webcam / Live camera canvas)
+        $photoInput = $request->input('photo');
+        if (!empty($photoInput) && is_string($photoInput)) {
+            if (preg_match('/^data:image\/(\w+);base64,/', $photoInput, $type)) {
+                $photoData = substr($photoInput, strpos($photoInput, ',') + 1);
+                $ext = strtolower($type[1]);
+                if (!in_array($ext, ['jpg', 'jpeg', 'png', 'webp'])) {
+                    $ext = 'jpg';
+                }
+            } else {
+                $photoData = $photoInput;
+                $ext = 'jpg';
+            }
+
+            $decoded = base64_decode($photoData);
+            if ($decoded !== false && strlen($decoded) > 100) {
+                $fileName = $prefix . '_' . $employeeId . '_' . date('Ymd_His') . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+                $relativePath = 'attendances/' . $fileName;
+
+                try {
+                    \Illuminate\Support\Facades\Storage::disk('is3')->put($relativePath, $decoded);
+                    return $relativePath;
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Storage::disk('public')->put($relativePath, $decoded);
+                    return $relativePath;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Simpan Presensi Masuk (Check-In).
      */
     public function storeCheckIn(Request $request)
@@ -138,7 +200,18 @@ class AttendanceController extends Controller
             'latitude'  => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
             'notes'     => 'nullable|string|max:500',
+            'photo'     => 'required',
+        ], [
+            'photo.required' => 'Foto selfie presensi masuk wajib diambil langsung dari kamera HP.',
         ]);
+
+        $photoPath = $this->handleAttendancePhoto($request, 'check_in', $employee->id);
+        if (!$photoPath) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Foto selfie presensi masuk tidak valid. Silakan ambil foto ulang dari kamera HP.',
+            ], 422);
+        }
 
         $today = Carbon::today()->toDateString();
         $now = Carbon::now();
@@ -148,7 +221,11 @@ class AttendanceController extends Controller
 
         $shift = $this->getTodayShift($employee);
         $shiftStart = Carbon::parse($today . ' ' . $shift['start_time']);
-        $isLate = $now->gt($shiftStart);
+        $lateLimitTime = !empty($shift['late_tolerance_time']) ? $shift['late_tolerance_time'] : '08:30';
+        $toleranceLimit = Carbon::parse($today . ' ' . $lateLimitTime);
+
+        // Terlambat jika melewati batas jam toleransi keterlambatan (misal 08:30)
+        $isLate = $now->gt($toleranceLimit);
 
         $attendance = Attendance::firstOrNew([
             'emp_id' => $employee->id,
@@ -183,12 +260,18 @@ class AttendanceController extends Controller
         $attendance->check_in_distance = $distance ?? 0;
         $attendance->check_in_status = $isLate ? 'late' : 'on_time';
         $attendance->check_in_notes = $request->input('notes');
+        if (Schema::hasColumn('attendances', 'check_in_photo')) {
+            $attendance->check_in_photo = $photoPath;
+        }
         $attendance->status = $isLate ? 'late' : 'present';
         $attendance->save();
 
+        $statusLabel = $isLate ? 'Terlambat' : 'Tepat Waktu';
+        $toleranceNote = (!$isLate && $now->gt($shiftStart)) ? " (Dispensasi toleransi s/d {$lateLimitTime})" : "";
+
         return response()->json([
             'success'  => true,
-            'message'  => 'Presensi masuk berhasil dicatat pada pukul ' . $now->format('H:i:s') . ' (' . ($isLate ? 'Terlambat' : 'Tepat Waktu') . ').',
+            'message'  => "Presensi masuk berhasil dicatat pada pukul {$now->format('H:i:s')} ({$statusLabel}){$toleranceNote}.",
             'time'     => $now->format('H:i:s'),
             'status'   => $isLate ? 'late' : 'on_time',
         ]);
@@ -212,7 +295,18 @@ class AttendanceController extends Controller
             'latitude'  => 'nullable|numeric',
             'longitude' => 'nullable|numeric',
             'notes'     => 'nullable|string|max:500',
+            'photo'     => 'required',
+        ], [
+            'photo.required' => 'Foto selfie kepulangan wajib diambil langsung dari kamera HP.',
         ]);
+
+        $photoPath = $this->handleAttendancePhoto($request, 'check_out', $employee->id);
+        if (!$photoPath) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Foto selfie kepulangan tidak valid. Silakan ambil foto ulang dari kamera HP.',
+            ], 422);
+        }
 
         $today = Carbon::today()->toDateString();
         $now = Carbon::now();
@@ -263,6 +357,9 @@ class AttendanceController extends Controller
         $attendance->check_out_distance = $distance ?? 0;
         $attendance->check_out_status = $isEarly ? 'early_leave' : 'normal';
         $attendance->check_out_notes = $request->input('notes');
+        if (Schema::hasColumn('attendances', 'check_out_photo')) {
+            $attendance->check_out_photo = $photoPath;
+        }
         $attendance->work_duration_minutes = $durationMinutes;
         $attendance->save();
 

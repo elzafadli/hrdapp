@@ -43,6 +43,7 @@ class TimelineController extends Controller
                 'leaveRequest.employee.company',
                 'leaveRequest.employee.project.company',
                 'leaveRequest.specialLeaveType',
+                'leaveRequest.permitType',
             ])
             ->whereHas('leaveRequest', function ($q) {
                 $q->whereIn('status', ['approved', 'completed'])
@@ -103,6 +104,14 @@ class TimelineController extends Controller
                             'dot_class' => 'bg-amber-500',
                             'badge_class' => 'bg-amber-50 text-amber-700 border-amber-100',
                         ];
+                        if ($leaveReq->permitType) {
+                            $badges[] = [
+                                'type' => 'permit_sub',
+                                'label' => $leaveReq->permitType->name,
+                                'dot_class' => 'bg-amber-600',
+                                'badge_class' => 'bg-amber-50 text-amber-800 border-amber-200',
+                            ];
+                        }
                     } elseif ($leaveReq->leave_type === 'sick') {
                         $badges[] = [
                             'type' => 'sick',

@@ -47,6 +47,10 @@ Route::middleware('auth')->group(function () {
         Route::resource('emp-loans', \App\Http\Controllers\EmpLoanController::class);
         Route::resource('potongan-karyawan', \App\Http\Controllers\PotonganKaryawanController::class);
 
+        // Rekap Presensi Karyawan & Monitoring Klarifikasi Terlambat
+        Route::get('employee-attendance', [\App\Http\Controllers\EmployeeAttendanceController::class, 'index'])->name('employee-attendance.index');
+        Route::get('employee-attendance/{employee}/detail', [\App\Http\Controllers\EmployeeAttendanceController::class, 'getLateDetail'])->name('employee-attendance.detail');
+
         Route::resource('payroll-results', \App\Http\Controllers\PayrollResultController::class)->only(['index', 'create']);
         Route::post('/payroll-results/process', [\App\Http\Controllers\PayrollResultController::class, 'process'])->name('payroll-results.process');
         Route::get('/payroll-results/{emp_id}/{month}/{year}/slip', [\App\Http\Controllers\PayrollResultController::class, 'slip'])->name('payroll-results.slip');
@@ -69,6 +73,7 @@ Route::middleware('auth')->group(function () {
         Route::resource('emp-schedules', \App\Http\Controllers\EmpScheduleController::class);
 
         Route::resource('special-leave-types', \App\Http\Controllers\SpecialLeaveTypeController::class);
+        Route::resource('permit-types', \App\Http\Controllers\PermitTypeController::class);
 
         Route::get('attendance-settings', [\App\Http\Controllers\AttendanceSettingController::class, 'index'])->name('attendance-settings.index');
         Route::post('attendance-settings', [\App\Http\Controllers\AttendanceSettingController::class, 'store'])->name('attendance-settings.store');

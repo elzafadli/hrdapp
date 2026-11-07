@@ -42,7 +42,7 @@
             // Filter Reaktif Client-Side (Instant 0ms, Tanpa Reload!)
             filterType: '{{ $filterType }}',
             filterStatus: '{{ $filterStatus }}',
-            scope: '{{ $scope }}',
+            scope: '{{ !empty($isApprover) ? $scope : 'my' }}',
             mobileTab: 'calendar', // 'calendar' or 'agenda'
 
             // Data Kalender & Bulan
@@ -339,23 +339,25 @@
 
                 <!-- Right Controls: Scope & Status Dropdown (Client-Side Instant!) -->
                 <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
-                    <!-- Scope Selector (Semua Tim vs Pengajuan Saya) -->
-                    <div class="inline-flex rounded-xl p-1 bg-gray-100 border border-gray-200/80 text-xs font-semibold w-full sm:w-auto">
-                        <button type="button"
-                            @click="scope = 'team'"
-                            :class="scope === 'team' ? 'bg-white text-blue-600 shadow-xs font-bold' : 'text-gray-600 hover:text-gray-900'"
-                            class="flex-1 sm:flex-initial px-3 py-1.5 rounded-lg transition text-center">
-                            <i class="fa-solid fa-users mr-1 text-[11px]"></i>
-                            Semua Tim
-                        </button>
-                        <button type="button"
-                            @click="scope = 'my'"
-                            :class="scope === 'my' ? 'bg-white text-blue-600 shadow-xs font-bold' : 'text-gray-600 hover:text-gray-900'"
-                            class="flex-1 sm:flex-initial px-3 py-1.5 rounded-lg transition text-center">
-                            <i class="fa-solid fa-user mr-1 text-[11px]"></i>
-                            Pengajuan Saya
-                        </button>
-                    </div>
+                    @if(!empty($isApprover))
+                        <!-- Scope Selector (Semua Tim vs Pengajuan Saya) - Hanya untuk Approver / Atasan -->
+                        <div class="inline-flex rounded-xl p-1 bg-gray-100 border border-gray-200/80 text-xs font-semibold w-full sm:w-auto">
+                            <button type="button"
+                                @click="scope = 'team'"
+                                :class="scope === 'team' ? 'bg-white text-blue-600 shadow-xs font-bold' : 'text-gray-600 hover:text-gray-900'"
+                                class="flex-1 sm:flex-initial px-3 py-1.5 rounded-lg transition text-center">
+                                <i class="fa-solid fa-users mr-1 text-[11px]"></i>
+                                Semua Tim
+                            </button>
+                            <button type="button"
+                                @click="scope = 'my'"
+                                :class="scope === 'my' ? 'bg-white text-blue-600 shadow-xs font-bold' : 'text-gray-600 hover:text-gray-900'"
+                                class="flex-1 sm:flex-initial px-3 py-1.5 rounded-lg transition text-center">
+                                <i class="fa-solid fa-user mr-1 text-[11px]"></i>
+                                Pengajuan Saya
+                            </button>
+                        </div>
+                    @endif
 
                     <!-- Filter Status Component (Client-Side Reaktif via x-model) -->
                     <div class="w-full sm:w-44">

@@ -278,6 +278,7 @@ class SpecialLeaveController extends Controller
 
         $leaveRequest->update(['status' => 'cancelled']);
         ApprovalHistory::log($leaveRequest, 'cancelled', auth()->user(), 'Dibatalkan oleh pemohon.');
+        DocumentApproval::cancelFor($leaveRequest);
 
         return redirect()->route('special-leave.index')->with('success', 'Pengajuan cuti khusus berhasil dibatalkan.');
     }

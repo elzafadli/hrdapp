@@ -18,11 +18,11 @@
 
                 {{-- Employees Dropdown --}}
                 <li
-                    x-data="{ open: {{ request()->routeIs('employee.*') || request()->routeIs('emp-allowance.*') || request()->routeIs('emp-loans.*') || request()->routeIs('emp-bpjs.*') || request()->routeIs('potongan-karyawan.*') ? 'true' : 'false' }} }">
+                    x-data="{ open: {{ request()->routeIs('employee.*') || request()->routeIs('employee-attendance.*') || request()->routeIs('emp-allowance.*') || request()->routeIs('emp-loans.*') || request()->routeIs('emp-bpjs.*') || request()->routeIs('potongan-karyawan.*') ? 'true' : 'false' }} }">
                     <button type="button" @click="open = !open"
-                        class="flex items-center w-full px-3 py-2 rounded-xl group transition duration-75 {{ request()->routeIs('employee.*') || request()->routeIs('emp-allowance.*') || request()->routeIs('emp-loans.*') || request()->routeIs('emp-bpjs.*') || request()->routeIs('potongan-karyawan.*') ? 'bg-gray-800 text-white font-bold' : 'text-slate-300 hover:bg-gray-800/80 hover:text-white' }}">
+                        class="flex items-center w-full px-3 py-2 rounded-xl group transition duration-75 {{ request()->routeIs('employee.*') || request()->routeIs('employee-attendance.*') || request()->routeIs('emp-allowance.*') || request()->routeIs('emp-loans.*') || request()->routeIs('emp-bpjs.*') || request()->routeIs('potongan-karyawan.*') ? 'bg-gray-800 text-white font-bold' : 'text-slate-300 hover:bg-gray-800/80 hover:text-white' }}">
                         <i
-                            class="fa-solid fa-users w-4 h-4 text-sm transition duration-75 {{ request()->routeIs('employee.*') || request()->routeIs('emp-allowance.*') || request()->routeIs('emp-loans.*') || request()->routeIs('emp-bpjs.*') || request()->routeIs('potongan-karyawan.*') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
+                            class="fa-solid fa-users w-4 h-4 text-sm transition duration-75 {{ request()->routeIs('employee.*') || request()->routeIs('employee-attendance.*') || request()->routeIs('emp-allowance.*') || request()->routeIs('emp-loans.*') || request()->routeIs('emp-bpjs.*') || request()->routeIs('potongan-karyawan.*') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
                         <span class="flex-1 ms-3 text-left whitespace-nowrap">Employees</span>
                         <i class="fa-solid fa-chevron-down w-3 h-3 text-xs transition duration-150"
                             :class="{ 'rotate-180': open }"></i>
@@ -30,10 +30,18 @@
                     <ul x-show="open" x-collapse class="py-1 space-y-0.5">
                         <li>
                             <a href="{{ route('employee.index') }}"
-                                class="flex items-center gap-2.5 w-full px-3 py-1.5 pl-5 transition duration-75 rounded-lg text-[13px] group {{ request()->routeIs('employee.*') && !request()->routeIs('emp-allowance.*') && !request()->routeIs('emp-loans.*') && !request()->routeIs('emp-bpjs.*') && !request()->routeIs('potongan-karyawan.*') ? 'text-white bg-gray-800 font-semibold' : 'text-slate-400 hover:text-white hover:bg-gray-800/60' }}">
+                                class="flex items-center gap-2.5 w-full px-3 py-1.5 pl-5 transition duration-75 rounded-lg text-[13px] group {{ request()->routeIs('employee.*') && !request()->routeIs('employee-attendance.*') && !request()->routeIs('emp-allowance.*') && !request()->routeIs('emp-loans.*') && !request()->routeIs('emp-bpjs.*') && !request()->routeIs('potongan-karyawan.*') ? 'text-white bg-gray-800 font-semibold' : 'text-slate-400 hover:text-white hover:bg-gray-800/60' }}">
                                 <i
-                                    class="fa-solid fa-user-group text-xs w-4 text-center {{ request()->routeIs('employee.*') && !request()->routeIs('emp-allowance.*') && !request()->routeIs('emp-loans.*') && !request()->routeIs('emp-bpjs.*') && !request()->routeIs('potongan-karyawan.*') ? 'text-blue-400' : 'text-slate-500 group-hover:text-slate-300' }}"></i>
+                                    class="fa-solid fa-user-group text-xs w-4 text-center {{ request()->routeIs('employee.*') && !request()->routeIs('employee-attendance.*') && !request()->routeIs('emp-allowance.*') && !request()->routeIs('emp-loans.*') && !request()->routeIs('emp-bpjs.*') && !request()->routeIs('potongan-karyawan.*') ? 'text-blue-400' : 'text-slate-500 group-hover:text-slate-300' }}"></i>
                                 <span>Data Karyawan</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ route('employee-attendance.index') }}"
+                                class="flex items-center gap-2.5 w-full px-3 py-1.5 pl-5 transition duration-75 rounded-lg text-[13px] group {{ request()->routeIs('employee-attendance.*') ? 'text-white bg-gray-800 font-semibold' : 'text-slate-400 hover:text-white hover:bg-gray-800/60' }}">
+                                <i
+                                    class="fa-solid fa-clipboard-user text-xs w-4 text-center {{ request()->routeIs('employee-attendance.*') ? 'text-blue-400' : 'text-slate-500 group-hover:text-slate-300' }}"></i>
+                                <span>Presensi Karyawan</span>
                             </a>
                         </li>
                         <li>
@@ -65,11 +73,11 @@
 
                 {{-- Setting Dropdown (Master Data & Operasional) --}}
                 <li
-                    x-data="{ open: {{ request()->routeIs('employee-jabatan.*') || request()->routeIs('approval-settings.*') || request()->routeIs('holidays.*') || request()->routeIs('work-schedules.*') || request()->routeIs('emp-schedules.*') || request()->routeIs('special-leave-types.*') || request()->routeIs('attendance-settings.*') || request()->routeIs('leave-balances.*') ? 'true' : 'false' }} }">
+                    x-data="{ open: {{ request()->routeIs('employee-jabatan.*') || request()->routeIs('approval-settings.*') || request()->routeIs('holidays.*') || request()->routeIs('work-schedules.*') || request()->routeIs('emp-schedules.*') || request()->routeIs('special-leave-types.*') || request()->routeIs('permit-types.*') || request()->routeIs('attendance-settings.*') || request()->routeIs('leave-balances.*') ? 'true' : 'false' }} }">
                     <button type="button" @click="open = !open"
-                        class="flex items-center w-full px-3 py-2 rounded-xl group transition duration-75 {{ request()->routeIs('employee-jabatan.*') || request()->routeIs('approval-settings.*') || request()->routeIs('holidays.*') || request()->routeIs('work-schedules.*') || request()->routeIs('emp-schedules.*') || request()->routeIs('special-leave-types.*') || request()->routeIs('attendance-settings.*') || request()->routeIs('leave-balances.*') ? 'bg-gray-800 text-white font-bold' : 'text-slate-300 hover:bg-gray-800/80 hover:text-white' }}">
+                        class="flex items-center w-full px-3 py-2 rounded-xl group transition duration-75 {{ request()->routeIs('employee-jabatan.*') || request()->routeIs('approval-settings.*') || request()->routeIs('holidays.*') || request()->routeIs('work-schedules.*') || request()->routeIs('emp-schedules.*') || request()->routeIs('special-leave-types.*') || request()->routeIs('permit-types.*') || request()->routeIs('attendance-settings.*') || request()->routeIs('leave-balances.*') ? 'bg-gray-800 text-white font-bold' : 'text-slate-300 hover:bg-gray-800/80 hover:text-white' }}">
                         <i
-                            class="fa-solid fa-sliders w-4 h-4 text-sm transition duration-75 {{ request()->routeIs('employee-jabatan.*') || request()->routeIs('approval-settings.*') || request()->routeIs('holidays.*') || request()->routeIs('work-schedules.*') || request()->routeIs('emp-schedules.*') || request()->routeIs('special-leave-types.*') || request()->routeIs('attendance-settings.*') || request()->routeIs('leave-balances.*') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
+                            class="fa-solid fa-sliders w-4 h-4 text-sm transition duration-75 {{ request()->routeIs('employee-jabatan.*') || request()->routeIs('approval-settings.*') || request()->routeIs('holidays.*') || request()->routeIs('work-schedules.*') || request()->routeIs('emp-schedules.*') || request()->routeIs('special-leave-types.*') || request()->routeIs('permit-types.*') || request()->routeIs('attendance-settings.*') || request()->routeIs('leave-balances.*') ? 'text-white' : 'text-slate-400 group-hover:text-white' }}"></i>
                         <span class="flex-1 ms-3 text-left whitespace-nowrap">Setting</span>
                         <i class="fa-solid fa-chevron-down w-3 h-3 text-xs transition duration-150"
                             :class="{ 'rotate-180': open }"></i>
@@ -127,10 +135,9 @@
                             </a>
                         </li>
 
-                        {{-- Sub-Kategori: Kebijakan Cuti --}}
+                        {{-- Sub-Kategori: Kebijakan Cuti & Izin --}}
                         <li class="pt-3 pb-1 px-4 border-t border-gray-800/60 mt-1.5 flex items-center gap-1.5">
-                            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Kebijakan
-                                Cuti</span>
+                            <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Kebijakan Cuti & Izin</span>
                         </li>
                         <li>
                             <a href="{{ route('special-leave-types.index') }}"
@@ -138,6 +145,14 @@
                                 <i
                                     class="fa-solid fa-layer-group text-xs w-4 text-center {{ request()->routeIs('special-leave-types.*') ? 'text-blue-400' : 'text-slate-500 group-hover:text-slate-300' }}"></i>
                                 <span>Tipe Cuti Khusus</span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ route('permit-types.index') }}"
+                                class="flex items-center gap-2.5 w-full px-3 py-1.5 pl-5 transition duration-75 rounded-lg text-[13px] group {{ request()->routeIs('permit-types.*') ? 'text-white bg-gray-800 font-semibold' : 'text-slate-400 hover:text-white hover:bg-gray-800/60' }}">
+                                <i
+                                    class="fa-solid fa-clipboard-list text-xs w-4 text-center {{ request()->routeIs('permit-types.*') ? 'text-blue-400' : 'text-slate-500 group-hover:text-slate-300' }}"></i>
+                                <span>Tipe Izin</span>
                             </a>
                         </li>
                         <li>
@@ -295,22 +310,7 @@
             </li>
 
             {{-- Approval Inbox Terpusat --}}
-            @php
-                $showApprovalMenu = false;
-                try {
-                    $sidebarUser = auth()->user();
-                    if ($sidebarUser) {
-                        $sidebarUser->loadMissing('employee');
-                    }
-                    $sidebarEmp = $sidebarUser?->employee;
-                    if ($sidebarEmp?->jabatan_id) {
-                        $showApprovalMenu = \App\Models\ApprovalSetting::isJabatanAnApprover((int) $sidebarEmp->jabatan_id);
-                    }
-                } catch (\Exception $e) {
-                    $showApprovalMenu = false;
-                }
-            @endphp
-            @if($showApprovalMenu)
+            @if(is_user_approver())
                 <li>
                     <a href="{{ route('approval-inbox.index') }}"
                         class="flex items-center px-3 py-2 rounded-xl group transition duration-75 {{ request()->routeIs('approval-inbox.*') ? 'bg-gray-800 text-white font-bold' : 'text-slate-300 hover:bg-gray-800/80 hover:text-white' }}">
@@ -324,9 +324,19 @@
                                 $inboxEmp = $inboxUser?->employee;
                                 if ($inboxEmp) {
                                     $inboxMorphClasses = [\App\Models\LeaveRequest::class, \App\Models\OvertimeRequest::class];
-                                    $inboxBadgeCount = \App\Models\DocumentApproval::where('status', 'pending')
-                                        ->where('jabatan_id', $inboxEmp->jabatan_id)
-                                        ->where(function ($q) use ($inboxEmp, $inboxMorphClasses) {
+                                    $inboxQuery = \App\Models\DocumentApproval::actionablePending();
+                                    if (\Illuminate\Support\Facades\Schema::hasColumn('document_approvals', 'approver_emp_id')) {
+                                        $inboxQuery->where(function ($q) use ($inboxEmp) {
+                                            $q->where('approver_emp_id', $inboxEmp->id)
+                                              ->orWhere(function ($sub) use ($inboxEmp) {
+                                                  $sub->whereNull('approver_emp_id')
+                                                      ->where('jabatan_id', $inboxEmp->jabatan_id);
+                                              });
+                                        });
+                                    } else {
+                                        $inboxQuery->where('jabatan_id', $inboxEmp->jabatan_id);
+                                    }
+                                    $inboxBadgeCount = $inboxQuery->where(function ($q) use ($inboxEmp, $inboxMorphClasses) {
                                             foreach ($inboxMorphClasses as $class) {
                                                 $q->orWhere(function ($sub) use ($inboxEmp, $class) {
                                                     $sub->where('approvable_type', $class)

@@ -23,8 +23,7 @@ class EssCalendarController extends Controller
         $user = Auth::user();
         return $user?->employee
             ?? EmpData::where('user_id', $user?->id)->first()
-            ?? EmpData::where('name', $user?->name)->first()
-            ?? EmpData::first();
+            ?? EmpData::where('name', $user?->name)->first();
     }
 
     /**
@@ -47,21 +46,11 @@ class EssCalendarController extends Controller
             $year++;
         }
 
-        // Cek Hak Akses Approver / Supervisor
-        $isApprover = false;
-        try {
-            if ($employee?->jabatan_id) {
-                $isApprover = ApprovalSetting::isJabatanAnApprover((int) $employee->jabatan_id);
-            }
-            if (in_array($user?->role, ['admin', 'superadmin', 'hrd', 'project_manager'])) {
-                $isApprover = true;
-            }
-        } catch (\Throwable $e) {
-            $isApprover = false;
-        }
+        // Cek Hak Akses Approver / Supervisor (persis seperti logika menu Approval Inbox di sidebar via helper)
+        $isApprover = is_user_approver($user);
 
-        // Scope Awal: 'team' (Semua Tim) sebagai default agar karyawan dapat melihat jadwal rekan kerja
-        $scope = $request->input('scope', 'team');
+        // Scope Awal: Approver dapat melihat Semua Tim (default) atau Pengajuan Saya. Non-approver hanya Pengajuan Saya.
+        $scope = $isApprover ? $request->input('scope', 'team') : 'my';
 
         $filterType   = $request->input('type', 'all');
         $filterStatus = $request->input('status', 'all');
@@ -94,11 +83,19 @@ class EssCalendarController extends Controller
             $leaveQuery = LeaveRequestDate::with([
                 'leaveRequest.employee.jabatan',
                 'leaveRequest.specialLeaveType',
+                'leaveRequest.permitType',
                 'leaveRequest.approvals.jabatan',
                 'leaveRequest.approvals.approver',
                 'leaveRequest.files',
-            ])->whereHas('leaveRequest', function ($q) {
+            ])->whereHas('leaveRequest', function ($q) use ($isApprover, $employee) {
                 $q->where('status', '!=', 'cancelled');
+                if (!$isApprover) {
+                    if ($employee) {
+                        $q->where('emp_id', $employee->id);
+                    } else {
+                        $q->whereRaw('1 = 0');
+                    }
+                }
             })->whereBetween('date', [
                 $startOfGrid->toDateString(),
                 $endOfGrid->toDateString()
@@ -140,6 +137,14 @@ class EssCalendarController extends Controller
                 $startOfGrid->toDateString(),
                 $endOfGrid->toDateString()
             ]);
+
+            if (!$isApprover) {
+                if ($employee) {
+                    $otQuery->where('emp_id', $employee->id);
+                } else {
+                    $otQuery->whereRaw('1 = 0');
+                }
+            }
 
             $overtimes = $otQuery->get();
 
@@ -399,6 +404,7 @@ class EssCalendarController extends Controller
             'day_type_label'     => $dayTypeLabel,
             'reason'             => $lr->reason ?? 'Tidak ada keterangan khusus.',
             'special_type_name'  => $lr->specialLeaveType?->name,
+            'permit_type_name'   => $lr->permitType?->name,
             'rejection_reason'   => $lr->rejection_reason,
             'approvals'          => $approvals,
             'files'              => $files,

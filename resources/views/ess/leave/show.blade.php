@@ -297,8 +297,8 @@
                 {{-- Left Column: Data Detail Pengajuan --}}
                 <div class="lg:col-span-7 xl:col-span-8 space-y-6">
 
-                    <!-- Data Pemohon -->
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 rounded-xl bg-gray-50 border border-gray-100">
+                    <!-- Data Pemohon & Pengganti -->
+                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4 p-4 rounded-xl bg-gray-50 border border-gray-100">
                         <div>
                             <span class="block text-xs text-gray-400 font-medium">Nama Pemohon</span>
                             <span class="font-bold text-sm text-gray-800">{{ $leaveRequest->employee?->name ?? 'Karyawan' }}</span>
@@ -306,6 +306,13 @@
                         <div>
                             <span class="block text-xs text-gray-400 font-medium">Jabatan</span>
                             <span class="font-bold text-sm text-gray-800">{{ $leaveRequest->employee?->jabatan?->jabatan ?? '-' }}</span>
+                        </div>
+                        <div>
+                            <span class="block text-xs text-gray-400 font-medium">Karyawan Pengganti</span>
+                            <span class="font-bold text-sm text-blue-700 flex items-center gap-1.5">
+                                <i class="fa-solid fa-user-shield text-blue-500 text-xs"></i>
+                                {{ $leaveRequest->substitute?->name ?? '-' }}
+                            </span>
                         </div>
                         <div>
                             <span class="block text-xs text-gray-400 font-medium">Waktu Pengajuan</span>
@@ -454,6 +461,11 @@
                                             <div class="flex items-center gap-2">
                                                 <span class="text-[11px] font-bold px-1.5 py-0.5 rounded bg-gray-200 text-gray-700">L{{ $approval->level }}</span>
                                                 <span class="font-bold text-xs text-gray-900">{{ $approval->jabatan_name }}</span>
+                                                @if($approval->approver_emp_id)
+                                                    <span class="text-[10px] text-blue-700 font-semibold bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100">
+                                                        Serah Terima Tugas
+                                                    </span>
+                                                @endif
                                             </div>
                                             <div>
                                                 @if($approval->status === 'approved')
@@ -476,9 +488,17 @@
                                             @if($approval->status === 'approved')
                                                 Disetujui oleh: <strong class="text-gray-800">{{ $approval->approver_name }}</strong> ({{ $approval->approver_jabatan_name }}) pada {{ $approval->action_at?->format('d M Y, H:i') }}
                                             @elseif($approval->status === 'rejected')
-                                                Ditolak oleh: <strong class="text-rose-700">{{ $approval->approver_name }}</strong> ({{ $approval->approver_jabatan_name }})<br>Catatan: {{ $approval->notes }}
+                                                @if($approval->approver_name)
+                                                    Ditolak oleh: <strong class="text-rose-700">{{ $approval->approver_name }}</strong> ({{ $approval->approver_jabatan_name }})<br>Catatan: {{ $approval->notes }}
+                                                @else
+                                                    <span class="text-rose-600 font-medium">{{ $approval->notes ?? 'Dibatalkan otomatis karena alur persetujuan ditolak.' }}</span>
+                                                @endif
                                             @else
-                                                Menunggu persetujuan jabatan <strong>{{ $approval->jabatan_name }}</strong>.
+                                                @if($approval->approver_emp_id)
+                                                    Menunggu persetujuan serah terima tugas dari <strong>{{ $approval->approverEmployee?->name ?? 'Karyawan Pengganti' }}</strong>.
+                                                @else
+                                                    Menunggu persetujuan jabatan <strong>{{ $approval->jabatan_name }}</strong>.
+                                                @endif
                                             @endif
                                         </p>
 

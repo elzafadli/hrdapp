@@ -318,6 +318,7 @@ class OvertimeRequestController extends Controller
 
         $overtime->update(['status' => 'cancelled']);
         ApprovalHistory::log($overtime, 'cancelled', auth()->user(), 'Dibatalkan oleh pemohon.');
+        DocumentApproval::cancelFor($overtime);
 
         return redirect()->route('overtime.index')->with('success', 'Pengajuan lembur berhasil dibatalkan.');
     }

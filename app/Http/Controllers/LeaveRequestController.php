@@ -104,7 +104,17 @@ class LeaveRequestController extends Controller
             ->values()
             ->toArray();
 
-        return view('ess.leave.create', compact('employee', 'leaveBalance', 'disabledDates', 'specialLeaveTypes', 'typeOptions'));
+        // Ambil daftar rekan karyawan sebagai pilihan pengganti / penanggung jawab tugas
+        $employees = EmpData::with('jabatan')
+            ->where('id', '!=', $employee->id)
+            ->orderBy('name')
+            ->get();
+        $substituteOptions = $employees->mapWithKeys(function ($emp) {
+            $jabatan = $emp->jabatan?->jabatan ? " ({$emp->jabatan->jabatan})" : '';
+            return [$emp->id => "{$emp->name}{$jabatan}"];
+        })->toArray();
+
+        return view('ess.leave.create', compact('employee', 'leaveBalance', 'disabledDates', 'specialLeaveTypes', 'typeOptions', 'substituteOptions'));
     }
 
     /**
@@ -388,10 +398,18 @@ class LeaveRequestController extends Controller
         if ($leaveCategory === 'special' || $request->input('leave_type') === 'special') {
             $request->validate([
                 'special_leave_type_id' => 'required|exists:special_leave_types,id',
+                'substitute_emp_id'     => 'required|exists:emp_data,id',
                 'start_date'            => 'required|date',
                 'reason'                => 'required|string|max:1000',
                 'files.*'               => 'nullable|file|max:3072',
+            ], [
+                'substitute_emp_id.required' => 'Karyawan pengganti / penanggung jawab wajib dipilih.',
+                'substitute_emp_id.exists'   => 'Karyawan pengganti yang dipilih tidak valid.',
             ]);
+
+            if ((int) $request->substitute_emp_id === (int) $employee->id) {
+                return back()->withInput()->with('error', 'Karyawan pengganti / penanggung jawab tidak boleh diri sendiri.');
+            }
 
             $specialLeaveType = SpecialLeaveType::findOrFail($request->special_leave_type_id);
             $empGender = $employee->gender ?? 'male';
@@ -455,6 +473,7 @@ class LeaveRequestController extends Controller
                     'request_number'        => $requestNumber,
                     'emp_id'                => $employee->id,
                     'user_id'               => auth()->id(),
+                    'substitute_emp_id'     => $request->substitute_emp_id,
                     'leave_type'            => 'special',
                     'special_leave_type_id' => $specialLeaveType->id,
                     'full_day_start_date'   => $startDate,
@@ -518,6 +537,7 @@ class LeaveRequestController extends Controller
         // CABANG 2: PENGAJUAN CUTI TAHUNAN (DEFAULT)
         // ==========================================
         $request->validate([
+            'substitute_emp_id'   => 'required|exists:emp_data,id',
             'leave_duration_type' => 'nullable|in:full_day,half_day',
             'is_half_day'         => 'nullable|boolean',
             'start_date'          => 'nullable|date',
@@ -529,7 +549,14 @@ class LeaveRequestController extends Controller
             'half_day_type'       => 'nullable|in:first_half,second_half',
             'reason'              => 'required|string|max:1000',
             'files.*'             => 'nullable|file|max:3072', // Max 3MB per file
+        ], [
+            'substitute_emp_id.required' => 'Karyawan pengganti / penanggung jawab wajib dipilih.',
+            'substitute_emp_id.exists'   => 'Karyawan pengganti yang dipilih tidak valid.',
         ]);
+
+        if ((int) $request->substitute_emp_id === (int) $employee->id) {
+            return back()->withInput()->with('error', 'Karyawan pengganti / penanggung jawab tidak boleh diri sendiri.');
+        }
 
         $isHalfDay = $request->boolean('is_half_day') || $request->input('leave_duration_type') === 'half_day';
         $startDate = $request->input('start_date');
@@ -640,6 +667,7 @@ class LeaveRequestController extends Controller
                 'request_number'      => $requestNumber,
                 'emp_id'              => $employee->id,
                 'user_id'             => auth()->id(),
+                'substitute_emp_id'   => $request->substitute_emp_id,
                 'leave_type'          => 'annual',
                 'full_day_start_date' => $fullDayStartDate,
                 'full_day_end_date'   => $fullDayEndDate,
@@ -729,10 +757,13 @@ class LeaveRequestController extends Controller
     {
         $leaveRequest = LeaveRequest::with([
             'employee.jabatan',
+            'substitute.jabatan',
             'specialLeaveType',
             'dates',
             'files',
-            'approvals.approvable', 'approvals.jabatan',
+            'approvals.approvable',
+            'approvals.jabatan',
+            'approvals.approverEmployee.jabatan',
             'approvals.approver.employee',
             'approvalHistories.user.employee',
             'approvalHistories.jabatan'
@@ -760,6 +791,7 @@ class LeaveRequestController extends Controller
         // Kembalikan saldo cuti karena pengajuan dibatalkan
         $leaveRequest->restoreLeaveBalance();
         ApprovalHistory::log($leaveRequest, 'cancelled', auth()->user(), 'Dibatalkan oleh pemohon.');
+        DocumentApproval::cancelFor($leaveRequest);
 
         return redirect()->route('leave.index')->with('success', 'Pengajuan cuti berhasil dibatalkan.');
     }

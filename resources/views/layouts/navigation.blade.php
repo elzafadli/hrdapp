@@ -152,15 +152,7 @@
                         <i class="fa-solid fa-id-badge mr-2 text-blue-500"></i>
                         {{ __('Profile') }}
                     </x-responsive-nav-link>
-                    @php
-                        $navShowApprovalMenu = false;
-                        try {
-                            if ($navEmp?->jabatan_id) {
-                                $navShowApprovalMenu = \App\Models\ApprovalSetting::isJabatanAnApprover((int) $navEmp->jabatan_id);
-                            }
-                        } catch (\Exception $e) {}
-                    @endphp
-                    @if($navShowApprovalMenu)
+                    @if(is_user_approver())
                     <x-responsive-nav-link :href="route('approval-inbox.index')" :active="request()->routeIs('approval-inbox.*')" @click="open = false">
                         <i class="fa-solid fa-inbox mr-2 text-blue-500"></i>
                         {{ __('Approval Inbox') }}

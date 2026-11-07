@@ -14,7 +14,7 @@
                     </div>
                 </div>
 
-                <a href="{{ route('attendance.history') }}"
+                <a href="{{ route('attendance.history') }}" 
                    class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-gray-200 bg-white text-gray-700 text-xs font-semibold hover:bg-gray-50 transition shadow-sm">
                     <i class="fa-solid fa-clock-rotate-left text-blue-600"></i>
                     Riwayat
@@ -22,7 +22,7 @@
             </div>
 
             <!-- Notifikasi Pesan Sukses / Error -->
-            <div x-show="message"
+            <div x-show="message" 
                  x-transition
                  :class="isSuccess ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-800'"
                  class="p-4 rounded-xl border text-sm flex items-start gap-3 shadow-sm"
@@ -36,34 +36,95 @@
 
             <!-- Kartu Utama Presensi (White ESS Golden Style) -->
             <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-5">
-
+                
                 <!-- 1. Real-Time Jam & Tanggal -->
-                <div class="rounded-2xl p-5 bg-gradient-to-br from-blue-50/80 via-white to-blue-50/30 border border-blue-100/80 text-center space-y-1.5">
+                <div class="rounded-2xl p-4 sm:p-5 bg-gradient-to-br from-blue-50/80 via-white to-blue-50/30 border border-blue-100/80 text-center space-y-1.5">
                     <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-100/70 text-blue-800 text-xs font-semibold">
                         <i class="fa-regular fa-calendar-days text-[11px]"></i>
                         {{ \Carbon\Carbon::now()->translatedFormat('l, d F Y') }}
                     </span>
-                    <div class="text-4xl font-extrabold text-gray-900 tracking-wider font-mono pt-1" x-text="currentTime">
-                        --:--:--
+                    <div class="flex items-baseline justify-center gap-1.5 pt-1">
+                        <span class="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight font-mono" x-text="timeOnly">
+                            --:--:--
+                        </span>
+                        <span class="text-xs sm:text-sm font-bold text-blue-600 bg-blue-100/80 px-2 py-0.5 rounded-md font-mono" x-text="timeZone">
+                            WITA
+                        </span>
                     </div>
                     <p class="text-xs text-gray-500">
-                        {{ $employee->name ?? auth()->user()->name }}
+                        {{ $employee->name ?? auth()->user()->name }} 
                         @if($employee && $employee->jabatan)
                             · <span class="font-medium text-gray-700">{{ $employee->jabatan->jabatan }}</span>
                         @endif
                     </p>
                 </div>
 
-                <!-- 2. Shift Info -->
-                <div class="p-4 rounded-xl bg-gray-50 border border-gray-100 flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-sm border border-blue-100 shrink-0">
-                        <i class="fa-regular fa-clock"></i>
+                <!-- 2. Informasi Jadwal Kerja & Toleransi Keterlambatan -->
+                @if(!empty($shift['is_work_day']))
+                    <div class="p-4 rounded-xl bg-slate-50/80 border border-slate-200/80 space-y-3">
+                        <div class="flex items-center justify-between gap-2 border-b border-slate-200/70 pb-2.5">
+                            <div class="flex items-center gap-2.5 min-w-0">
+                                <div class="w-8 h-8 rounded-lg bg-blue-100/70 text-blue-700 flex items-center justify-center text-xs shrink-0">
+                                    <i class="fa-solid fa-business-time"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Jadwal Shift Kerja</span>
+                                    <span class="text-xs font-bold text-slate-800 truncate block">{{ $shift['name'] ?? 'Reguler' }}</span>
+                                </div>
+                            </div>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span>
+                                Hari Kerja
+                            </span>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-2.5">
+                            <div class="p-2.5 rounded-xl bg-white border border-slate-200/80 shadow-xs">
+                                <span class="text-[10px] text-slate-400 font-medium block">Jam Masuk - Pulang</span>
+                                <span class="font-extrabold text-slate-800 font-mono text-xs sm:text-sm mt-0.5 block">
+                                    {{ $shift['start_time'] }} - {{ $shift['end_time'] }}
+                                </span>
+                            </div>
+                            <div class="p-2.5 rounded-xl bg-amber-50/80 border border-amber-200/90 shadow-xs">
+                                <span class="text-[10px] text-amber-700 font-semibold block flex items-center gap-1">
+                                    <i class="fa-solid fa-clock-rotate-left text-[10px]"></i>
+                                    Toleransi Terlambat
+                                </span>
+                                <span class="font-extrabold text-amber-900 font-mono text-xs sm:text-sm mt-0.5 block">
+                                    s/d {{ $shift['late_tolerance_time'] ?? '-' }}
+                                </span>
+                            </div>
+                        </div>
+
+                        @if(!empty($shift['late_tolerance_time']))
+                            <div class="p-2.5 rounded-lg bg-blue-50/50 border border-blue-100/60 text-[11px] text-slate-600 flex items-start gap-2">
+                                <i class="fa-solid fa-circle-info text-blue-600 text-xs mt-0.5 shrink-0"></i>
+                                <span>Presensi masuk sebelum pukul <strong>{{ $shift['late_tolerance_time'] }}</strong> tercatat <strong>Tepat Waktu</strong>. Presensi setelahnya tercatat <strong>Terlambat</strong>.</span>
+                            </div>
+                        @endif
                     </div>
-                    <div>
-                        <span class="text-[11px] text-gray-400 block font-medium">Shift Kerja</span>
-                        <span class="text-xs font-bold text-gray-800">{{ $shift['label'] }}</span>
+                @else
+                    <!-- Kondisi Hari Libur / Day Off -->
+                    <div class="p-4 rounded-xl bg-slate-50/80 border border-slate-200/80 space-y-2">
+                        <div class="flex items-center justify-between gap-2">
+                            <div class="flex items-center gap-2.5 min-w-0">
+                                <div class="w-8 h-8 rounded-lg bg-slate-200 text-slate-600 flex items-center justify-center text-xs shrink-0">
+                                    <i class="fa-solid fa-mug-hot"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Jadwal Hari Ini</span>
+                                    <span class="text-xs font-bold text-slate-700 truncate block">{{ $shift['label'] }}</span>
+                                </div>
+                            </div>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 text-slate-600 shrink-0">
+                                Libur / Off
+                            </span>
+                        </div>
+                        <p class="text-[11px] text-slate-500 leading-relaxed pt-1">
+                            Hari ini adalah hari libur atau di luar jadwal kerja aktif Anda. Anda tetap dapat melakukan presensi jika lembur atau ada tugas khusus.
+                        </p>
                     </div>
-                </div>
+                @endif
 
                 <!-- 3. Info Lokasi & Radius Geolocation -->
                 <div class="space-y-3">
@@ -79,7 +140,7 @@
                                 <span class="text-[10px] text-gray-500 font-mono" x-show="coordsText" x-text="coordsText"></span>
                             </div>
                         </div>
-                        <button type="button" @click="detectLocation()"
+                        <button type="button" @click="detectLocation()" 
                             class="px-3 py-1.5 bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 rounded-xl text-xs font-semibold shrink-0 transition flex items-center gap-1.5 shadow-sm">
                             <i class="fa-solid fa-arrows-rotate text-[11px] text-blue-600" :class="{ 'fa-spin': isDetecting }"></i>
                             Perbarui
@@ -155,8 +216,12 @@
 
                 <!-- Status Sudah Masuk -->
                 @if($todayAttendance && $todayAttendance->check_in_time)
-                    <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-start gap-3 text-xs">
-                        <i class="fa-solid fa-circle-check text-emerald-600 text-lg shrink-0 mt-0.5"></i>
+                    <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 flex items-start gap-3.5 text-xs">
+                        @if($todayAttendance->check_in_photo_url)
+                            <img src="{{ $todayAttendance->check_in_photo_url }}" alt="Foto Presensi Masuk" class="w-14 h-14 rounded-xl object-cover shrink-0 border border-emerald-300 shadow-xs">
+                        @else
+                            <i class="fa-solid fa-circle-check text-emerald-600 text-lg shrink-0 mt-0.5"></i>
+                        @endif
                         <div class="space-y-1">
                             <span class="font-bold block">Sudah Presensi Masuk Hari Ini</span>
                             <span>Tercatat pada pukul <strong>{{ substr($todayAttendance->check_in_time, 0, 5) }} WITA</strong> ({{ $todayAttendance->check_in_status === 'late' ? 'Terlambat' : 'Tepat Waktu' }}).</span>
@@ -168,9 +233,115 @@
                             @endif
                         </div>
                     </div>
+                @else
+                    <!-- 4. Foto Selfie Presensi Masuk (Wajib Live Kamera HP) -->
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <label class="text-xs font-bold text-gray-800 flex items-center gap-1.5">
+                                <i class="fa-solid fa-camera text-blue-600"></i>
+                                Foto Selfie Masuk <span class="text-rose-500 font-bold">*Wajib Kamera</span>
+                            </label>
+                            <span class="text-[11px] text-gray-400">Live Camera</span>
+                        </div>
+
+                        <!-- Fallback Input Kamera Bawaan HP (capture="user" memaksa buka kamera depan, bukan galeri) -->
+                        <input type="file" id="cameraCaptureInput" accept="image/*" capture="user" class="hidden" @change="handleNativeCapture($event)">
+
+                        <!-- Viewport Kamera / Hasil Foto -->
+                        <div class="rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50/70 p-3 overflow-hidden">
+                            
+                            <!-- Banner Peringatan / Error Kamera -->
+                            <div x-show="cameraError" x-transition class="mb-3 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2.5" style="display: none;">
+                                <i class="fa-solid fa-triangle-exclamation text-rose-500 mt-0.5 text-sm shrink-0"></i>
+                                <div class="flex-1 leading-relaxed">
+                                    <span class="font-bold block">Kendala Akses Kamera</span>
+                                    <span x-text="cameraError"></span>
+                                </div>
+                                <button type="button" @click="cameraError = ''" class="text-rose-400 hover:text-rose-600">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            </div>
+
+                            <!-- 1. Kondisi Kamera Belum Dibuka & Belum Ada Foto -->
+                            <div x-show="!cameraActive && !photoData" class="py-6 text-center space-y-3">
+                                <div class="w-14 h-14 mx-auto rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl shadow-xs">
+                                    <i class="fa-solid fa-camera"></i>
+                                </div>
+                                <div class="space-y-1">
+                                    <p class="text-xs font-bold text-gray-800">Ambil Foto Selfie Presensi</p>
+                                    <p class="text-[11px] text-gray-500 max-w-xs mx-auto">
+                                        Foto wajib diambil langsung dari kamera HP Anda (tidak diizinkan upload dari galeri).
+                                    </p>
+                                </div>
+                                <div class="flex flex-wrap items-center justify-center gap-2 pt-1">
+                                    <button type="button" @click="startCamera()"
+                                        class="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-sm transition">
+                                        <i class="fa-solid fa-video text-xs"></i>
+                                        Nyalakan Kamera
+                                    </button>
+                                    <button type="button" @click="triggerNativeCamera()"
+                                        class="inline-flex items-center gap-1.5 px-3.5 py-2.5 bg-white hover:bg-gray-100 border border-gray-200 text-gray-700 rounded-xl text-xs font-semibold shadow-xs transition"
+                                        title="Buka kamera bawaan smartphone">
+                                        <i class="fa-solid fa-mobile-screen text-xs text-blue-600"></i>
+                                        Kamera HP
+                                    </button>
+                                </div>
+                                <p class="text-[10px] text-gray-400 max-w-xs mx-auto pt-1">
+                                    *Tombol <strong>Nyalakan Kamera</strong> untuk kamera langsung di browser. Tombol <strong>Kamera HP</strong> untuk membuka aplikasi kamera bawaan HP.
+                                </p>
+                            </div>
+
+                            <!-- 2. Kondisi Kamera Aktif (Live Video Viewfinder) -->
+                            <div x-show="cameraActive" style="display: none;" class="space-y-3">
+                                <div class="relative rounded-xl overflow-hidden bg-black aspect-video sm:aspect-[4/3] flex items-center justify-center shadow-inner">
+                                    <video id="cameraVideo" autoplay playsinline muted class="w-full h-full object-cover -scale-x-100"></video>
+                                    
+                                    <!-- Guide Oval Selfie -->
+                                    <div class="absolute inset-0 pointer-events-none border-2 border-white/20 rounded-xl flex items-center justify-center">
+                                        <div class="w-36 h-48 sm:w-44 sm:h-56 rounded-[50%] border-2 border-dashed border-white/60"></div>
+                                    </div>
+
+                                    <!-- Tombol Tutup Kamera -->
+                                    <button type="button" @click="stopCamera()" class="absolute top-2 right-2 w-8 h-8 rounded-full bg-black/60 text-white hover:bg-black/80 flex items-center justify-center text-xs transition">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
+                                </div>
+
+                                <div class="flex items-center justify-center gap-3">
+                                    <button type="button" @click="capturePhoto()"
+                                        class="inline-flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md transition">
+                                        <i class="fa-solid fa-camera text-sm"></i>
+                                        Ambil Foto (Snap)
+                                    </button>
+                                    <button type="button" @click="triggerNativeCamera()"
+                                        class="inline-flex items-center gap-1.5 px-3 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-semibold transition" title="Gunakan aplikasi kamera bawaan HP">
+                                        <i class="fa-solid fa-mobile-screen text-xs"></i>
+                                        Kamera Bawaan HP
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- 3. Kondisi Foto Sudah Diambil (Preview Foto) -->
+                            <div x-show="photoData" style="display: none;" class="space-y-2">
+                                <div class="relative rounded-xl overflow-hidden border border-emerald-200 bg-white p-1 shadow-xs">
+                                    <img :src="photoData" alt="Preview Selfie Presensi" class="w-full max-h-64 object-cover rounded-lg mx-auto">
+                                </div>
+                                <div class="flex items-center justify-between px-1">
+                                    <span class="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700">
+                                        <i class="fa-solid fa-circle-check text-emerald-600"></i> Foto Selfie Siap
+                                    </span>
+                                    <button type="button" @click="retakePhoto()"
+                                        class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 rounded-xl text-xs font-semibold shadow-xs transition">
+                                        <i class="fa-solid fa-arrows-rotate text-blue-600 text-xs"></i> Foto Ulang
+                                    </button>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
                 @endif
 
-                <!-- 4. Catatan Opsional -->
+                <!-- 5. Catatan Opsional -->
                 <div class="space-y-1.5 pt-1">
                     <x-input-label for="notes" :value="__('Catatan Presensi (Opsional)')" />
                     <textarea id="notes" x-model="notes" rows="2"
@@ -178,7 +349,7 @@
                         placeholder="Tambahkan catatan jika diperlukan..."></textarea>
                 </div>
 
-                <!-- 5. Tombol Aksi Presensi Masuk -->
+                <!-- 6. Tombol Aksi Presensi Masuk -->
                 <div class="pt-3 border-t border-gray-100">
                     @if($todayAttendance && $todayAttendance->check_in_time)
                         <button type="button" disabled
@@ -187,9 +358,9 @@
                             Presensi Masuk Hari Ini Selesai
                         </button>
                     @else
-                        <button type="button" @click="submitCheckIn()"
-                            :disabled="isSubmitting || (!allowOutsideRadius && distance !== null && !isWithinRadius)"
-                            :class="(!allowOutsideRadius && distance !== null && !isWithinRadius) ? 'bg-gray-200 text-gray-500 cursor-not-allowed shadow-none' : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-md shadow-blue-500/20'"
+                        <button type="button" @click="submitCheckIn()" 
+                            :disabled="isSubmitting || !photoData || (!allowOutsideRadius && distance !== null && !isWithinRadius)"
+                            :class="(!photoData || (!allowOutsideRadius && distance !== null && !isWithinRadius)) ? 'bg-gray-200 text-gray-500 cursor-not-allowed shadow-none' : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white shadow-md shadow-blue-500/20'"
                             class="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 font-bold text-sm rounded-xl transition disabled:opacity-60 disabled:cursor-not-allowed">
                             <span x-show="isSubmitting" style="display: none;">
                                 <i class="fa-solid fa-circle-notch fa-spin text-sm"></i>
@@ -199,7 +370,11 @@
                                 <i class="fa-solid fa-ban text-sm mr-1"></i>
                                 Di Luar Radius Presensi
                             </span>
-                            <span x-show="!isSubmitting && (allowOutsideRadius || isWithinRadius || distance === null)">
+                            <span x-show="!isSubmitting && !photoData && (allowOutsideRadius || isWithinRadius || distance === null)" style="display: none;">
+                                <i class="fa-solid fa-camera text-sm mr-1"></i>
+                                Ambil Foto Selfie Terlebih Dahulu
+                            </span>
+                            <span x-show="!isSubmitting && photoData && (allowOutsideRadius || isWithinRadius || distance === null)">
                                 <i class="fa-solid fa-arrow-right-to-bracket text-sm mr-1"></i>
                                 Presensi Masuk Sekarang
                             </span>
@@ -216,6 +391,8 @@
         function checkInApp() {
             return {
                 currentTime: '--:--:--',
+                timeOnly: '--:--:--',
+                timeZone: 'WITA',
                 latitude: null,
                 longitude: null,
                 locationText: 'Mendeteksi lokasi...',
@@ -225,6 +402,12 @@
                 notes: '',
                 message: '',
                 isSuccess: false,
+
+                // Kamera & Foto Selfie
+                cameraActive: false,
+                cameraError: '',
+                photoData: null,
+                mediaStream: null,
 
                 // Setting Titik Kantor & Radius Geolocation
                 officeName: @json($officeSetting->office_name ?? 'Kantor Pusat'),
@@ -251,6 +434,8 @@
                         second: '2-digit',
                         hour12: false
                     }).format(now);
+                    this.timeOnly = timeStr;
+                    this.timeZone = 'WITA';
                     this.currentTime = `${timeStr} WITA`;
                 },
 
@@ -327,8 +512,129 @@
                     }
                 },
 
+                // Logika Kamera & Selfie
+                startCamera() {
+                    this.cameraError = '';
+
+                    // Periksa Secure Context (Kamera browser membutuhkan HTTPS atau localhost)
+                    if (!window.isSecureContext && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+                        this.cameraError = 'Akses live camera browser memerlukan koneksi aman HTTPS atau localhost. Jika membuka via IP jaringan lokal (HTTP), silakan gunakan tombol "Kamera HP".';
+                        return;
+                    }
+
+                    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                        this.cameraError = 'Browser tidak mendukung akses kamera langsung (getUserMedia). Silakan gunakan tombol "Kamera HP".';
+                        return;
+                    }
+
+                    // 1. Coba buka dengan facingMode ideal 'user' (selfie camera)
+                    const constraints = {
+                        video: {
+                            facingMode: { ideal: 'user' },
+                            width: { ideal: 640 },
+                            height: { ideal: 480 }
+                        },
+                        audio: false
+                    };
+
+                    navigator.mediaDevices.getUserMedia(constraints)
+                    .then((stream) => {
+                        this.attachCameraStream(stream);
+                    })
+                    .catch((err) => {
+                        console.warn('Gagal membuka kamera selfie spesifik, mencoba kamera default...', err);
+                        // 2. Fallback: buka sembarang video camera (mendukung webcam laptop/PC & USB camera)
+                        navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+                        .then((stream) => {
+                            this.attachCameraStream(stream);
+                        })
+                        .catch((fallbackErr) => {
+                            console.error('Kamera gagal dibuka:', fallbackErr);
+                            let errMsg = 'Tidak dapat mengakses kamera perangkat.';
+                            if (fallbackErr.name === 'NotAllowedError' || fallbackErr.name === 'PermissionDeniedError') {
+                                errMsg = 'Izin kamera ditolak. Harap izinkan akses kamera di pengaturan browser/perangkat Anda.';
+                            } else if (fallbackErr.name === 'NotFoundError' || fallbackErr.name === 'DevicesNotFoundError') {
+                                errMsg = 'Kamera tidak terdeteksi pada perangkat Anda.';
+                            } else if (fallbackErr.name === 'NotReadableError' || fallbackErr.name === 'TrackStartError') {
+                                errMsg = 'Kamera sedang digunakan oleh aplikasi lain.';
+                            }
+                            this.cameraError = errMsg;
+                        });
+                    });
+                },
+
+                attachCameraStream(stream) {
+                    this.mediaStream = stream;
+                    this.cameraActive = true;
+                    this.cameraError = '';
+                    this.$nextTick(() => {
+                        const video = document.getElementById('cameraVideo');
+                        if (video) {
+                            video.srcObject = stream;
+                            video.play().catch(e => console.warn('Video play error:', e));
+                        }
+                    });
+                },
+
+                stopCamera() {
+                    if (this.mediaStream) {
+                        this.mediaStream.getTracks().forEach(track => track.stop());
+                        this.mediaStream = null;
+                    }
+                    this.cameraActive = false;
+                },
+
+                capturePhoto() {
+                    const video = document.getElementById('cameraVideo');
+                    if (!video) return;
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = video.videoWidth || 640;
+                    canvas.height = video.videoHeight || 480;
+                    const ctx = canvas.getContext('2d');
+
+                    // Mirror horizontal agar sesuai tampilan selfie
+                    ctx.translate(canvas.width, 0);
+                    ctx.scale(-1, 1);
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                    this.photoData = canvas.toDataURL('image/jpeg', 0.85);
+                    this.stopCamera();
+                },
+
+                retakePhoto() {
+                    this.photoData = null;
+                    this.startCamera();
+                },
+
+                triggerNativeCamera() {
+                    const input = document.getElementById('cameraCaptureInput');
+                    if (input) {
+                        input.click();
+                    }
+                },
+
+                handleNativeCapture(event) {
+                    const file = event.target.files && event.target.files[0];
+                    if (!file) return;
+
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        this.photoData = e.target.result;
+                        this.stopCamera();
+                    };
+                    reader.readAsDataURL(file);
+                },
+
                 async submitCheckIn() {
                     if (this.isSubmitting) return;
+
+                    // Validasi wajib foto kamera
+                    if (!this.photoData) {
+                        this.isSuccess = false;
+                        this.message = 'Foto selfie presensi masuk wajib diambil langsung melalui kamera HP / webcam.';
+                        return;
+                    }
 
                     // Validasi radius sebelum submit
                     if (!this.allowOutsideRadius && this.distance !== null && !this.isWithinRadius) {
@@ -352,7 +658,8 @@
                             body: JSON.stringify({
                                 latitude: this.latitude,
                                 longitude: this.longitude,
-                                notes: this.notes
+                                notes: this.notes,
+                                photo: this.photoData
                             })
                         });
 

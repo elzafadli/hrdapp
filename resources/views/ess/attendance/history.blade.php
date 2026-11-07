@@ -131,10 +131,15 @@
                                                 <i class="fa-regular fa-calendar-xmark text-[10px]"></i> Libur Nasional
                                             </span>
                                         @elseif($isWork)
-                                            <span class="inline-flex items-center gap-1.5 font-mono text-xs font-bold text-gray-800 bg-gray-100/80 px-2 py-0.5 rounded-md border border-gray-200">
-                                                <i class="fa-regular fa-clock text-blue-500 text-[10px]"></i>
-                                                {{ $start }} - {{ $end }}
-                                            </span>
+                                            <div class="space-y-0.5">
+                                                <span class="inline-flex items-center gap-1.5 font-mono text-xs font-bold text-gray-800 bg-gray-100/80 px-2 py-0.5 rounded-md border border-gray-200">
+                                                    <i class="fa-regular fa-clock text-blue-500 text-[10px]"></i>
+                                                    {{ $start }} - {{ $end }}
+                                                </span>
+                                                <div class="text-[10px] text-amber-700 font-medium">
+                                                    Tol: s/d {{ $daySchedule && $daySchedule->late_tolerance_time ? substr($daySchedule->late_tolerance_time, 0, 5) : '08:30' }}
+                                                </div>
+                                            </div>
                                         @else
                                             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
                                                 Day Off
@@ -143,26 +148,44 @@
                                     </td>
                                     <td class="px-6 py-4 font-mono text-xs whitespace-nowrap">
                                         @if($att->check_in_time)
-                                            <span class="font-bold text-gray-800">{{ substr($att->check_in_time, 0, 5) }}</span> WITA
-                                            @if($att->check_in_distance !== null)
-                                                <div class="text-[10px] text-gray-500 flex items-center gap-1 mt-0.5" title="Jarak GPS saat presensi masuk">
-                                                    <i class="fa-solid fa-location-crosshairs {{ ($officeSetting && $att->check_in_distance > $officeSetting->radius_meters) ? 'text-amber-500' : 'text-emerald-500' }}"></i>
-                                                    <span>{{ number_format($att->check_in_distance, 0) }} m</span>
+                                            <div class="flex items-center gap-2.5">
+                                                @if($att->check_in_photo_url)
+                                                    <a href="{{ $att->check_in_photo_url }}" target="_blank" class="shrink-0" title="Lihat foto selfie presensi masuk">
+                                                        <img src="{{ $att->check_in_photo_url }}" alt="Selfie Masuk" class="w-8 h-8 rounded-lg object-cover border border-blue-200 shadow-xs hover:scale-105 transition">
+                                                    </a>
+                                                @endif
+                                                <div>
+                                                    <span class="font-bold text-gray-800">{{ substr($att->check_in_time, 0, 5) }}</span> WITA
+                                                    @if($att->check_in_distance !== null)
+                                                        <div class="text-[10px] text-gray-500 flex items-center gap-1 mt-0.5" title="Jarak GPS saat presensi masuk">
+                                                            <i class="fa-solid fa-location-crosshairs {{ ($officeSetting && $att->check_in_distance > $officeSetting->radius_meters) ? 'text-amber-500' : 'text-emerald-500' }}"></i>
+                                                            <span>{{ number_format($att->check_in_distance, 0) }} m</span>
+                                                        </div>
+                                                    @endif
                                                 </div>
-                                            @endif
+                                            </div>
                                         @else
                                             <span class="text-gray-400">-</span>
                                         @endif
                                     </td>
                                     <td class="px-6 py-4 font-mono text-xs whitespace-nowrap">
                                         @if($att->check_out_time)
-                                            <span class="font-bold text-gray-800">{{ substr($att->check_out_time, 0, 5) }}</span> WITA
-                                            @if($att->check_out_distance !== null)
-                                                <div class="text-[10px] text-gray-500 flex items-center gap-1 mt-0.5" title="Jarak GPS saat presensi keluar">
-                                                    <i class="fa-solid fa-location-crosshairs {{ ($officeSetting && $att->check_out_distance > $officeSetting->radius_meters) ? 'text-amber-500' : 'text-emerald-500' }}"></i>
-                                                    <span>{{ number_format($att->check_out_distance, 0) }} m</span>
+                                            <div class="flex items-center gap-2.5">
+                                                @if($att->check_out_photo_url)
+                                                    <a href="{{ $att->check_out_photo_url }}" target="_blank" class="shrink-0" title="Lihat foto selfie presensi keluar">
+                                                        <img src="{{ $att->check_out_photo_url }}" alt="Selfie Keluar" class="w-8 h-8 rounded-lg object-cover border border-rose-200 shadow-xs hover:scale-105 transition">
+                                                    </a>
+                                                @endif
+                                                <div>
+                                                    <span class="font-bold text-gray-800">{{ substr($att->check_out_time, 0, 5) }}</span> WITA
+                                                    @if($att->check_out_distance !== null)
+                                                        <div class="text-[10px] text-gray-500 flex items-center gap-1 mt-0.5" title="Jarak GPS saat presensi keluar">
+                                                            <i class="fa-solid fa-location-crosshairs {{ ($officeSetting && $att->check_out_distance > $officeSetting->radius_meters) ? 'text-amber-500' : 'text-emerald-500' }}"></i>
+                                                            <span>{{ number_format($att->check_out_distance, 0) }} m</span>
+                                                        </div>
+                                                    @endif
                                                 </div>
-                                            @endif
+                                            </div>
                                         @else
                                             <span class="text-gray-400">-</span>
                                         @endif

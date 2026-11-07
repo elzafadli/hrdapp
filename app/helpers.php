@@ -159,3 +159,67 @@ if (!function_exists('terbilang')) {
         return trim($words);
     }
 }
+
+if (!function_exists('is_approver_role')) {
+    /**
+     * Cek apakah role user termasuk role approver / manajerial khusus
+     * (admin, superadmin, hrd, project_manager).
+     *
+     * @param \App\Models\User|string|null $userOrRole Objek User atau string role
+     * @return bool
+     */
+    function is_approver_role($userOrRole = null): bool
+    {
+        $role = $userOrRole instanceof \App\Models\User
+            ? $userOrRole->role
+            : ($userOrRole ?? auth()->user()?->role);
+
+        if (!$role) {
+            return false;
+        }
+
+        $approverRoles = ['admin', 'superadmin', 'hrd', 'project_manager', 'cashier'];
+        return in_array(strtolower(trim((string) $role)), $approverRoles, true);
+    }
+}
+
+if (!function_exists('is_user_approver')) {
+    /**
+     * Cek apakah user berwenang sebagai approver:
+     * - Default ($includeRoles = false): Hanya approver fungsional yang jabatannya aktif
+     *   di alur persetujuan (identik dengan syarat menu Approval Inbox di sidebar).
+     * - Jika $includeRoles = true: Termasuk juga jika user memiliki role manajerial/admin
+     *   (admin, superadmin, hrd, project_manager).
+     *
+     * @param \App\Models\User|null $user
+     * @param bool $includeRoles
+     * @return bool
+     */
+    function is_user_approver(?\App\Models\User $user = null, bool $includeRoles = false): bool
+    {
+        $user = $user ?? auth()->user();
+        if (!$user) {
+            return false;
+        }
+
+        if ($includeRoles && is_approver_role($user)) {
+            return true;
+        }
+
+        try {
+            $emp = $user->employee;
+            if (!$emp && !$user->relationLoaded('employee')) {
+                $emp = \App\Models\EmpData::where('user_id', $user->id)->first()
+                    ?? \App\Models\EmpData::where('name', $user->name)->first();
+            }
+
+            if ($emp) {
+                return $emp->canApprove();
+            }
+        } catch (\Throwable $e) {
+            return false;
+        }
+
+        return false;
+    }
+}

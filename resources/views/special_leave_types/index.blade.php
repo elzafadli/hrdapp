@@ -110,7 +110,7 @@
                                     </td>
                                     <td class="px-5 py-3.5 text-right whitespace-nowrap">
                                         <div class="flex items-center justify-end gap-1.5">
-                                            <button type="button" onclick="editType({{ json_encode($type) }})"
+                                            <button type="button" data-item="{{ htmlspecialchars(json_encode($type), ENT_QUOTES, 'UTF-8') }}" onclick="editType(JSON.parse(this.dataset.item))"
                                                 class="inline-flex items-center px-2.5 py-1.5 bg-yellow-50 hover:bg-yellow-100 text-yellow-800 border border-yellow-200 rounded-lg text-xs font-semibold transition"
                                                 title="Edit">
                                                 <i class="fa-solid fa-pen text-[10px] mr-1"></i> Edit

@@ -78,11 +78,21 @@
             position: absolute !important;
         }
 
+        .select2-container--open {
+            z-index: 99999 !important;
+        }
+
         .select2-dropdown {
+            background-color: #ffffff !important;
             border: 1px solid #d1d5db !important;
-            border-radius: 0.375rem !important;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
-            z-index: 9999 !important;
+            border-radius: 0.5rem !important;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.08) !important;
+            z-index: 999999 !important;
+        }
+
+        .select2-container--default .select2-search--dropdown {
+            padding: 0.5rem !important;
+            background-color: #ffffff !important;
         }
 
         .select2-container--default .select2-search--dropdown .select2-search__field {
@@ -91,29 +101,81 @@
             padding: 0.375rem 0.5rem !important;
             font-size: 0.875rem !important;
             outline: none !important;
+            width: 100% !important;
+            background-color: #ffffff !important;
         }
 
         .select2-container--default .select2-search--dropdown .select2-search__field:focus {
             border-color: #6366f1 !important;
         }
 
+        .select2-container--default .select2-results__options {
+            max-height: 250px !important;
+            overflow-y: auto !important;
+            background-color: #ffffff !important;
+        }
+
         .select2-container--default .select2-results__option {
             font-size: 0.875rem !important;
-            padding: 0.375rem 0.75rem !important;
+            padding: 0.5rem 0.75rem !important;
+            color: #1f2937 !important;
+            background-color: #ffffff !important;
         }
 
         .select2-container--default .select2-results__option--highlighted[aria-selected] {
-            background-color: #4f46e5 !important;
-            color: #fff !important;
+            background-color: #2563eb !important;
+            color: #ffffff !important;
+        }
+
+        .select2-container--default .select2-results__option[aria-selected="true"] {
+            background-color: #eff6ff !important;
+            color: #1d4ed8 !important;
+            font-weight: 600 !important;
         }
     </style>
     <script>
+        function select2MultiMatcher(params, data) {
+            // Jika input pencarian kosong, tampilkan seluruh item
+            if (!params.term || $.trim(params.term) === '') {
+                return data;
+            }
+
+            // Jika item tidak memiliki properti teks (misal optgroup kosong), abaikan
+            if (typeof data.text === 'undefined') {
+                return null;
+            }
+
+            // Pecah kata kunci pencarian berdasarkan spasi (multi-word / multi-token search)
+            // Contoh: "izin cuti" akan mencocokkan teks yang mengandung kata "izin" DAN kata "cuti"
+            var terms = params.term.toLowerCase().split(/\s+/).filter(Boolean);
+            var text = (data.text || '').toLowerCase();
+
+            // Semua kata kunci harus ada di dalam teks item
+            var isAllMatched = terms.every(function (t) {
+                return text.indexOf(t) > -1;
+            });
+
+            if (isAllMatched) {
+                return data;
+            }
+
+            return null;
+        }
+        window.select2MultiMatcher = select2MultiMatcher;
+
         $(document).ready(function () {
-            $('.select2').each(function () {
-                if (!$(this).data('select2')) {
-                    $(this).select2({
-                        width: '100%'
-                    }).on('change', function () {
+            $('select.select2').each(function () {
+                if ($(this).is('select') && !$(this).data('select2')) {
+                    var $modal = $(this).closest('.modal, dialog, [role="dialog"]');
+                    var config = {
+                        width: '100%',
+                        matcher: select2MultiMatcher
+                    };
+                    if ($modal.length) {
+                        config.dropdownParent = $modal;
+                    }
+
+                    $(this).select2(config).on('change', function () {
                         this.dispatchEvent(new Event('change', { bubbles: true }));
                         this.dispatchEvent(new Event('input', { bubbles: true }));
                     });

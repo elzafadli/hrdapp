@@ -336,4 +336,34 @@ class EmpData extends Model
 
         return $schedule ? $schedule->calculateWorkingDays($startDate, $endDate) : 0.0;
     }
+
+    /**
+     * Cek apakah karyawan ini bertindak sebagai approver berdasarkan jabatannya atau penunjukan langsung (karyawan pengganti).
+     */
+    public function canApprove(): bool
+    {
+        // Cek jika terdaftar sebagai assigned approver (misal karyawan pengganti) pada dokumen pending aktif
+        try {
+            if (\Illuminate\Support\Facades\Schema::hasColumn('document_approvals', 'approver_emp_id')) {
+                $hasDirectApproval = DocumentApproval::where('approver_emp_id', $this->id)
+                    ->where('status', 'pending')
+                    ->exists();
+                if ($hasDirectApproval) {
+                    return true;
+                }
+            }
+        } catch (\Throwable $e) {
+        }
+
+        if (!$this->jabatan_id) {
+            return false;
+        }
+
+        $jabatan = $this->relationLoaded('jabatan') ? $this->jabatan : $this->jabatan;
+        if ($jabatan) {
+            return $jabatan->canApprove();
+        }
+
+        return ApprovalSetting::isJabatanAnApprover((int) $this->jabatan_id);
+    }
 }

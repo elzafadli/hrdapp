@@ -10,6 +10,7 @@ use App\Models\Holiday;
 use App\Models\LeaveRequest;
 use App\Models\LeaveRequestDate;
 use App\Models\LeaveRequestFile;
+use App\Models\PermitType;
 use Carbon\Carbon;
 use Carbon\CarbonPeriod;
 use Illuminate\Http\Request;
@@ -46,7 +47,7 @@ class PermitRequestController extends Controller
         ];
 
         if ($employee) {
-            $permitRequests = LeaveRequest::with(['dates', 'files', 'approvals.approvable', 'approvals.jabatan'])
+            $permitRequests = LeaveRequest::with(['permitType', 'dates', 'files', 'approvals.approvable', 'approvals.jabatan'])
                 ->where('emp_id', $employee->id)
                 ->where('leave_type', 'permit')
                 ->latest()
@@ -84,7 +85,18 @@ class PermitRequestController extends Controller
             ->values()
             ->toArray();
 
-        return view('ess.permit.create', compact('employee', 'disabledDates'));
+        // Ambil master jenis izin yang aktif
+        $permitTypes = \Illuminate\Support\Facades\Schema::hasTable('permit_types')
+            ? PermitType::active()->get()
+            : collect();
+
+        $typeOptions = $permitTypes->mapWithKeys(function ($t) {
+            $badge = $t->is_paid ? 'Dibayar' : 'Potong Gaji/Cuti';
+            $limit = $t->max_days ? " (Maks {$t->max_days} Hari)" : '';
+            return [$t->id => "{$t->name} [{$badge}]{$limit}"];
+        })->toArray();
+
+        return view('ess.permit.create', compact('employee', 'disabledDates', 'permitTypes', 'typeOptions'));
     }
 
     /**
@@ -98,13 +110,20 @@ class PermitRequestController extends Controller
         }
 
         $request->validate([
-            'is_half_day'   => 'nullable|boolean',
-            'start_date'    => 'required|date',
-            'end_date'      => 'nullable|date|after_or_equal:start_date',
-            'half_day_type' => 'nullable|in:first_half,second_half',
-            'reason'        => 'required|string|max:1000',
-            'files.*'       => 'nullable|file|max:3072', // Maks 3MB per file
+            'permit_type_id' => 'required|exists:permit_types,id',
+            'is_half_day'    => 'nullable|boolean',
+            'start_date'     => 'required|date',
+            'end_date'       => 'nullable|date|after_or_equal:start_date',
+            'half_day_type'  => 'nullable|in:first_half,second_half',
+            'reason'         => 'required|string|max:1000',
+            'files.*'        => 'nullable|file|max:3072', // Maks 3MB per file
         ]);
+
+        $permitType = PermitType::findOrFail($request->permit_type_id);
+
+        if ($permitType->requires_attachment && !$request->hasFile('files')) {
+            return back()->withInput()->with('error', "Jenis izin '{$permitType->name}' mewajibkan unggah berkas bukti pendukung.");
+        }
 
         $isHalfDay = $request->boolean('is_half_day');
         $startDate = $request->input('start_date');
@@ -139,6 +158,11 @@ class PermitRequestController extends Controller
             return back()->withInput()->with('error', 'Tanggal yang Anda pilih seluruhnya adalah hari libur atau akhir pekan (0 hari kerja).');
         }
 
+        // Validasi Batas Maksimal Hari untuk Jenis Izin
+        if ($permitType->max_days && $totalDays > (float) $permitType->max_days) {
+            return back()->withInput()->with('error', "Durasi pengajuan izin ({$totalDays} hari) melebihi batas maksimal yang diperbolehkan untuk '{$permitType->name}' ({$permitType->max_days} hari).");
+        }
+
         // Validasi Bentrok Tanggal
         $allSelectedDates = array_merge($fullDayDates, $halfDayDates);
         $conflicts = LeaveRequestDate::checkDateConflicts(
@@ -162,6 +186,7 @@ class PermitRequestController extends Controller
                 'emp_id'              => $employee->id,
                 'user_id'             => auth()->id(),
                 'leave_type'          => 'permit',
+                'permit_type_id'      => $permitType->id,
                 'full_day_start_date' => $isHalfDay ? null : $startDate,
                 'full_day_end_date'   => $isHalfDay ? null : $endDate,
                 'full_day_count'      => $fullDayCount,
@@ -232,6 +257,7 @@ class PermitRequestController extends Controller
     public function show($id)
     {
         $leaveRequest = LeaveRequest::with([
+            'permitType',
             'employee.jabatan',
             'dates',
             'files',
@@ -266,6 +292,7 @@ class PermitRequestController extends Controller
 
         $leaveRequest->update(['status' => 'cancelled']);
         ApprovalHistory::log($leaveRequest, 'cancelled', auth()->user(), 'Dibatalkan oleh pemohon.');
+        DocumentApproval::cancelFor($leaveRequest);
 
         return redirect()->route('permit.index')->with('success', 'Pengajuan izin berhasil dibatalkan.');
     }

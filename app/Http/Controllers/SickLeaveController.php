@@ -253,6 +253,7 @@ class SickLeaveController extends Controller
 
         $leaveRequest->update(['status' => 'cancelled']);
         ApprovalHistory::log($leaveRequest, 'cancelled', auth()->user(), 'Dibatalkan oleh pemohon.');
+        DocumentApproval::cancelFor($leaveRequest);
 
         return redirect()->route('sick.index')->with('success', 'Pengajuan izin sakit berhasil dibatalkan.');
     }
