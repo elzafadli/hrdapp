@@ -69,6 +69,11 @@
                             {{ __('Profile Karyawan') }}
                         </x-dropdown-link>
 
+                        <x-dropdown-link :href="route('ess.payslip.index')">
+                            <i class="fa-solid fa-receipt mr-2 text-emerald-500"></i>
+                            {{ __('Slip Gaji') }}
+                        </x-dropdown-link>
+
                         <x-dropdown-link :href="route('ess.password.edit')">
                             <i class="fa-solid fa-key mr-2 text-amber-500"></i>
                             {{ __('Ubah Password') }}
@@ -157,10 +162,6 @@
                         <i class="fa-solid fa-id-badge mr-2 text-blue-500"></i>
                         {{ __('Profile') }}
                     </x-responsive-nav-link>
-                    <x-responsive-nav-link :href="route('ess.password.edit')" :active="request()->routeIs('ess.password.*')" @click="open = false">
-                        <i class="fa-solid fa-key mr-2 text-amber-500"></i>
-                        {{ __('Ubah Password') }}
-                    </x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('approval-inbox.index')" :active="request()->routeIs('approval-inbox.*')" @click="open = false">
                         <i class="fa-solid fa-inbox mr-2 text-blue-500"></i>
                         {{ __('Approval Inbox') }}
@@ -193,15 +194,28 @@
                         <i class="fa-solid fa-business-time mr-2 text-blue-500"></i>
                         {{ __('Lembur (ESS)') }}
                     </x-responsive-nav-link>
+                    <x-responsive-nav-link :href="route('ess.payslip.index')" :active="request()->routeIs('ess.payslip.*')" @click="open = false">
+                        <i class="fa-solid fa-receipt mr-2 text-emerald-500"></i>
+                        {{ __('Slip Gaji (ESS)') }}
+                    </x-responsive-nav-link>
 
-                    <!-- Authentication / Logout -->
-                    <form method="POST" action="{{ route('logout') }}" class="pt-1 mt-1 border-t border-gray-100">
-                        @csrf
-                        <x-responsive-nav-link :href="route('logout')" onclick="event.preventDefault(); this.closest('form').submit();" class="text-rose-600 hover:text-rose-700 hover:bg-rose-50 cursor-pointer">
-                            <i class="fa-solid fa-arrow-right-from-bracket mr-2 text-rose-500"></i>
-                            {{ __('Log Out') }}
-                        </x-responsive-nav-link>
-                    </form>
+                    <!-- Action Bar: Ubah Password (Kiri) & Log Out (Kanan) -->
+                    <div class="pt-2 mt-2 border-t border-gray-100 flex items-center gap-2">
+                        <a href="{{ route('ess.password.edit') }}" @click="open = false"
+                            class="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 transition">
+                            <i class="fa-solid fa-key text-amber-600 text-xs"></i>
+                            <span>Ubah Password</span>
+                        </a>
+
+                        <form method="POST" action="{{ route('logout') }}" class="flex-1">
+                            @csrf
+                            <button type="submit"
+                                class="w-full inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition cursor-pointer">
+                                <i class="fa-solid fa-arrow-right-from-bracket text-rose-600 text-xs"></i>
+                                <span>Log Out</span>
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>

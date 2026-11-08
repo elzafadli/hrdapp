@@ -7,9 +7,8 @@
     </div>
 
     {{-- Scrollable Menu Container --}}
-    <div class="flex-1 min-h-0 px-3 py-3 overflow-y-auto overflow-x-hidden sidebar-scroll"
-        style="height: calc(100vh - 4rem); max-height: calc(100vh - 4rem);">
-        <ul class="space-y-1 font-medium text-[13.5px] pb-20">
+    <div class="flex-1 min-h-0 px-3 py-3 overflow-y-auto overflow-x-hidden sidebar-scroll">
+        <ul class="space-y-1 font-medium text-[13.5px] pb-6">
             @if(auth()->user()?->canAccessFinanceBackoffice())
                 {{-- SECTION: MASTER DATA --}}
                 <li class="pt-1 pb-1 px-2.5">
@@ -228,16 +227,6 @@
                 </a>
             </li>
 
-            {{-- Ubah Password ESS --}}
-            <li>
-                <a href="{{ route('ess.password.edit') }}"
-                    class="flex items-center px-3 py-2 rounded-xl group transition duration-75 {{ request()->routeIs('ess.password.*') ? 'bg-blue-600 text-white font-bold shadow-xs' : 'text-slate-300 hover:bg-gray-800/80 hover:text-white' }}">
-                    <i
-                        class="fa-solid fa-key w-4 h-4 text-sm transition duration-75 {{ request()->routeIs('ess.password.*') ? 'text-white' : 'text-amber-400 group-hover:text-white' }}"></i>
-                    <span class="ms-3 flex-1">Ubah Password</span>
-                </a>
-            </li>
-
             {{-- Kalender ESS --}}
             <li>
                 <a href="{{ route('calendar.index') }}"
@@ -376,5 +365,25 @@
                 </a>
             </li>
         </ul>
+    </div>
+
+    {{-- Footer Sidebar: Ubah Password (Kiri) & Logout (Kanan) --}}
+    <div class="p-3 border-t border-gray-800 bg-slate-950/80 flex items-center gap-2 shrink-0">
+        <a href="{{ route('ess.password.edit') }}"
+            class="flex-1 inline-flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 transition {{ request()->routeIs('ess.password.*') ? 'bg-amber-600/30 text-amber-300 border-amber-500/60 font-bold' : '' }}"
+            title="Ubah Password Akun">
+            <i class="fa-solid fa-key text-amber-400 text-xs"></i>
+            <span>Password</span>
+        </a>
+
+        <form method="POST" action="{{ route('logout') }}" class="flex-1">
+            @csrf
+            <button type="submit"
+                class="w-full inline-flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-semibold text-rose-300 hover:text-white bg-rose-950/40 hover:bg-rose-600 border border-rose-800/40 hover:border-rose-600 transition cursor-pointer"
+                title="Keluar dari Aplikasi">
+                <i class="fa-solid fa-arrow-right-from-bracket text-xs"></i>
+                <span>Logout</span>
+            </button>
+        </form>
     </div>
 </aside>
