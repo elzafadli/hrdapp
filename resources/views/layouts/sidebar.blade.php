@@ -365,6 +365,16 @@
                     </li>
                 </ul>
             </li>
+
+            {{-- Slip Gaji ESS --}}
+            <li>
+                <a href="{{ route('ess.payslip.index') }}"
+                    class="flex items-center px-3 py-2 rounded-xl group transition duration-75 {{ request()->routeIs('ess.payslip.*') ? 'bg-blue-600 text-white font-bold shadow-xs' : 'text-slate-300 hover:bg-gray-800/80 hover:text-white' }}">
+                    <i
+                        class="fa-solid fa-receipt w-4 h-4 text-sm transition duration-75 {{ request()->routeIs('ess.payslip.*') ? 'text-white' : 'text-emerald-400 group-hover:text-white' }}"></i>
+                    <span class="ms-3 flex-1">Slip Gaji</span>
+                </a>
+            </li>
         </ul>
     </div>
 </aside>

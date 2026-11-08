@@ -25,4 +25,15 @@ class PayrollResult extends Model
     {
         return $this->belongsTo(PayrollComponent::class);
     }
+
+    /**
+     * Scope untuk hanya mengambil payroll_results yang berstatus final (jika kolom status sudah dimigrasi).
+     */
+    public function scopeFinal($query)
+    {
+        if (\Illuminate\Support\Facades\Schema::hasColumn('payroll_results', 'status')) {
+            return $query->where('status', 'final');
+        }
+        return $query;
+    }
 }

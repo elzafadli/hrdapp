@@ -53,7 +53,9 @@ Route::middleware('auth')->group(function () {
         Route::get('employee-attendance', [\App\Http\Controllers\EmployeeAttendanceController::class, 'index'])->name('employee-attendance.index');
         Route::get('employee-attendance/{employee}/detail', [\App\Http\Controllers\EmployeeAttendanceController::class, 'getLateDetail'])->name('employee-attendance.detail');
 
+        Route::get('/payroll-results/detail', [\App\Http\Controllers\PayrollResultController::class, 'show'])->name('payroll-results.show');
         Route::delete('/payroll-results/period', [\App\Http\Controllers\PayrollResultController::class, 'destroyPeriod'])->name('payroll-results.destroy-period');
+        Route::post('/payroll-results/status', [\App\Http\Controllers\PayrollResultController::class, 'updatePeriodStatus'])->name('payroll-results.update-status');
         Route::resource('payroll-results', \App\Http\Controllers\PayrollResultController::class)->only(['index', 'create']);
         Route::post('/payroll-results/process', [\App\Http\Controllers\PayrollResultController::class, 'process'])->name('payroll-results.process');
         Route::post('/payroll-results/sync-late', [\App\Http\Controllers\PayrollResultController::class, 'syncLate'])->name('payroll-results.sync-late');
@@ -173,6 +175,13 @@ Route::middleware('auth')->group(function () {
     // ESS - Ubah Password Akun
     Route::get('/ess/password', [\App\Http\Controllers\EssPasswordController::class, 'edit'])->name('ess.password.edit');
     Route::put('/ess/password', [\App\Http\Controllers\EssPasswordController::class, 'update'])->name('ess.password.update');
+
+    // ESS - Slip Gaji (Payslip) Karyawan Mandiri
+    Route::prefix('ess/payslip')->name('ess.payslip.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Ess\PayslipController::class, 'index'])->name('index');
+        Route::get('/{month}/{year}', [\App\Http\Controllers\Ess\PayslipController::class, 'show'])->name('show');
+        Route::get('/{month}/{year}/print', [\App\Http\Controllers\Ess\PayslipController::class, 'print'])->name('print');
+    });
 });
 
 Route::get('/git-pull', [\App\Http\Controllers\DeployController::class, 'pull']);

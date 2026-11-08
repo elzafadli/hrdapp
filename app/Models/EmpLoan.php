@@ -17,6 +17,7 @@ class EmpLoan extends Model
         'emp_id',
         'project_id',
         'amount',
+        'paid_amount',
         'remaining_amount',
         'installment_amount',
         'duration',
@@ -35,18 +36,24 @@ class EmpLoan extends Model
         'start_date' => 'date',
         'end_date' => 'date',
         'amount' => 'decimal:2',
+        'paid_amount' => 'decimal:2',
         'remaining_amount' => 'decimal:2',
         'installment_amount' => 'decimal:2',
     ];
 
     /**
-     * Hitung total cicilan yang sudah dipotong via payroll.
+     * Hitung total cicilan yang sudah dipotong. Mengutamakan kolom database fisik (paid_amount).
      */
     public function getPaidAmount(?int $beforeYear = null, ?int $beforeMonth = null): float
     {
+        // Jika tidak ada filter periode tertentu dan kolom paid_amount sudah ada isinya, pakai langsung tanpa query tambahan
+        if ($beforeYear === null && $beforeMonth === null && isset($this->attributes['paid_amount']) && $this->attributes['paid_amount'] !== null) {
+            return (float) $this->attributes['paid_amount'];
+        }
+
         $loanComp = PayrollComponent::where('name', 'like', '%Pinjaman%')->first();
         if (!$loanComp) {
-            return 0.0;
+            return (float) ($this->attributes['paid_amount'] ?? 0.0);
         }
 
         $query = PayrollResult::where('emp_id', $this->emp_id)
@@ -78,15 +85,19 @@ class EmpLoan extends Model
     }
 
     /**
-     * Hitung saldo pinjaman saat ini secara dinamis.
+     * Mengambil saldo pinjaman saat ini langsung dari kolom fisik (remaining_amount) tanpa kalkulasi on-the-fly.
      */
     public function getRemainingBalanceAttribute(): float
     {
-        if (Schema::hasTable('emp_loans') && Schema::hasColumn('emp_loans', 'remaining_amount') && isset($this->attributes['remaining_amount']) && $this->attributes['remaining_amount'] !== null) {
+        if (isset($this->attributes['remaining_amount']) && $this->attributes['remaining_amount'] !== null) {
             return (float) $this->attributes['remaining_amount'];
         }
 
-        return max(0.0, (float) $this->amount - $this->getPaidAmount());
+        $paid = isset($this->attributes['paid_amount']) && $this->attributes['paid_amount'] !== null
+            ? (float) $this->attributes['paid_amount']
+            : $this->getPaidAmount();
+
+        return max(0.0, (float) $this->amount - $paid);
     }
 
     /**
@@ -95,8 +106,15 @@ class EmpLoan extends Model
     public function calculateBalanceForPeriod(int $year, int $month): array
     {
         $totalLoan = (float) $this->amount;
-        $totalPaidBefore = $this->getPaidAmount($year, $month);
-        $saldoBefore = max(0.0, $totalLoan - $totalPaidBefore);
+
+        // Utamakan kolom database fisik jika tersedia
+        if (isset($this->attributes['remaining_amount']) && $this->attributes['remaining_amount'] !== null) {
+            $saldoBefore = (float) $this->attributes['remaining_amount'];
+            $totalPaidBefore = max(0.0, $totalLoan - $saldoBefore);
+        } else {
+            $totalPaidBefore = $this->getPaidAmount($year, $month);
+            $saldoBefore = max(0.0, $totalLoan - $totalPaidBefore);
+        }
 
         if ($saldoBefore <= 0) {
             return [

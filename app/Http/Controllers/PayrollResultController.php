@@ -10,6 +10,7 @@ use App\Services\LatenessDeductionService;
 use Illuminate\Http\Request;
 use App\Models\EmpData;
 use App\Models\EmpAllowance;
+use App\Models\PayrollComponent;
 use App\Models\PayrollResult;
 use App\Models\PayrollSetting;
 use Illuminate\Support\Facades\DB;
@@ -23,7 +24,9 @@ class PayrollResultController extends Controller
 {
     public function index(Request $request, LatenessDeductionService $service)
     {
-        // 1. Ambil seluruh periode yang tersimpan di payroll_results mirip modul potongan karyawan
+        // 1. Ambil seluruh periode yang tersimpan di payroll_results (urutkan tahun & bulan descending)
+        $hasStatusColumn = \Illuminate\Support\Facades\Schema::hasColumn('payroll_results', 'status');
+
         $periodsQuery = DB::table('payroll_results')
             ->select(
                 'year',
@@ -32,13 +35,21 @@ class PayrollResultController extends Controller
                 DB::raw("SUM(CASE WHEN type IN ('allowance', 'thr') THEN amount ELSE 0 END) as total_allowance"),
                 DB::raw("SUM(CASE WHEN type IN ('deduction', 'bpjs') THEN amount ELSE 0 END) as total_deduction"),
                 DB::raw('MAX(updated_at) as last_processed_at')
-            )
+            );
+
+        if ($hasStatusColumn) {
+            $periodsQuery->addSelect(
+                DB::raw("CASE WHEN SUM(CASE WHEN status != 'final' THEN 1 ELSE 0 END) > 0 THEN 'draft' ELSE 'final' END as status")
+            );
+        }
+
+        $periods = $periodsQuery
             ->groupBy('year', 'month')
             ->orderBy('year', 'desc')
             ->orderBy('month', 'desc')
             ->get();
 
-        $periods = $periodsQuery->map(function ($p) use ($service) {
+        $periods = $periods->map(function ($p) use ($service, $hasStatusColumn) {
             $cutoff = $service->getCutoffPeriod((int) $p->year, (int) $p->month);
             $p->start_date = $cutoff['start_date'];
             $p->end_date = $cutoff['end_date'];
@@ -48,23 +59,27 @@ class PayrollResultController extends Controller
             $p->total_thp = (float) $p->total_allowance - (float) $p->total_deduction;
             $dateObj = \Carbon\Carbon::createFromDate((int) $p->year, (int) $p->month, 1);
             $p->period_label = $dateObj->translatedFormat('F Y');
+            $p->status = $hasStatusColumn ? ($p->status ?? 'draft') : 'draft';
             return $p;
         });
 
-        // 2. Tentukan periode yang aktif/dipilih untuk ditampilkan detailnya
-        if ($request->filled('month') && $request->filled('year')) {
-            $month = (int) $request->input('month');
-            $year = (int) $request->input('year');
-        } elseif ($periods->isNotEmpty()) {
-            $latest = $periods->first();
-            $month = (int) $latest->month;
-            $year = (int) $latest->year;
-        } else {
-            $month = (int) now()->month;
-            $year = (int) now()->year;
-        }
+        $latestPeriod = $periods->first();
+        $currentMonth = $latestPeriod ? (int) $latestPeriod->month : (int) now()->month;
+        $currentYear  = $latestPeriod ? (int) $latestPeriod->year : (int) now()->year;
 
-        // 3. Ambil data rincian payroll untuk periode aktif
+        return view('payroll_results.index', compact(
+            'periods',
+            'currentMonth',
+            'currentYear'
+        ));
+    }
+
+    public function show(Request $request, LatenessDeductionService $service)
+    {
+        $month = (int) $request->input('month', now()->month);
+        $year  = (int) $request->input('year', now()->year);
+
+        // Ambil data rincian payroll untuk periode yang dipilih
         $results = PayrollResult::with(['employee.project.company', 'employee.jabatan', 'payrollComponent', 'payrollSetting'])
             ->where('month', $month)
             ->where('year', $year)
@@ -79,25 +94,30 @@ class PayrollResultController extends Controller
             // Filter columns: keep all allowances, keep THR only if has non-zero values
             $payrollColumns = $payrollColumns->filter(function ($column) use ($results) {
                 if ($column->type !== 'thr') {
-                    return true; // Keep all non-THR columns (allowances shown even if 0)
+                    return true;
                 }
-                // For THR columns, check if there's any non-zero value
                 return $results->contains(function ($result) use ($column) {
                     return $result->payroll_component_id == $column->id && $result->amount > 0;
                 });
             });
         }
 
-        // 4. Hitung ringkasan Header KPI
+        // Hitung ringkasan Header KPI
         $totalEmployees = $groupedResults->count();
         $totalGross = (float) $results->whereIn('type', ['allowance', 'thr'])->sum('amount');
         $totalDeductions = (float) $results->whereIn('type', ['deduction', 'bpjs'])->sum('amount');
         $totalNet = $totalGross - $totalDeductions;
         $cutoffPeriod = $service->getCutoffPeriod($year, $month);
-        $activeTab = $request->input('tab', ($request->filled('month') && $request->filled('year')) ? 'detail' : 'periods');
+        $activeTab = $request->input('tab', 'detail');
 
-        return view('payroll_results.index', compact(
-            'periods',
+        $hasStatusColumn = \Illuminate\Support\Facades\Schema::hasColumn('payroll_results', 'status');
+        $periodStatus = 'draft';
+        if ($hasStatusColumn) {
+            $isDraft = PayrollResult::where('month', $month)->where('year', $year)->where('status', '!=', 'final')->exists();
+            $periodStatus = $isDraft ? 'draft' : 'final';
+        }
+
+        return view('payroll_results.show', compact(
             'results',
             'month',
             'year',
@@ -108,7 +128,8 @@ class PayrollResultController extends Controller
             'totalDeductions',
             'totalNet',
             'cutoffPeriod',
-            'activeTab'
+            'activeTab',
+            'periodStatus'
         ));
     }
 
@@ -127,6 +148,51 @@ class PayrollResultController extends Controller
 
         $month = (int) $request->month;
         $year  = (int) $request->year;
+
+        // Jika data yang dihapus berstatus final, kembalikan saldo pinjaman karyawan terlebih dahulu
+        $hasStatusColumn = \Illuminate\Support\Facades\Schema::hasColumn('payroll_results', 'status');
+        if ($hasStatusColumn) {
+            $isFinal = PayrollResult::where('month', $month)->where('year', $year)->where('status', 'final')->exists();
+            if ($isFinal) {
+                $currentDate = \Carbon\Carbon::createFromDate($year, $month, 15)->endOfMonth();
+                $loanComponentIds = PayrollComponent::where('name', 'like', '%Pinjaman%')->pluck('id');
+                $loanResults = PayrollResult::where('month', $month)
+                    ->where('year', $year)
+                    ->whereIn('payroll_component_id', $loanComponentIds)
+                    ->where('amount', '>', 0)
+                    ->get();
+
+                foreach ($loanResults as $lr) {
+                    $empLoan = EmpLoan::where('emp_id', $lr->emp_id)
+                        ->where(function ($query) use ($currentDate) {
+                            $query->whereDate('start_date', '<=', $currentDate)
+                                ->where(function ($q) use ($currentDate) {
+                                    $q->whereNull('end_date')
+                                        ->orWhereDate('end_date', '>=', $currentDate);
+                                });
+                        })
+                        ->latest('id')
+                        ->first();
+
+                    if ($empLoan) {
+                        $currRemaining = (float) ($empLoan->remaining_amount ?? 0);
+                        $restoredRemaining = min((float) $empLoan->amount, $currRemaining + (float) $lr->amount);
+                        $restoredPaid = max(0.0, (float) ($empLoan->paid_amount ?? 0) - (float) $lr->amount);
+
+                        if (\Illuminate\Support\Facades\Schema::hasColumn('emp_loans', 'paid_amount')) {
+                            $empLoan->paid_amount = $restoredPaid;
+                        }
+                        if (\Illuminate\Support\Facades\Schema::hasColumn('emp_loans', 'remaining_amount')) {
+                            $empLoan->remaining_amount = $restoredRemaining;
+                        }
+                        if ($restoredRemaining > 0) {
+                            $empLoan->status = 'open';
+                        }
+                        $empLoan->save();
+                    }
+                }
+            }
+        }
 
         $deleted = PayrollResult::where('month', $month)
             ->where('year', $year)
@@ -162,7 +228,9 @@ class PayrollResultController extends Controller
         // Set session flag to prevent duplicate submission
         session()->put($processKey, true);
 
-        DB::transaction(function () use ($month, $year, $isThr) {
+        $hasStatusColumn = \Illuminate\Support\Facades\Schema::hasColumn('payroll_results', 'status');
+
+        DB::transaction(function () use ($month, $year, $isThr, $hasStatusColumn) {
             // Get Active Setting
             $setting = PayrollSetting::where('is_aktif', true)
                 ->with('details.component')->first();
@@ -170,6 +238,50 @@ class PayrollResultController extends Controller
             if (!$setting) {
                 // throw new \Exception('No active payroll setting found.'); // Or handle gracefully
                 return;
+            }
+
+            // Jika periode yang diproses ulang sebelumnya berstatus final, kembalikan saldo pinjaman terlebih dahulu
+            if ($hasStatusColumn) {
+                $isPreviouslyFinal = PayrollResult::where('month', $month)->where('year', $year)->where('status', 'final')->exists();
+                if ($isPreviouslyFinal) {
+                    $currentDate = \Carbon\Carbon::createFromDate($year, $month, 15)->endOfMonth();
+                    $loanComponentIds = PayrollComponent::where('name', 'like', '%Pinjaman%')->pluck('id');
+                    $loanResults = PayrollResult::where('month', $month)
+                        ->where('year', $year)
+                        ->whereIn('payroll_component_id', $loanComponentIds)
+                        ->where('amount', '>', 0)
+                        ->get();
+
+                    foreach ($loanResults as $lr) {
+                        $empLoan = EmpLoan::where('emp_id', $lr->emp_id)
+                            ->where(function ($query) use ($currentDate) {
+                                $query->whereDate('start_date', '<=', $currentDate)
+                                    ->where(function ($q) use ($currentDate) {
+                                        $q->whereNull('end_date')
+                                            ->orWhereDate('end_date', '>=', $currentDate);
+                                    });
+                            })
+                            ->latest('id')
+                            ->first();
+
+                        if ($empLoan) {
+                            $currRemaining = (float) ($empLoan->remaining_amount ?? 0);
+                            $restoredRemaining = min((float) $empLoan->amount, $currRemaining + (float) $lr->amount);
+                            $restoredPaid = max(0.0, (float) ($empLoan->paid_amount ?? 0) - (float) $lr->amount);
+
+                            if (\Illuminate\Support\Facades\Schema::hasColumn('emp_loans', 'paid_amount')) {
+                                $empLoan->paid_amount = $restoredPaid;
+                            }
+                            if (\Illuminate\Support\Facades\Schema::hasColumn('emp_loans', 'remaining_amount')) {
+                                $empLoan->remaining_amount = $restoredRemaining;
+                            }
+                            if ($restoredRemaining > 0) {
+                                $empLoan->status = 'open';
+                            }
+                            $empLoan->save();
+                        }
+                    }
+                }
             }
 
             // Cleanup existing results for this period and setting to avoid duplicates
@@ -230,7 +342,7 @@ class PayrollResultController extends Controller
                         }
 
                         if (strtolower($detail->component->name) != 'thr') {
-                            $allowanceResults[] = [
+                            $item = [
                                 'month' => $month,
                                 'year' => $year,
                                 'emp_id' => $employee->id,
@@ -241,6 +353,10 @@ class PayrollResultController extends Controller
                                 'created_at' => now(),
                                 'updated_at' => now(),
                             ];
+                            if ($hasStatusColumn) {
+                                $item['status'] = 'draft';
+                            }
+                            $allowanceResults[] = $item;
                         }
                     }
                 }
@@ -253,8 +369,7 @@ class PayrollResultController extends Controller
                 // 2. Process THR
                 foreach ($setting->details as $detail) {
                     if ($detail->component->type == 'thr') {
-
-                        $thrResults[] = [
+                        $item = [
                             'month' => $month,
                             'year' => $year,
                             'emp_id' => $employee->id,
@@ -265,6 +380,10 @@ class PayrollResultController extends Controller
                             'created_at' => now(),
                             'updated_at' => now(),
                         ];
+                        if ($hasStatusColumn) {
+                            $item['status'] = 'draft';
+                        }
+                        $thrResults[] = $item;
                     }
                 }
 
@@ -281,7 +400,7 @@ class PayrollResultController extends Controller
                         $amount = $detail->base_amount * (($detail->value / 100) ?? 0);
                         
                         $totalSubsidiBpjs += $amount;
-                        $subsidiBpjsResults[] = [
+                        $item = [
                             'month' => $month,
                             'year' => $year,
                             'emp_id' => $employee->id,
@@ -292,6 +411,10 @@ class PayrollResultController extends Controller
                             'created_at' => now(),
                             'updated_at' => now(),
                         ];
+                        if ($hasStatusColumn) {
+                            $item['status'] = 'draft';
+                        }
+                        $subsidiBpjsResults[] = $item;
                     }
                 }
 
@@ -307,7 +430,7 @@ class PayrollResultController extends Controller
 
                         $amount = $detail->base_amount * (($detail->value / 100) ?? 0);
 
-                        $bpjsResults[] = [
+                        $item = [
                             'month' => $month,
                             'year' => $year,
                             'emp_id' => $employee->id,
@@ -318,16 +441,19 @@ class PayrollResultController extends Controller
                             'created_at' => now(),
                             'updated_at' => now(),
                         ];
+                        if ($hasStatusColumn) {
+                            $item['status'] = 'draft';
+                        }
+                        $bpjsResults[] = $item;
                     }
                 }
-
 
                 // Save BPJS
                 if (!empty($bpjsResults)) {
                     PayrollResult::insert($bpjsResults);
                 }
 
-                // 4. hitung pinjaman dengan validasi saldo
+                // 4. Hitung cicilan pinjaman (HANYA menghitung nilai potongan, saldo di-update nanti saat Finalisasi)
                 $loanResults = [];
                 foreach ($setting->details as $detail) {
                     if (stripos(strtolower($detail->component->name), 'pinjaman') !== false) {
@@ -356,27 +482,10 @@ class PayrollResultController extends Controller
                                 } else {
                                     $amount = $balance['installment_due'];
                                 }
-
-                                // Update sisa saldo pinjaman di tabel emp_loans
-                                $newRemaining = max(0.0, $balance['saldo_before'] - $amount);
-                                if (\Illuminate\Support\Facades\Schema::hasTable('emp_loans') && \Illuminate\Support\Facades\Schema::hasColumn('emp_loans', 'remaining_amount')) {
-                                    $empLoan->remaining_amount = $newRemaining;
-                                }
-                                if ($newRemaining <= 0) {
-                                    $empLoan->status = 'closed'; // Lunas
-                                }
-                                $empLoan->save();
-                            } else {
-                                $empLoan->status = 'closed';
-                                if (\Illuminate\Support\Facades\Schema::hasTable('emp_loans') && \Illuminate\Support\Facades\Schema::hasColumn('emp_loans', 'remaining_amount')) {
-                                    $empLoan->remaining_amount = 0;
-                                }
-                                $empLoan->save();
-                                $amount = 0;
                             }
                         }
 
-                        $loanResults[] = [
+                        $item = [
                             'month' => $month,
                             'year' => $year,
                             'emp_id' => $employee->id,
@@ -387,6 +496,10 @@ class PayrollResultController extends Controller
                             'created_at' => now(),
                             'updated_at' => now(),
                         ];
+                        if ($hasStatusColumn) {
+                            $item['status'] = 'draft';
+                        }
+                        $loanResults[] = $item;
                     }
                 }
 
@@ -410,7 +523,7 @@ class PayrollResultController extends Controller
                         $potonganDetail = $potonganDetails->get($detail->payroll_component_id);
                         $amount = $potonganDetail ? $potonganDetail->value : 0;
 
-                        $potonganKaryawanResults[] = [
+                        $item = [
                             'month' => $month,
                             'year' => $year,
                             'emp_id' => $employee->id,
@@ -421,6 +534,10 @@ class PayrollResultController extends Controller
                             'created_at' => now(),
                             'updated_at' => now(),
                         ];
+                        if ($hasStatusColumn) {
+                            $item['status'] = 'draft';
+                        }
+                        $potonganKaryawanResults[] = $item;
                     }
                 }
 
@@ -465,7 +582,7 @@ class PayrollResultController extends Controller
                         // Calculate PPh 21 Amount based on TER rate
                         $amount = ($totalAllowance + $totalSubsidiBpjs) * ($terRate / 100);
 
-                        $pph21Results[] = [
+                        $item = [
                             'month' => $month,
                             'year' => $year,
                             'emp_id' => $employee->id,
@@ -476,6 +593,10 @@ class PayrollResultController extends Controller
                             'created_at' => now(),
                             'updated_at' => now(),
                         ];
+                        if ($hasStatusColumn) {
+                            $item['status'] = 'draft';
+                        }
+                        $pph21Results[] = $item;
                     }
                 }
                 }
@@ -488,23 +609,183 @@ class PayrollResultController extends Controller
             }
         });
 
+        // Set status 'draft' secara default jika kolom status sudah ada di tabel payroll_results
+        if ($hasStatusColumn) {
+            PayrollResult::where('month', $month)
+                ->where('year', $year)
+                ->where(function ($q) {
+                    $q->whereNull('status')->orWhere('status', '');
+                })
+                ->update(['status' => 'draft']);
+        }
+
         // Clear session flag after successful processing
         $processKey = 'payroll_process_' . $month . '_' . $year . '_' . ($isThr ? 'thr' : 'regular');
         session()->forget($processKey);
 
-        return redirect()->route('payroll-results.index', ['month' => $month, 'year' => $year, 'tab' => 'detail'])
-            ->with('success', 'Payroll berhasil diproses untuk periode ' . \DateTime::createFromFormat('!m', $month)->format('F') . ' ' . $year . '.');
+        return redirect()->route('payroll-results.show', ['month' => $month, 'year' => $year])
+            ->with('success', 'Payroll berhasil diproses dalam status Draft untuk periode ' . \DateTime::createFromFormat('!m', $month)->format('F') . ' ' . $year . '. Silakan periksa rincian sebelum difinalisasi.');
+    }
+
+    /**
+     * Memperbarui status seluruh payroll result pada suatu periode (Draft <-> Final).
+     * Saat status diubah ke Final, saldo pinjaman karyawan akan dipotong otomatis.
+     * Jika dikembalikan ke Draft, potongan saldo pinjaman akan dikembalikan ke saldo awal.
+     */
+    public function updatePeriodStatus(Request $request)
+    {
+        $request->validate([
+            'month'  => 'required|integer|min:1|max:12',
+            'year'   => 'required|integer|min:2020|max:2099',
+            'status' => 'required|in:draft,final',
+        ]);
+
+        $month  = (int) $request->month;
+        $year   = (int) $request->year;
+        $targetStatus = $request->status;
+
+        $hasStatusColumn = \Illuminate\Support\Facades\Schema::hasColumn('payroll_results', 'status');
+        if (!$hasStatusColumn) {
+            return back()->with('warning', 'Kolom status belum dimigrasi di database. Silakan jalankan perintah migrasi manual: php artisan migrate.');
+        }
+
+        $monthLabel = \DateTime::createFromFormat('!m', $month)->format('F');
+
+        // Cek status saat ini
+        $isCurrentDraft = PayrollResult::where('month', $month)->where('year', $year)->where('status', '!=', 'final')->exists();
+        $currentStatus = $isCurrentDraft ? 'draft' : 'final';
+
+        if ($currentStatus === $targetStatus) {
+            return back()->with('info', "Payroll periode {$monthLabel} {$year} sudah berstatus {$targetStatus}.");
+        }
+
+        DB::transaction(function () use ($month, $year, $targetStatus, $currentStatus) {
+            // Update status seluruh data payroll pada periode ini
+            PayrollResult::where('month', $month)
+                ->where('year', $year)
+                ->update(['status' => $targetStatus]);
+
+            $currentDate = \Carbon\Carbon::createFromDate($year, $month, 15)->endOfMonth();
+
+            // Ambil seluruh rincian pemotongan pinjaman pada periode ini yang memiliki nilai > 0
+            $loanComponentIds = PayrollComponent::where('name', 'like', '%Pinjaman%')->pluck('id');
+            $loanResults = PayrollResult::where('month', $month)
+                ->where('year', $year)
+                ->whereIn('payroll_component_id', $loanComponentIds)
+                ->where('amount', '>', 0)
+                ->get();
+
+            if ($targetStatus === 'final' && $currentStatus === 'draft') {
+                // FINALISASI: Potong sisa saldo pinjaman (remaining_amount) dan tutup pinjaman jika lunas
+                foreach ($loanResults as $lr) {
+                    $empLoan = EmpLoan::where('emp_id', $lr->emp_id)
+                        ->where('status', 'open')
+                        ->where(function ($query) use ($currentDate) {
+                            $query->whereDate('start_date', '<=', $currentDate)
+                                ->where(function ($q) use ($currentDate) {
+                                    $q->whereNull('end_date')
+                                        ->orWhereDate('end_date', '>=', $currentDate);
+                                });
+                        })
+                        ->first();
+
+                    if ($empLoan) {
+                        $currRemaining = $empLoan->remaining_amount !== null ? (float) $empLoan->remaining_amount : (float) $empLoan->amount;
+                        $newRemaining = max(0.0, $currRemaining - (float) $lr->amount);
+                        $newPaid = min((float) $empLoan->amount, (float) ($empLoan->paid_amount ?? 0) + (float) $lr->amount);
+
+                        if (\Illuminate\Support\Facades\Schema::hasColumn('emp_loans', 'paid_amount')) {
+                            $empLoan->paid_amount = $newPaid;
+                        }
+                        if (\Illuminate\Support\Facades\Schema::hasColumn('emp_loans', 'remaining_amount')) {
+                            $empLoan->remaining_amount = $newRemaining;
+                        }
+                        if ($newRemaining <= 0) {
+                            $empLoan->status = 'closed'; // Lunas
+                        }
+                        $empLoan->save();
+                    }
+                }
+            } elseif ($targetStatus === 'draft' && $currentStatus === 'final') {
+                // REVERT KE DRAFT: Kembalikan saldo pinjaman yang sebelumnya terpotong
+                foreach ($loanResults as $lr) {
+                    $empLoan = EmpLoan::where('emp_id', $lr->emp_id)
+                        ->where(function ($query) use ($currentDate) {
+                            $query->whereDate('start_date', '<=', $currentDate)
+                                ->where(function ($q) use ($currentDate) {
+                                    $q->whereNull('end_date')
+                                        ->orWhereDate('end_date', '>=', $currentDate);
+                                });
+                        })
+                        ->latest('id')
+                        ->first();
+
+                    if ($empLoan) {
+                        $currRemaining = $empLoan->remaining_amount !== null ? (float) $empLoan->remaining_amount : 0.0;
+                        $restoredRemaining = min((float) $empLoan->amount, $currRemaining + (float) $lr->amount);
+                        $restoredPaid = max(0.0, (float) ($empLoan->paid_amount ?? 0) - (float) $lr->amount);
+
+                        if (\Illuminate\Support\Facades\Schema::hasColumn('emp_loans', 'paid_amount')) {
+                            $empLoan->paid_amount = $restoredPaid;
+                        }
+                        if (\Illuminate\Support\Facades\Schema::hasColumn('emp_loans', 'remaining_amount')) {
+                            $empLoan->remaining_amount = $restoredRemaining;
+                        }
+                        if ($restoredRemaining > 0) {
+                            $empLoan->status = 'open'; // Buka kembali pinjaman
+                        }
+                        $empLoan->save();
+                    }
+                }
+            }
+        });
+
+        $statusLabel = $targetStatus === 'final'
+            ? 'Final (Saldo pinjaman karyawan berhasil dipotong & slip gaji dirilis ke ESS)'
+            : 'Draft (Disembunyikan dari ESS & pemotongan saldo pinjaman dikembalikan)';
+
+        return back()->with('success', "Status payroll periode {$monthLabel} {$year} berhasil diubah menjadi: {$statusLabel}.");
     }
 
     public function slip($emp_id, $month, $year)
     {
+        $user = auth()->user();
+        $isBackoffice = $user && ($user->canAccessFinanceBackoffice() || $user->isSuperAdmin());
+
+        // Employee Isolation: Karyawan biasa HANYA boleh membuka slip miliknya sendiri!
+        if (!$isBackoffice) {
+            $currentEmp = $user?->employee ?? $user?->getEmployeeRecord();
+            if (!$currentEmp || (int)$currentEmp->id !== (int)$emp_id) {
+                abort(403, 'Akses ditolak. Anda tidak berhak melihat data slip gaji karyawan lain.');
+            }
+
+            // Pastikan statusnya harus final jika diakses oleh karyawan
+            if (\Illuminate\Support\Facades\Schema::hasColumn('payroll_results', 'status')) {
+                $hasNonFinal = PayrollResult::where('emp_id', $emp_id)
+                    ->where('month', (int)$month)
+                    ->where('year', (int)$year)
+                    ->where('status', '!=', 'final')
+                    ->exists();
+
+                if ($hasNonFinal) {
+                    abort(403, 'Slip gaji untuk periode ini belum berstatus final / belum dipublikasikan oleh HRD.');
+                }
+            }
+        }
+
         $employee = EmpData::findOrFail($emp_id);
 
-        $results = PayrollResult::with(['payrollComponent', 'payrollSetting'])
+        $query = PayrollResult::with(['payrollComponent', 'payrollSetting'])
             ->where('emp_id', $emp_id)
             ->where('month', $month)
-            ->where('year', $year)
-            ->get();
+            ->where('year', $year);
+
+        // Jika bukan backoffice, pastikan query hanya mengambil status final
+        if (!$isBackoffice && \Illuminate\Support\Facades\Schema::hasColumn('payroll_results', 'status')) {
+            $query->where('status', 'final');
+        }
+
+        $results = $query->get();
 
         if ($results->isEmpty()) {
             return redirect()->route('payroll-results.index')->with('error', 'No payroll data found for this employee.');
@@ -803,7 +1084,7 @@ class PayrollResultController extends Controller
 
     public function deductions(Request $request)
     {
-        return redirect()->route('payroll-results.index', array_merge($request->all(), ['tab' => 'bpjs']));
+        return redirect()->route('payroll-results.show', array_merge($request->all(), ['tab' => 'bpjs']));
     }
 
     public function exportDeductions(Request $request)

@@ -48,12 +48,12 @@ class EmpLoanController extends Controller
                     return '<span class="font-semibold text-slate-700 font-mono text-xs whitespace-nowrap">Rp ' . number_format($row->installment_amount, 0, ',', '.') . '</span>';
                 })
                 ->addColumn('paid_amount', function ($row) {
-                    $paid = $row->getPaidAmount();
+                    $paid = (float) ($row->paid_amount ?? ($row->amount - ($row->remaining_amount ?? $row->amount)));
                     return '<span class="font-semibold text-emerald-600 font-mono text-xs whitespace-nowrap">Rp ' . number_format($paid, 0, ',', '.') . '</span>';
                 })
                 ->addColumn('remaining_balance', function ($row) {
-                    $paid = $row->getPaidAmount();
-                    $remaining = $row->remaining_balance;
+                    $remaining = (float) ($row->remaining_amount ?? $row->amount);
+                    $paid = (float) ($row->paid_amount ?? max(0, $row->amount - $remaining));
                     $percent = $row->amount > 0 ? min(100, round(($paid / $row->amount) * 100)) : 100;
 
                     if ($remaining <= 0 || $row->status === 'closed') {
@@ -157,27 +157,25 @@ class EmpLoanController extends Controller
         if ($request->filled('emp_id')) {
             $statsQuery->where('emp_id', $request->emp_id);
         }
-        $loans = $statsQuery->get();
-        $totalLoansCount = $loans->count();
-        $openLoansCount = $loans->where('status', 'open')->count();
-        $closedLoansCount = $loans->where('status', 'closed')->count();
-        $totalLoanAmount = (float) $loans->sum('amount');
-        $totalPaidAmount = 0.0;
-        $totalRemainingAmount = 0.0;
 
-        foreach ($loans as $l) {
-            $paid = $l->getPaidAmount();
-            $totalPaidAmount += $paid;
-            $totalRemainingAmount += $l->remaining_balance;
-        }
+        $statsRaw = (clone $statsQuery)
+            ->selectRaw('
+                COUNT(*) as total_count,
+                SUM(CASE WHEN status = "open" THEN 1 ELSE 0 END) as open_count,
+                SUM(CASE WHEN status = "closed" THEN 1 ELSE 0 END) as closed_count,
+                COALESCE(SUM(amount), 0) as total_amount,
+                COALESCE(SUM(COALESCE(paid_amount, GREATEST(0, amount - COALESCE(remaining_amount, amount)))), 0) as paid_amount,
+                COALESCE(SUM(COALESCE(remaining_amount, amount)), 0) as remaining_amount
+            ')
+            ->first();
 
         $stats = [
-            'total_count'      => $totalLoansCount,
-            'open_count'       => $openLoansCount,
-            'closed_count'     => $closedLoansCount,
-            'total_amount'     => $totalLoanAmount,
-            'paid_amount'      => $totalPaidAmount,
-            'remaining_amount' => $totalRemainingAmount,
+            'total_count'      => (int) ($statsRaw->total_count ?? 0),
+            'open_count'       => (int) ($statsRaw->open_count ?? 0),
+            'closed_count'     => (int) ($statsRaw->closed_count ?? 0),
+            'total_amount'     => (float) ($statsRaw->total_amount ?? 0),
+            'paid_amount'      => (float) ($statsRaw->paid_amount ?? 0),
+            'remaining_amount' => (float) ($statsRaw->remaining_amount ?? 0),
         ];
 
         return view('emp_loans.index', compact('employee', 'stats'));
@@ -280,6 +278,14 @@ class EmpLoanController extends Controller
             }
             if (!Schema::hasColumn('emp_loans', 'attachment')) {
                 unset($data['attachment']);
+            }
+
+            // Inisialisasi saldo fisik pinjaman baru
+            if (Schema::hasColumn('emp_loans', 'paid_amount')) {
+                $data['paid_amount'] = 0.00;
+            }
+            if (Schema::hasColumn('emp_loans', 'remaining_amount')) {
+                $data['remaining_amount'] = (float) $data['amount'];
             }
 
             $loan = EmpLoan::create($data);
