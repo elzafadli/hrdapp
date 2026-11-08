@@ -163,8 +163,16 @@ class DocumentApproval extends Model
             return false;
         }
 
+        $isSuperAdmin = in_array(strtolower(trim((string) $user->role)), ['superadmin', 'admin'], true);
+
         $employee = $user->employee;
-        if (!$employee) {
+        if (!$employee && !$user->relationLoaded('employee')) {
+            $employee = \App\Models\EmpData::where('user_id', $user->id)->first()
+                ?? (!empty($user->email) ? \App\Models\EmpData::where('email', $user->email)->first() : null);
+        }
+
+        // Jika bukan superadmin dan tidak memiliki record employee, tidak berhak approve
+        if (!$employee && !$isSuperAdmin) {
             return false;
         }
 
@@ -180,19 +188,22 @@ class DocumentApproval extends Model
         }
 
         // Karyawan pemohon tidak boleh menyetujui pengajuannya sendiri
-        if (isset($parent->emp_id) && (int) $parent->emp_id === (int) $employee->id) {
+        if ($employee && isset($parent->emp_id) && (int) $parent->emp_id === (int) $employee->id) {
             return false;
         }
 
-        // Jika tahapan approval ini menunjuk karyawan tertentu secara spesifik (misal: karyawan pengganti)
-        if ($this->approver_emp_id) {
-            if ((int) $employee->id !== (int) $this->approver_emp_id) {
-                return false;
-            }
-        } else {
-            // Jika persetujuan berdasarkan struktural jabatan, periksa kesesuaian jabatan user
-            if ((int) $employee->jabatan_id !== (int) $this->jabatan_id) {
-                return false;
+        // Superadmin memiliki wewenang approve tanpa dibatasi kesesuaian jabatan
+        if (!$isSuperAdmin) {
+            // Jika tahapan approval ini menunjuk karyawan tertentu secara spesifik (misal: karyawan pengganti)
+            if ($this->approver_emp_id) {
+                if (!$employee || (int) $employee->id !== (int) $this->approver_emp_id) {
+                    return false;
+                }
+            } else {
+                // Jika persetujuan berdasarkan struktural jabatan, periksa kesesuaian jabatan user
+                if (!$employee || (int) $employee->jabatan_id !== (int) $this->jabatan_id) {
+                    return false;
+                }
             }
         }
 

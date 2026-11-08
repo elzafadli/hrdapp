@@ -53,11 +53,30 @@ class SendEssApprovalNotification implements ShouldQueue
             // 1. Tentukan deskripsi dokumen dan URL link
             $docInfo = $this->resolveDocumentInfo();
 
+            // Identifikasi data akun User pemohon
+            $applicantUser   = $this->approvable->user 
+                ?? $this->approvable->employee?->user
+                ?? ($this->approvable->user_id ? \App\Models\User::find($this->approvable->user_id) : null)
+                ?? ($this->approvable->employee?->user_id ? \App\Models\User::find($this->approvable->employee->user_id) : null);
+            $applicantUserId = $applicantUser?->id ?? $this->approvable->user_id ?? $this->approvable->employee?->user_id ?? '-';
+            $applicantEmail  = $applicantUser?->email ?? $this->approvable->employee?->email ?? '-';
+
             // 2. Kumpulkan daftar penerima WhatsApp
             $receivers = $this->resolveReceivers();
 
             if ($receivers->isEmpty()) {
-                Log::info("[SendEssApprovalNotification] Tidak ada penerima dengan nomor WhatsApp untuk event '{$this->event}' pada dokumen #{$docInfo['number']}");
+                $targetJabatan = $this->approvalStep?->jabatan_name ?? '-';
+                $targetLevel   = $this->approvalStep?->level ?? 1;
+
+                Log::info("[SendEssApprovalNotification] Tidak ada penerima dengan nomor WhatsApp untuk event '{$this->event}' pada dokumen #{$docInfo['number']} (Tahap Level {$targetLevel}: {$targetJabatan}) | Pemohon: [User ID: {$applicantUserId}, Email: {$applicantEmail}]", [
+                    'event'             => $this->event,
+                    'document_number'   => $docInfo['number'],
+                    'target_level'      => $targetLevel,
+                    'target_jabatan'    => $targetJabatan,
+                    'applicant_user_id' => $applicantUserId,
+                    'applicant_email'   => $applicantEmail,
+                    'applicant_name'    => $docInfo['applicant_name'],
+                ]);
                 return;
             }
 
@@ -66,6 +85,21 @@ class SendEssApprovalNotification implements ShouldQueue
                 $message = $this->buildMessage($receiver, $docInfo);
 
                 $result = KirimiService::sendTextMessage($receiver['phone'], $message);
+
+                $receiverUserId = $receiver['user_id'] ?? '-';
+                $receiverEmail  = $receiver['email'] ?? '-';
+
+                Log::info("[SendEssApprovalNotification] Notifikasi WhatsApp event '{$this->event}' pada dokumen #{$docInfo['number']} diproses ke: {$receiver['name']} | Penerima: [User ID: {$receiverUserId}, Email: {$receiverEmail}, Phone: {$receiver['phone']}] | Pemohon: [User ID: {$applicantUserId}, Email: {$applicantEmail}]", [
+                    'event'             => $this->event,
+                    'document_number'   => $docInfo['number'],
+                    'receiver_user_id'  => $receiverUserId,
+                    'receiver_email'    => $receiverEmail,
+                    'receiver_phone'    => $receiver['phone'],
+                    'applicant_user_id' => $applicantUserId,
+                    'applicant_email'   => $applicantEmail,
+                    'status'            => $result['success'] ? 'success' : 'failed',
+                    'response'          => $result['response'] ?? $result['error'] ?? null,
+                ]);
 
                 // Simpan log ke tabel ess_notification_logs bila tabel sudah di-migrate
                 if (Schema::hasTable('ess_notification_logs')) {
@@ -77,16 +111,24 @@ class SendEssApprovalNotification implements ShouldQueue
                         'receiver_phone'   => $receiver['phone'],
                         'message'          => $message,
                         'status'           => $result['success'] ? 'success' : 'failed',
-                        'response_payload' => json_encode($result['response'] ?? $result['error']),
+                        'response_payload' => json_encode([
+                            'receiver_user_id'  => $receiverUserId,
+                            'receiver_email'    => $receiverEmail,
+                            'applicant_user_id' => $applicantUserId,
+                            'applicant_email'   => $applicantEmail,
+                            'api_response'      => $result['response'] ?? $result['error'] ?? null,
+                        ]),
                     ]);
                 }
             }
 
         } catch (\Throwable $e) {
             Log::error("[SendEssApprovalNotification] Gagal memproses job notifikasi: " . $e->getMessage(), [
-                'event' => $this->event,
-                'approvable' => get_class($this->approvable) . '#' . $this->approvable->id,
-                'trace' => $e->getTraceAsString(),
+                'event'             => $this->event,
+                'approvable'        => get_class($this->approvable) . '#' . $this->approvable->id,
+                'applicant_user_id' => $applicantUserId ?? null,
+                'applicant_email'   => $applicantEmail ?? null,
+                'trace'             => $e->getTraceAsString(),
             ]);
         }
     }
@@ -183,7 +225,7 @@ class SendEssApprovalNotification implements ShouldQueue
 
             // Cari penerima persetujuan:
             // 1. Jika tahapan menunjuk spesifik karyawan (misal: pengganti level 1)
-            // 2. Jika tidak, cari semua user dengan jabatan_id yang sama dengan approval step ini
+            // 2. Jika tidak, cari semua karyawan dengan jabatan_id yang sama dengan approval step ini
             if ($step->approver_emp_id) {
                 $approverEmployees = EmpData::with('user')->where('id', $step->approver_emp_id)->get();
             } else {
@@ -194,14 +236,17 @@ class SendEssApprovalNotification implements ShouldQueue
             }
 
             foreach ($approverEmployees as $emp) {
-                $phone = $emp->user?->phone ?? null;
+                $user = $emp->user ?? ($emp->email ? \App\Models\User::where('email', $emp->email)->first() : null);
+                $phone = $user?->phone ?? null;
                 $formattedPhone = KirimiService::formatPhoneNumber($phone);
                 if ($formattedPhone) {
                     $receivers->push([
-                        'role' => 'approver',
-                        'name' => $emp->name,
-                        'phone' => $formattedPhone,
-                        'level' => $step->level,
+                        'role'             => 'approver',
+                        'name'             => $emp->name,
+                        'user_id'          => $emp->user_id ?? $user?->id,
+                        'email'            => $user?->email ?? $emp->email,
+                        'phone'            => $formattedPhone,
+                        'level'            => $step->level,
                         'approver_jabatan' => $step->jabatan_name,
                     ]);
                 }
@@ -213,7 +258,7 @@ class SendEssApprovalNotification implements ShouldQueue
         // Kasus 2: Notifikasi ke Pemohon (completed / auto_completed / rejected / step_approved)
         if (in_array($this->event, ['completed', 'auto_completed', 'rejected', 'step_approved'])) {
             $user = $this->approvable->user ?? $this->approvable->employee?->user;
-            $applicantPhone = $user?->phone ?: config('services.kirimi.override_phone');
+            $applicantPhone = $user?->phone ?? null;
             $formattedPhone = KirimiService::formatPhoneNumber($applicantPhone);
 
             if ($formattedPhone) {
@@ -227,6 +272,8 @@ class SendEssApprovalNotification implements ShouldQueue
                 $receivers->push([
                     'role'             => 'applicant',
                     'name'             => $this->approvable->employee?->name ?? $user?->name ?? 'Karyawan',
+                    'user_id'          => $user?->id,
+                    'email'            => $user?->email ?? $this->approvable->employee?->email,
                     'phone'            => $formattedPhone,
                     'approver_name'    => $approverName,
                     'approver_jabatan' => $approverJabatan,

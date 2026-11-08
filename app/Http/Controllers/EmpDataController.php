@@ -339,9 +339,17 @@ class EmpDataController extends Controller
 
     public function destroy(EmpData $employee)
     {
-        $employee->delete();
+        try {
+            \Illuminate\Support\Facades\DB::transaction(function () use ($employee) {
+                // Hapus data anak payroll results yang tidak memiliki cascade on delete di level DB
+                $employee->payrollResults()->delete();
+                $employee->delete();
+            });
 
-        return redirect()->route('employee.index')->with('success', 'Data karyawan berhasil dihapus.');
+            return redirect()->route('employee.index')->with('success', 'Data karyawan berhasil dihapus.');
+        } catch (\Throwable $e) {
+            return redirect()->route('employee.index')->with('error', 'Gagal menghapus data karyawan: ' . $e->getMessage());
+        }
     }
 
     /**

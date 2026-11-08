@@ -19,9 +19,13 @@ class ApprovalInboxController extends Controller
     protected function getEmployee()
     {
         $user = Auth::user();
+        if (!$user) {
+            return null;
+        }
+
         return $user->employee
             ?? EmpData::where('user_id', $user->id)->first()
-            ?? EmpData::where('name', $user->name)->first();
+            ?? (!empty($user->email) ? EmpData::where('email', $user->email)->first() : null);
     }
 
     /**
@@ -32,6 +36,7 @@ class ApprovalInboxController extends Controller
     {
         $employee = $this->getEmployee();
         $user     = Auth::user();
+        $isSuperAdmin = in_array(strtolower(trim((string) $user?->role)), ['superadmin', 'admin'], true);
 
         // Modul filter
         $filterModule = $request->input('module', 'all');
@@ -80,6 +85,11 @@ class ApprovalInboxController extends Controller
                     });
                 }
             });
+        } elseif ($isSuperAdmin) {
+            // Super Admin dapat memantau dan memproses seluruh dokumen approval
+        } else {
+            // Bukan Super Admin dan tidak punya data karyawan
+            $query->whereRaw('1 = 0');
         }
 
         // Filter status
@@ -111,9 +121,15 @@ class ApprovalInboxController extends Controller
         $approvals = $query->orderByDesc('created_at')->paginate(20)->withQueryString();
 
         // Hitung ringkasan statistik
-        $stats = [];
+        $stats = [
+            'pending'  => 0,
+            'approved' => 0,
+            'rejected' => 0,
+            'total'    => 0,
+        ];
+
+        $baseQuery = DocumentApproval::query();
         if ($employee) {
-            $baseQuery = DocumentApproval::query();
             if (Schema::hasColumn('document_approvals', 'approver_emp_id')) {
                 $baseQuery->where(function ($q) use ($employee) {
                     $q->where('approver_emp_id', $employee->id)
@@ -127,21 +143,25 @@ class ApprovalInboxController extends Controller
             }
 
             $baseQuery->where(function ($q) use ($employee, $morphClasses) {
-                    foreach ($morphClasses as $class) {
-                        $q->orWhere(function ($sub) use ($employee, $class) {
-                            $sub->where('approvable_type', $class)
-                                ->whereHasMorph('approvable', [$class], function ($inner) use ($employee) {
-                                    $inner->where('emp_id', '!=', $employee->id);
-                                });
-                        });
-                    }
-                });
-
-            $stats['pending']  = (clone $baseQuery)->actionablePending()->count();
-            $stats['approved'] = (clone $baseQuery)->where('status', 'approved')->count();
-            $stats['rejected'] = (clone $baseQuery)->where('status', 'rejected')->count();
-            $stats['total']    = (clone $baseQuery)->count();
+                foreach ($morphClasses as $class) {
+                    $q->orWhere(function ($sub) use ($employee, $class) {
+                        $sub->where('approvable_type', $class)
+                            ->whereHasMorph('approvable', [$class], function ($inner) use ($employee) {
+                                $inner->where('emp_id', '!=', $employee->id);
+                            });
+                    });
+                }
+            });
+        } elseif ($isSuperAdmin) {
+            // Super Admin menghitung semua dokumen approval
+        } else {
+            $baseQuery->whereRaw('1 = 0');
         }
+
+        $stats['pending']  = (clone $baseQuery)->actionablePending()->count();
+        $stats['approved'] = (clone $baseQuery)->where('status', 'approved')->count();
+        $stats['rejected'] = (clone $baseQuery)->where('status', 'rejected')->count();
+        $stats['total']    = (clone $baseQuery)->count();
 
         return view('approval-inbox.index', compact(
             'employee', 'approvals', 'stats', 'filterModule', 'filterStatus'

@@ -69,6 +69,11 @@
                             {{ __('Profile Karyawan') }}
                         </x-dropdown-link>
 
+                        <x-dropdown-link :href="route('ess.password.edit')">
+                            <i class="fa-solid fa-key mr-2 text-amber-500"></i>
+                            {{ __('Ubah Password') }}
+                        </x-dropdown-link>
+
                         <x-dropdown-link :href="route('profile.edit')">
                             <i class="fa-regular fa-user mr-2 text-gray-400"></i>
                             {{ __('Profile Akun') }}
@@ -152,12 +157,14 @@
                         <i class="fa-solid fa-id-badge mr-2 text-blue-500"></i>
                         {{ __('Profile') }}
                     </x-responsive-nav-link>
-                    @if(is_user_approver())
+                    <x-responsive-nav-link :href="route('ess.password.edit')" :active="request()->routeIs('ess.password.*')" @click="open = false">
+                        <i class="fa-solid fa-key mr-2 text-amber-500"></i>
+                        {{ __('Ubah Password') }}
+                    </x-responsive-nav-link>
                     <x-responsive-nav-link :href="route('approval-inbox.index')" :active="request()->routeIs('approval-inbox.*')" @click="open = false">
                         <i class="fa-solid fa-inbox mr-2 text-blue-500"></i>
                         {{ __('Approval Inbox') }}
                     </x-responsive-nav-link>
-                    @endif
                     <x-responsive-nav-link :href="route('attendance.check-in')" :active="request()->routeIs('attendance.check-in')" @click="open = false">
                         <i class="fa-solid fa-fingerprint mr-2 text-blue-500"></i>
                         {{ __('Presensi Masuk (ESS)') }}

@@ -24,10 +24,17 @@ class SickLeaveController extends Controller
     protected function getEmployee()
     {
         $user = auth()->user();
+        if (!$user) {
+            return null;
+        }
+
+        if ($user->role === 'superadmin') {
+            return EmpData::find(16);
+        }
+
         return $user->employee
             ?? EmpData::where('user_id', $user->id)->first()
-            ?? EmpData::where('name', $user->name)->first()
-            ?? EmpData::first();
+            ?? (!empty($user->email) ? EmpData::where('email', $user->email)->first() : null);
     }
 
     /**
@@ -248,6 +255,10 @@ class SickLeaveController extends Controller
     public function cancel($id)
     {
         $employee = $this->getEmployee();
+        if (!$employee) {
+            return back()->with('error', 'Anda tidak memiliki akses data karyawan.');
+        }
+
         $leaveRequest = LeaveRequest::where('emp_id', $employee->id)
             ->where('leave_type', 'sick')
             ->findOrFail($id);

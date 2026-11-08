@@ -26,6 +26,11 @@
                         <i class="fa-solid fa-arrow-left"></i>
                         Kembali ke Timeline
                     </a>
+                    <a href="{{ route('ess.password.edit') }}"
+                        class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 text-xs font-bold transition">
+                        <i class="fa-solid fa-key"></i>
+                        Ubah Password Akun
+                    </a>
                     @if(auth()->user()?->role === 'superadmin' || auth()->user()?->role === 'admin')
                         <a href="{{ route('employee.index') }}"
                             class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition">

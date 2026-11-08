@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ApprovalSettingDetail extends Model
 {
@@ -33,6 +34,22 @@ class ApprovalSettingDetail extends Model
     public function approverJabatan(): BelongsTo
     {
         return $this->belongsTo(EmpJabatan::class, 'approver_jabatan_id');
+    }
+
+    /**
+     * Relasi ke spesifik karyawan approver jika ditunjuk langsung (nullable).
+     */
+    public function approverEmployee(): BelongsTo
+    {
+        return $this->belongsTo(EmpData::class, 'approver_emp_id');
+    }
+
+    /**
+     * Relasi ke seluruh karyawan dengan jabatan approver pada tingkat ini.
+     */
+    public function approverEmployees(): HasMany
+    {
+        return $this->hasMany(EmpData::class, 'jabatan_id', 'approver_jabatan_id');
     }
 
     /**

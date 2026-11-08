@@ -21,12 +21,51 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PayrollResultController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request, LatenessDeductionService $service)
     {
-        $month = $request->input('month', now()->month);
-        $year = $request->input('year', now()->year);
+        // 1. Ambil seluruh periode yang tersimpan di payroll_results mirip modul potongan karyawan
+        $periodsQuery = DB::table('payroll_results')
+            ->select(
+                'year',
+                'month',
+                DB::raw('COUNT(DISTINCT emp_id) as total_employees'),
+                DB::raw("SUM(CASE WHEN type IN ('allowance', 'thr') THEN amount ELSE 0 END) as total_allowance"),
+                DB::raw("SUM(CASE WHEN type IN ('deduction', 'bpjs') THEN amount ELSE 0 END) as total_deduction"),
+                DB::raw('MAX(updated_at) as last_processed_at')
+            )
+            ->groupBy('year', 'month')
+            ->orderBy('year', 'desc')
+            ->orderBy('month', 'desc')
+            ->get();
 
-        $results = PayrollResult::with(['employee.project.company', 'payrollComponent', 'payrollSetting'])
+        $periods = $periodsQuery->map(function ($p) use ($service) {
+            $cutoff = $service->getCutoffPeriod((int) $p->year, (int) $p->month);
+            $p->start_date = $cutoff['start_date'];
+            $p->end_date = $cutoff['end_date'];
+            $p->cutoff_range = $cutoff['label'] ?? ($cutoff['start_date']->translatedFormat('d M Y') . ' s/d ' . $cutoff['end_date']->translatedFormat('d M Y'));
+            $p->total_gross = (float) $p->total_allowance;
+            $p->total_deductions = (float) $p->total_deduction;
+            $p->total_thp = (float) $p->total_allowance - (float) $p->total_deduction;
+            $dateObj = \Carbon\Carbon::createFromDate((int) $p->year, (int) $p->month, 1);
+            $p->period_label = $dateObj->translatedFormat('F Y');
+            return $p;
+        });
+
+        // 2. Tentukan periode yang aktif/dipilih untuk ditampilkan detailnya
+        if ($request->filled('month') && $request->filled('year')) {
+            $month = (int) $request->input('month');
+            $year = (int) $request->input('year');
+        } elseif ($periods->isNotEmpty()) {
+            $latest = $periods->first();
+            $month = (int) $latest->month;
+            $year = (int) $latest->year;
+        } else {
+            $month = (int) now()->month;
+            $year = (int) now()->year;
+        }
+
+        // 3. Ambil data rincian payroll untuk periode aktif
+        $results = PayrollResult::with(['employee.project.company', 'employee.jabatan', 'payrollComponent', 'payrollSetting'])
             ->where('month', $month)
             ->where('year', $year)
             ->get();
@@ -35,7 +74,7 @@ class PayrollResultController extends Controller
 
         $payrollColumns = collect();
         if ($groupedResults->isNotEmpty()) {
-            $payrollColumns = $groupedResults->first()->map(fn($d) => $d->payrollComponent);
+            $payrollColumns = $results->pluck('payrollComponent')->unique('id')->filter();
 
             // Filter columns: keep all allowances, keep THR only if has non-zero values
             $payrollColumns = $payrollColumns->filter(function ($column) use ($results) {
@@ -49,38 +88,53 @@ class PayrollResultController extends Controller
             });
         }
 
-        return view('payroll_results.index', compact('results', 'month', 'year', 'payrollColumns', 'groupedResults'));
+        // 4. Hitung ringkasan Header KPI
+        $totalEmployees = $groupedResults->count();
+        $totalGross = (float) $results->whereIn('type', ['allowance', 'thr'])->sum('amount');
+        $totalDeductions = (float) $results->whereIn('type', ['deduction', 'bpjs'])->sum('amount');
+        $totalNet = $totalGross - $totalDeductions;
+        $cutoffPeriod = $service->getCutoffPeriod($year, $month);
+        $activeTab = $request->input('tab', ($request->filled('month') && $request->filled('year')) ? 'detail' : 'periods');
+
+        return view('payroll_results.index', compact(
+            'periods',
+            'results',
+            'month',
+            'year',
+            'payrollColumns',
+            'groupedResults',
+            'totalEmployees',
+            'totalGross',
+            'totalDeductions',
+            'totalNet',
+            'cutoffPeriod',
+            'activeTab'
+        ));
     }
 
     public function create(Request $request)
     {
-        $month = $request->input('month', now()->month);
-        $year = $request->input('year', now()->year);
+        // Unifikasi: redirect langsung ke halaman index dengan query parameter & auto-focus
+        return redirect()->route('payroll-results.index', array_merge($request->all(), ['focus' => 'process']));
+    }
 
-        $results = PayrollResult::with(['employee.project.company', 'payrollComponent', 'payrollSetting'])
-            ->where('month', $month)
+    public function destroyPeriod(Request $request)
+    {
+        $request->validate([
+            'month' => 'required|integer|min:1|max:12',
+            'year'  => 'required|integer|min:2020|max:2099',
+        ]);
+
+        $month = (int) $request->month;
+        $year  = (int) $request->year;
+
+        $deleted = PayrollResult::where('month', $month)
             ->where('year', $year)
-            ->get();
+            ->delete();
 
-        $groupedResults = $results->groupBy('emp_id');
-
-        $payrollColumns = collect();
-        if ($groupedResults->isNotEmpty()) {
-            $payrollColumns = $groupedResults->first()->map(fn($d) => $d->payrollComponent);
-
-            // Filter columns: keep all allowances, keep THR only if has non-zero values
-            $payrollColumns = $payrollColumns->filter(function ($column) use ($results) {
-                if ($column->type !== 'thr') {
-                    return true; // Keep all non-THR columns (allowances shown even if 0)
-                }
-                // For THR columns, check if there's any non-zero value
-                return $results->contains(function ($result) use ($column) {
-                    return $result->payroll_component_id == $column->id && $result->amount > 0;
-                });
-            });
-        }
-
-        return view('payroll_results.process', compact('month', 'year', 'payrollColumns', 'groupedResults'));
+        $monthName = \DateTime::createFromFormat('!m', $month)->format('F');
+        return redirect()->route('payroll-results.index')
+            ->with('success', "Data hasil payroll periode {$monthName} {$year} berhasil dihapus ({$deleted} baris data).");
     }
 
     public function process(Request $request)
@@ -101,7 +155,7 @@ class PayrollResultController extends Controller
         // Prevent duplicate submission using session token
         $processKey = 'payroll_process_' . $month . '_' . $year . '_' . ($isThr ? 'thr' : 'regular');
         if (session()->get($processKey)) {
-            return redirect()->route('payroll-results.create', ['month' => $month, 'year' => $year])
+            return redirect()->route('payroll-results.index', ['month' => $month, 'year' => $year])
                 ->with('warning', 'Payroll is already being processed for this period. Please wait.');
         }
 
@@ -438,7 +492,8 @@ class PayrollResultController extends Controller
         $processKey = 'payroll_process_' . $month . '_' . $year . '_' . ($isThr ? 'thr' : 'regular');
         session()->forget($processKey);
 
-        return redirect()->route('payroll-results.create', ['month' => $month, 'year' => $year])->with('success', 'Payroll processed successfully.');
+        return redirect()->route('payroll-results.index', ['month' => $month, 'year' => $year, 'tab' => 'detail'])
+            ->with('success', 'Payroll berhasil diproses untuk periode ' . \DateTime::createFromFormat('!m', $month)->format('F') . ' ' . $year . '.');
     }
 
     public function slip($emp_id, $month, $year)
@@ -748,22 +803,7 @@ class PayrollResultController extends Controller
 
     public function deductions(Request $request)
     {
-        $month = $request->input('month', now()->month);
-        $year = $request->input('year', now()->year);
-
-        $results = PayrollResult::with(['employee.project.company', 'payrollComponent', 'payrollSetting'])
-            ->where('month', $month)
-            ->where('year', $year)
-            ->whereHas('payrollComponent', fn($q) => $q->whereIn('type', ['subsidi', 'bpjs']))
-            ->get();
-        $groupedResults = $results->groupBy('emp_id');
-
-        $payrollColumns = collect();
-        if ($groupedResults->isNotEmpty()) {
-            $payrollColumns = $groupedResults->first()->map(fn($d) => $d->payrollComponent);
-        }
-
-        return view('payroll_results.deductions', compact('results', 'month', 'year', 'payrollColumns', 'groupedResults'));
+        return redirect()->route('payroll-results.index', array_merge($request->all(), ['tab' => 'bpjs']));
     }
 
     public function exportDeductions(Request $request)

@@ -202,6 +202,11 @@ if (!function_exists('is_user_approver')) {
             return false;
         }
 
+        // Superadmin & Admin selalu memiliki akses menu persetujuan
+        if (in_array(strtolower(trim((string) $user->role)), ['superadmin', 'admin'], true)) {
+            return true;
+        }
+
         if ($includeRoles && is_approver_role($user)) {
             return true;
         }
@@ -210,7 +215,7 @@ if (!function_exists('is_user_approver')) {
             $emp = $user->employee;
             if (!$emp && !$user->relationLoaded('employee')) {
                 $emp = \App\Models\EmpData::where('user_id', $user->id)->first()
-                    ?? \App\Models\EmpData::where('name', $user->name)->first();
+                    ?? (!empty($user->email) ? \App\Models\EmpData::where('email', $user->email)->first() : null);
             }
 
             if ($emp) {

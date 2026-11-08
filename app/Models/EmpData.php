@@ -40,6 +40,14 @@ class EmpData extends Model
         'join_date'  => 'date',
     ];
 
+    protected static function booted()
+    {
+        static::deleting(function (EmpData $employee) {
+            // Bersihkan data payroll_results terkait secara eksplisit untuk mencegah pelanggaran foreign key RESTRICT
+            $employee->payrollResults()->delete();
+        });
+    }
+
     /**
      * Label jenis kelamin dalam Bahasa Indonesia.
      */
@@ -259,6 +267,11 @@ class EmpData extends Model
     public function getEffectiveCompanyAttribute(): ?Company
     {
         return $this->company ?? $this->project?->company;
+    }
+
+    public function payrollResults(): HasMany
+    {
+        return $this->hasMany(PayrollResult::class, 'emp_id');
     }
 
     public function allowances(): HasMany

@@ -71,20 +71,20 @@ class SyncUserEmployeeCommand extends Command
             }
         }
 
-        // Link Karyawan 1 ke User 01 jika belum terhubung
+        // Link Karyawan 1 ke User 01 jika belum terhubung dan bukan superadmin
         $karyawan1 = EmpData::find(1);
         if ($karyawan1 && !$karyawan1->user_id) {
             $user01 = User::find(1);
-            if ($user01) {
+            if ($user01 && $user01->role !== 'superadmin') {
                 $karyawan1->user_id = $user01->id;
                 $karyawan1->save();
                 $this->info("   - Karyawan 1 dihubungkan ke User 01 (ID: 1).");
             }
         }
 
-        // 3. Buat data Karyawan untuk setiap User yang belum memilikinya
+        // 3. Buat data Karyawan untuk setiap User yang belum memilikinya (kecuali role superadmin)
         $this->line('3. Menyinkronkan semua User ke Data Karyawan (emp_data)...');
-        $users = User::all();
+        $users = User::whereNotIn('role', ['superadmin'])->get();
         $currentYear = (int) date('Y');
 
         foreach ($users as $user) {

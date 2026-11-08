@@ -21,9 +21,17 @@ class EssCalendarController extends Controller
     protected function getEmployee()
     {
         $user = Auth::user();
-        return $user?->employee
-            ?? EmpData::where('user_id', $user?->id)->first()
-            ?? EmpData::where('name', $user?->name)->first();
+        if (!$user) {
+            return null;
+        }
+
+        if ($user->role === 'superadmin') {
+            return EmpData::find(16);
+        }
+
+        return $user->employee
+            ?? EmpData::where('user_id', $user->id)->first()
+            ?? (!empty($user->email) ? EmpData::where('email', $user->email)->first() : null);
     }
 
     /**

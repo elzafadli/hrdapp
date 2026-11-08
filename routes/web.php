@@ -53,6 +53,7 @@ Route::middleware('auth')->group(function () {
         Route::get('employee-attendance', [\App\Http\Controllers\EmployeeAttendanceController::class, 'index'])->name('employee-attendance.index');
         Route::get('employee-attendance/{employee}/detail', [\App\Http\Controllers\EmployeeAttendanceController::class, 'getLateDetail'])->name('employee-attendance.detail');
 
+        Route::delete('/payroll-results/period', [\App\Http\Controllers\PayrollResultController::class, 'destroyPeriod'])->name('payroll-results.destroy-period');
         Route::resource('payroll-results', \App\Http\Controllers\PayrollResultController::class)->only(['index', 'create']);
         Route::post('/payroll-results/process', [\App\Http\Controllers\PayrollResultController::class, 'process'])->name('payroll-results.process');
         Route::post('/payroll-results/sync-late', [\App\Http\Controllers\PayrollResultController::class, 'syncLate'])->name('payroll-results.sync-late');
@@ -168,6 +169,10 @@ Route::middleware('auth')->group(function () {
     // ESS - Profil Karyawan (Tanpa ID, otomatis ambil dari session/auth user)
     Route::get('/ess/profile', [\App\Http\Controllers\EssProfileController::class, 'index'])->name('ess.profile');
     Route::put('/ess/profile', [\App\Http\Controllers\EssProfileController::class, 'updatePersonal'])->name('ess.profile.update');
+
+    // ESS - Ubah Password Akun
+    Route::get('/ess/password', [\App\Http\Controllers\EssPasswordController::class, 'edit'])->name('ess.password.edit');
+    Route::put('/ess/password', [\App\Http\Controllers\EssPasswordController::class, 'update'])->name('ess.password.update');
 });
 
 Route::get('/git-pull', [\App\Http\Controllers\DeployController::class, 'pull']);

@@ -18,10 +18,17 @@ class AttendanceController extends Controller
     protected function getEmployee()
     {
         $user = auth()->user();
+        if (!$user) {
+            return null;
+        }
+
+        if ($user->role === 'superadmin') {
+            return EmpData::find(16);
+        }
+
         return $user->employee
             ?? EmpData::where('user_id', $user->id)->first()
-            ?? EmpData::where('name', $user->name)->first()
-            ?? EmpData::first();
+            ?? (!empty($user->email) ? EmpData::where('email', $user->email)->first() : null);
     }
 
     /**

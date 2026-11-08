@@ -5,13 +5,9 @@
                 {{ __('Payroll BPJS') }}
             </h2>
             <div class="flex gap-2">
-                <a href="{{ route('payroll-results.index') }}"
-                    class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
-                    Back to Full Results
-                </a>
-                <a href="{{ route('payroll-results.create') }}"
-                    class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                    Process Payroll
+                <a href="{{ route('payroll-results.index', ['month' => $month, 'year' => $year]) }}"
+                    class="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded text-sm flex items-center gap-1.5">
+                    <i class="fa-solid fa-arrow-left text-xs"></i> Back to Payroll Results
                 </a>
             </div>
         </div>

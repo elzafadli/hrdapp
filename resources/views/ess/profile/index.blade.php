@@ -62,6 +62,13 @@
                         <p class="text-xs text-gray-500 mt-0.5">Informasi data kepegawaian, riwayat karir, dan administrasi mandiri</p>
                     </div>
                 </div>
+                <div class="flex items-center gap-2">
+                    <a href="{{ route('ess.password.edit') }}"
+                        class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-white border border-gray-200 text-gray-700 hover:text-amber-600 hover:border-amber-300 text-xs font-semibold shadow-xs transition">
+                        <i class="fa-solid fa-key text-amber-500 text-xs"></i>
+                        <span class="hidden sm:inline">Ubah Password</span>
+                    </a>
+                </div>
             </div>
 
             {{-- Alert Notifikasi --}}
