@@ -52,7 +52,6 @@
                                 <div class="sm:col-span-6">
                                     <x-input-label for="modal_edu_jenjang" :value="__('Jenjang Pendidikan Terakhir / Riwayat')" :required="true" />
                                     <x-select-input id="modal_edu_jenjang" name="jenjang" class="mt-1 block w-full"
-                                        :noSelect2="true"
                                         :options="$educationLevelOptions" :selected="old('jenjang', 'D4/S1')"
                                         required />
                                 </div>

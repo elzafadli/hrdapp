@@ -35,9 +35,21 @@ class EmpDataController extends Controller
                         ? '<img src="' . e($row->photo_url) . '" class="w-9 h-9 rounded-full object-cover border border-gray-200 shrink-0">'
                         : '<div class="w-9 h-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-xs shrink-0 border border-blue-200">' . strtoupper(substr($row->name, 0, 2)) . '</div>';
 
-                    $sub = $row->effective_email ?: ($row->nik_ktp ? 'KTP: ' . e($row->nik_ktp) : '-');
+                    $subItems = [];
+                    if ($row->effective_email) {
+                        $subItems[] = e($row->effective_email);
+                    }
+                    $effectivePhone = $row->effective_phone ?? $row->phone ?? $row->user?->phone;
+                    if ($effectivePhone) {
+                        $subItems[] = '<span class="inline-flex items-center gap-1 text-slate-600"><i class="fa-solid fa-phone text-[9px] text-gray-400"></i>' . e($effectivePhone) . '</span>';
+                    }
+                    if (empty($subItems) && $row->nik_ktp) {
+                        $subItems[] = 'KTP: ' . e($row->nik_ktp);
+                    }
 
-                    return '<div class="flex items-center gap-3">' . $avatar . '<div><div class="font-bold text-gray-900 text-sm">' . e($row->name) . '</div><div class="text-xs text-gray-500 font-mono">' . e($sub) . '</div></div></div>';
+                    $sub = !empty($subItems) ? implode(' &bull; ', $subItems) : '-';
+
+                    return '<div class="flex items-center gap-3">' . $avatar . '<div><div class="font-bold text-gray-900 text-sm">' . e($row->name) . '</div><div class="text-xs text-gray-500 font-mono flex flex-wrap items-center gap-1.5">' . $sub . '</div></div></div>';
                 })
                 ->addColumn('gender_label', function ($row) {
                     $gender = (Schema::hasColumn('emp_data', 'gender') && $row->gender) ? $row->gender : 'male';
@@ -120,6 +132,7 @@ class EmpDataController extends Controller
         $validated = $request->validate([
             'user_id'               => 'nullable',
             'email'                 => 'nullable|email|max:255',
+            'phone'                 => 'nullable|string|max:50',
             'name'                  => 'required|string|max:255',
             'nik_karyawan'          => 'nullable|string|max:50',
             'photo'                 => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
@@ -262,6 +275,7 @@ class EmpDataController extends Controller
         $validated = $request->validate([
             'user_id'               => 'nullable',
             'email'                 => 'nullable|email|max:255',
+            'phone'                 => 'nullable|string|max:50',
             'name'                  => 'required|string|max:255',
             'nik_karyawan'          => 'nullable|string|max:50',
             'photo'                 => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
@@ -957,6 +971,7 @@ class EmpDataController extends Controller
             'pangkatOptions'         => $pangkatOptions,
             'organisasiOptions'      => $organisasiOptions,
             'jabatanOptions'         => $jabatanOptions,
+            'projects'               => $projects,
             'projectOptions'         => $projectOptions,
             'ptkpOptions'            => $ptkpOptions,
         ];

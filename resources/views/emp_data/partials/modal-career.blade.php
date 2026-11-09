@@ -52,7 +52,6 @@
                                 <div class="sm:col-span-6">
                                     <x-input-label for="modal_status_karyawan" :value="__('Status Karyawan')" :required="true" />
                                     <x-select-input id="modal_status_karyawan" name="status_karyawan"
-                                        :noSelect2="true"
                                         class="mt-1 block w-full" :options="$statusKaryawanOptions"
                                         :selected="old('status_karyawan', 'PKWT')" required />
                                 </div>
@@ -60,7 +59,6 @@
                                 <div class="sm:col-span-6">
                                     <x-input-label for="modal_penempatan_kerja" :value="__('Penempatan Kerja')" :required="true" />
                                     <x-select-input id="modal_penempatan_kerja" name="penempatan_kerja"
-                                        :noSelect2="true"
                                         class="mt-1 block w-full" :options="$penempatanKerjaOptions"
                                         :selected="old('penempatan_kerja', 'Baru Direkrut')" required />
                                 </div>
@@ -78,14 +76,12 @@
                                 <div class="sm:col-span-6">
                                     <x-input-label for="modal_organisasi" :value="__('Organisasi / Divisi')" />
                                     <x-select-input id="modal_organisasi" name="organisasi" class="mt-1 block w-full"
-                                        :noSelect2="true"
                                         :options="$organisasiOptions" :selected="old('organisasi', 'IT')" />
                                 </div>
 
                                 <div class="sm:col-span-6">
                                     <x-input-label for="modal_pangkat" :value="__('Pangkat')" />
                                     <x-select-input id="modal_pangkat" name="pangkat" class="mt-1 block w-full"
-                                        :noSelect2="true"
                                         :options="$pangkatOptions" :selected="old('pangkat', 'Staff')" />
                                 </div>
 

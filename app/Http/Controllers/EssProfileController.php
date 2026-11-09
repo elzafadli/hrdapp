@@ -76,6 +76,7 @@ class EssProfileController extends Controller
 
         $validated = $request->validate([
             'name'                  => 'required|string|max:255',
+            'phone'                 => 'nullable|string|max:50',
             'photo'                 => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'gender'                => 'nullable|in:male,female',
             'citizenship'           => 'nullable|string|max:50',
@@ -120,9 +121,16 @@ class EssProfileController extends Controller
 
         $employee->update($dataToSave);
 
-        // Sinkronisasi nama user login jika nama karyawan diperbarui
+        // Sinkronisasi nama & phone user login jika diperbarui
+        $userUpdates = [];
         if (!empty($validated['name']) && $user->name !== $validated['name']) {
-            $user->update(['name' => $validated['name']]);
+            $userUpdates['name'] = $validated['name'];
+        }
+        if (array_key_exists('phone', $validated) && Schema::hasColumn('users', 'phone') && $user->phone !== $validated['phone']) {
+            $userUpdates['phone'] = $validated['phone'];
+        }
+        if (!empty($userUpdates)) {
+            $user->update($userUpdates);
         }
 
         return redirect()->route('ess.profile')->with('success', 'Data profil karyawan Anda berhasil diperbarui!');

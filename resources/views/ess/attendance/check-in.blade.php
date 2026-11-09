@@ -86,7 +86,7 @@
                                 </span>
                             </div>
                             <div class="p-2.5 rounded-xl bg-amber-50/80 border border-amber-200/90 shadow-xs">
-                                <span class="text-[10px] text-amber-700 font-semibold block flex items-center gap-1">
+                                <span class="text-[10px] text-amber-700 font-semibold flex items-center gap-1">
                                     <i class="fa-solid fa-clock-rotate-left text-[10px]"></i>
                                     Toleransi Terlambat
                                 </span>

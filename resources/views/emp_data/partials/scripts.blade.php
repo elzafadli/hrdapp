@@ -2,6 +2,7 @@
 function employeeFormManager() {
     return {
         init() {
+            this.initSelect2();
             this.initTabComponents(this.activeTab);
             window.addEventListener('popstate', (e) => {
                 try {
@@ -141,6 +142,21 @@ function employeeFormManager() {
                     if (elNotes) elNotes.value = '';
                 }
 
+                if (typeof window.jQuery !== 'undefined' && typeof window.jQuery.fn.select2 !== 'undefined') {
+                    $('#modal_status_karyawan, #modal_penempatan_kerja, #modal_organisasi, #modal_pangkat').each(function () {
+                        if (!$(this).data('select2')) {
+                            $(this).select2({
+                                width: '100%',
+                                dropdownParent: $(this).closest('[role="dialog"]')
+                            }).on('change', function () {
+                                this.dispatchEvent(new Event('change', { bubbles: true }));
+                                this.dispatchEvent(new Event('input', { bubbles: true }));
+                            });
+                        }
+                        $(this).trigger('change.select2');
+                    });
+                }
+
                 if (typeof flatpickr !== 'undefined') {
                     const fp = flatpickr('#career_tanggal_efektif', {
                         disableMobile: true,
@@ -191,6 +207,21 @@ function employeeFormManager() {
                     if (elMasuk) elMasuk.value = '';
                     if (elLulus) elLulus.value = '';
                     if (elNotes) elNotes.value = '';
+                }
+
+                if (typeof window.jQuery !== 'undefined' && typeof window.jQuery.fn.select2 !== 'undefined') {
+                    $('#modal_edu_jenjang').each(function () {
+                        if (!$(this).data('select2')) {
+                            $(this).select2({
+                                width: '100%',
+                                dropdownParent: $(this).closest('[role="dialog"]')
+                            }).on('change', function () {
+                                this.dispatchEvent(new Event('change', { bubbles: true }));
+                                this.dispatchEvent(new Event('input', { bubbles: true }));
+                            });
+                        }
+                        $(this).trigger('change.select2');
+                    });
                 }
             });
         },
@@ -328,6 +359,7 @@ function employeeFormManager() {
         },
 
         initTabComponents(tab) {
+            this.initSelect2();
             this.$nextTick(() => {
                 if (typeof flatpickr !== 'undefined') {
                     if (tab === 'data-karyawan') {
@@ -354,6 +386,31 @@ function employeeFormManager() {
                             }
                         });
                     }
+                }
+            });
+        },
+
+        initSelect2() {
+            this.$nextTick(() => {
+                if (typeof window.jQuery !== 'undefined' && typeof window.jQuery.fn.select2 !== 'undefined') {
+                    const matcher = typeof window.select2MultiMatcher === 'function' ? window.select2MultiMatcher : undefined;
+                    $('select.select2').each(function () {
+                        const $this = $(this);
+                        if (!$this.data('select2')) {
+                            const $modal = $this.closest('.modal, dialog, [role="dialog"]');
+                            const config = {
+                                width: '100%',
+                                matcher: matcher
+                            };
+                            if ($modal.length) {
+                                config.dropdownParent = $modal;
+                            }
+                            $this.select2(config).on('change', function () {
+                                this.dispatchEvent(new Event('change', { bubbles: true }));
+                                this.dispatchEvent(new Event('input', { bubbles: true }));
+                            });
+                        }
+                    });
                 }
             });
         },

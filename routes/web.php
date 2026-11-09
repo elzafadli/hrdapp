@@ -50,6 +50,8 @@ Route::middleware('auth')->group(function () {
         Route::resource('potongan-karyawan', \App\Http\Controllers\PotonganKaryawanController::class);
 
         // Rekap Presensi Karyawan & Monitoring Klarifikasi Terlambat
+        Route::get('employee-attendance/export', [\App\Http\Controllers\EmployeeAttendanceController::class, 'export'])->name('employee-attendance.export');
+        Route::post('employee-attendance/import', [\App\Http\Controllers\EmployeeAttendanceController::class, 'import'])->name('employee-attendance.import');
         Route::get('employee-attendance', [\App\Http\Controllers\EmployeeAttendanceController::class, 'index'])->name('employee-attendance.index');
         Route::get('employee-attendance/{employee}/detail', [\App\Http\Controllers\EmployeeAttendanceController::class, 'getLateDetail'])->name('employee-attendance.detail');
 
@@ -105,7 +107,7 @@ Route::middleware('auth')->group(function () {
     // ESS - Cuti Khusus (Redirect & backward compatibility ke modul Cuti Terpadu)
     Route::prefix('special-leave')->name('special-leave.')->group(function () {
         Route::get('/', fn() => redirect()->route('leave.index'))->name('index');
-        Route::get('/create', fn() => redirect()->route('leave.create'))->name('create');
+        Route::get('/create', fn() => redirect()->route('leave.create', ['category' => 'special']))->name('create');
         Route::post('/', [\App\Http\Controllers\LeaveRequestController::class, 'store'])->name('store');
         Route::get('/{specialLeave}', fn($id) => redirect()->route('leave.show', $id))->name('show');
         Route::post('/{specialLeave}/cancel', [\App\Http\Controllers\LeaveRequestController::class, 'cancel'])->name('cancel');

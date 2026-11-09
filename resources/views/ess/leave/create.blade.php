@@ -260,10 +260,9 @@
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <x-input-label for="start_date" x-text="isHalfDay === '1' ? 'Tanggal Cuti Setengah Hari' : 'Tanggal Mulai Cuti'" />
-                                <x-text-input id="start_date" name="start_date" type="text" class="mt-1.5 block w-full bg-white cursor-pointer"
+                                <x-text-input id="start_date" x-bind:name="leaveCategory === 'annual' ? 'start_date' : ''" type="text" class="mt-1.5 block w-full bg-white cursor-pointer"
                                     placeholder="Pilih tanggal..."
                                     x-model="startDate"
-                                    x-bind:disabled="leaveCategory !== 'annual'"
                                     @input="onStartDateChange()"
                                     @change="onStartDateChange()" />
                                 <x-input-error class="mt-1.5" :messages="$errors->get('start_date')" />
@@ -272,10 +271,9 @@
                             <!-- Tanggal Selesai (Sehari Penuh) -->
                             <div x-show="isHalfDay === '0'">
                                 <x-input-label for="end_date" :value="__('Tanggal Selesai Cuti')" />
-                                <x-text-input id="end_date" name="end_date" type="text" class="mt-1.5 block w-full bg-white cursor-pointer"
+                                <x-text-input id="end_date" x-bind:name="leaveCategory === 'annual' && isHalfDay === '0' ? 'end_date' : ''" type="text" class="mt-1.5 block w-full bg-white cursor-pointer"
                                     placeholder="Pilih tanggal selesai..."
                                     x-model="endDate"
-                                    x-bind:disabled="leaveCategory !== 'annual'"
                                     @input="onEndDateChange()"
                                     @change="onEndDateChange()" />
                                 <x-input-error class="mt-1.5" :messages="$errors->get('end_date')" />
@@ -327,10 +325,9 @@
                         <div class="space-y-2">
                             <div>
                                 <x-input-label for="special_start_date" :value="__('Tanggal Mulai Cuti Khusus')" />
-                                <x-text-input id="special_start_date" name="start_date" type="text" class="mt-1.5 block w-full bg-white cursor-pointer"
+                                <x-text-input id="special_start_date" x-bind:name="leaveCategory === 'special' ? 'start_date' : ''" type="text" class="mt-1.5 block w-full bg-white cursor-pointer"
                                     placeholder="Pilih tanggal mulai..."
                                     x-model="startDate"
-                                    x-bind:disabled="leaveCategory !== 'special'"
                                     @input="onStartDateChange()"
                                     @change="onStartDateChange()" />
                                 <x-input-error class="mt-1.5" :messages="$errors->get('start_date')" />
@@ -477,7 +474,7 @@
     <script>
         function leaveForm() {
             return {
-                leaveCategory: 'annual', // 'annual' (default) atau 'special'
+                leaveCategory: '{{ request('category', request('type', 'annual')) }}', // 'annual' (default) atau 'special'
                 isHalfDay: '0',
                 halfDayType: 'first_half',
                 startDate: '{{ old('start_date', '') }}',
@@ -529,6 +526,9 @@
                 init() {
                     this.$nextTick(() => {
                         this.initFlatpickr();
+                        if (this.leaveCategory === 'special') {
+                            this.onCategoryChange();
+                        }
                         if (this.startDate) {
                             this.calculate();
                         }
@@ -561,6 +561,8 @@
                         const specialStartEl = document.getElementById('special_start_date');
 
                         if (startEl) {
+                            startEl.removeAttribute('disabled');
+                            startEl.disabled = false;
                             self.fpAnnualStart = flatpickr(startEl, {
                                 disableMobile: true,
                                 locale: (window.flatpickr && flatpickr.l10ns && flatpickr.l10ns.id) ? flatpickr.l10ns.id : 'default',
@@ -593,6 +595,8 @@
                         }
 
                         if (endEl) {
+                            endEl.removeAttribute('disabled');
+                            endEl.disabled = false;
                             self.fpAnnualEnd = flatpickr(endEl, {
                                 disableMobile: true,
                                 locale: (window.flatpickr && flatpickr.l10ns && flatpickr.l10ns.id) ? flatpickr.l10ns.id : 'default',
@@ -611,6 +615,8 @@
                         }
 
                         if (specialStartEl) {
+                            specialStartEl.removeAttribute('disabled');
+                            specialStartEl.disabled = false;
                             self.fpSpecialStart = flatpickr(specialStartEl, {
                                 disableMobile: true,
                                 locale: (window.flatpickr && flatpickr.l10ns && flatpickr.l10ns.id) ? flatpickr.l10ns.id : 'default',
@@ -652,6 +658,39 @@
                                         this.onSpecialTypeSelected();
                                     });
                                 }
+                            }
+                            if (this.fpSpecialStart) {
+                                if (this.fpSpecialStart.altInput) {
+                                    this.fpSpecialStart.altInput.disabled = false;
+                                    this.fpSpecialStart.altInput.removeAttribute('disabled');
+                                }
+                                if (this.startDate) {
+                                    this.fpSpecialStart.setDate(this.startDate, false);
+                                }
+                                this.fpSpecialStart.redraw();
+                            }
+                        });
+                    } else {
+                        this.$nextTick(() => {
+                            if (this.fpAnnualStart) {
+                                if (this.fpAnnualStart.altInput) {
+                                    this.fpAnnualStart.altInput.disabled = false;
+                                    this.fpAnnualStart.altInput.removeAttribute('disabled');
+                                }
+                                if (this.startDate) {
+                                    this.fpAnnualStart.setDate(this.startDate, false);
+                                }
+                                this.fpAnnualStart.redraw();
+                            }
+                            if (this.fpAnnualEnd) {
+                                if (this.fpAnnualEnd.altInput) {
+                                    this.fpAnnualEnd.altInput.disabled = false;
+                                    this.fpAnnualEnd.altInput.removeAttribute('disabled');
+                                }
+                                if (this.endDate) {
+                                    this.fpAnnualEnd.setDate(this.endDate, false);
+                                }
+                                this.fpAnnualEnd.redraw();
                             }
                         });
                     }

@@ -28,7 +28,6 @@
                     <div>
                         <x-input-label for="assign_company_id" :value="__('Perusahaan (Company)')" />
                         <x-select-input id="assign_company_id" name="company_id" class="mt-1 block w-full"
-                            :noSelect2="true"
                             :options="$companyOptions" :selected="old('company_id', $empData->company_id)"
                             placeholder="{{ __('Pilih Perusahaan') }}" />
                         <x-input-error class="mt-1.5" :messages="$errors->get('company_id')" />
@@ -41,7 +40,6 @@
                     <div>
                         <x-input-label for="assign_jabatan_id" :value="__('Jabatan Karyawan')" :required="true" />
                         <x-select-input id="assign_jabatan_id" name="jabatan_id" class="mt-1 block w-full"
-                            :noSelect2="true"
                             :options="$jabatanOptions" :selected="old('jabatan_id', $empData->jabatan_id)"
                             placeholder="{{ __('Pilih Jabatan') }}" required />
                         <x-input-error class="mt-1.5" :messages="$errors->get('jabatan_id')" />
@@ -53,10 +51,12 @@
                     {{-- Project --}}
                     <div>
                         <x-input-label for="assign_project_id" :value="__('Project')" />
-                        <x-select-input id="assign_project_id" name="project_id" class="mt-1 block w-full"
-                            :noSelect2="true"
-                            :options="$projectOptions" :selected="old('project_id', $empData->project_id)"
-                            placeholder="{{ __('Pilih Project (Opsional)') }}" />
+                        <div class="mt-1">
+                            <x-project-modal-picker id="assign_project_id" name="project_id"
+                                :selected="old('project_id', $empData->project_id)"
+                                :projects="$projects ?? null"
+                                placeholder="{{ __('Pilih Project (Opsional)') }}" />
+                        </div>
                         <x-input-error class="mt-1.5" :messages="$errors->get('project_id')" />
                         <p x-show="fieldErrors['project_id']"
                             x-text="fieldErrors['project_id'] ? fieldErrors['project_id'][0] : ''"
@@ -67,7 +67,6 @@
                     <div>
                         <x-input-label for="assign_status_ptkp" :value="__('Status PTKP (Pajak PPh 21)')" :required="true" />
                         <x-select-input id="assign_status_ptkp" name="status_ptkp" class="mt-1 block w-full"
-                            :noSelect2="true"
                             :options="$ptkpOptions" :selected="old('status_ptkp', $empData->status_ptkp)"
                             placeholder="{{ __('Pilih Status PTKP') }}" required />
                         <x-input-error class="mt-1.5" :messages="$errors->get('status_ptkp')" />

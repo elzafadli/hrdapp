@@ -92,7 +92,6 @@
                                             class="text-[10px] font-semibold text-gray-400 bg-gray-100 px-1.5 py-0.2 rounded">Opsional</span>
                                     </div>
                                     <x-select-input id="user_id" name="user_id" class="mt-1 block w-full"
-                                        :noSelect2="true"
                                         :options="$userOptions" :selected="old('user_id', $empData->user_id)"
                                         placeholder="{{ __('Pilih Akun User Login (Bisa Dikosongkan)') }}" />
                                     <x-input-error class="mt-1.5" :messages="$errors->get('user_id')" />
@@ -105,28 +104,54 @@
                                 </div>
                             </div>
 
-                            <div>
-                                <div class="flex items-center justify-between">
-                                    <x-input-label for="email" :value="__('Email Resmi Karyawan')" />
-                                    <span class="text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded flex items-center gap-1">
-                                        <i class="fa-solid fa-lock text-[9px]"></i> Dikelola HRD (User tidak bisa ubah)
-                                    </span>
-                                </div>
-                                <div class="relative mt-1">
-                                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-                                        <i class="fa-regular fa-envelope text-sm"></i>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <div class="flex items-center justify-between">
+                                        <x-input-label for="email" :value="__('Email Resmi Karyawan')" />
+                                        <span class="text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded flex items-center gap-1">
+                                            <i class="fa-solid fa-lock text-[9px]"></i> Dikelola HRD
+                                        </span>
                                     </div>
-                                    <x-text-input id="email" name="email" type="email"
-                                        class="block w-full pl-10" :value="old('email', $empData->email ?? $empData->user?->email)"
-                                        placeholder="Contoh: karyawan@perusahaan.com" />
+                                    <div class="relative mt-1">
+                                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                                            <i class="fa-regular fa-envelope text-sm"></i>
+                                        </div>
+                                        <x-text-input id="email" name="email" type="email"
+                                            class="block w-full pl-10" :value="old('email', $empData->email ?? $empData->user?->email)"
+                                            placeholder="Contoh: karyawan@perusahaan.com" />
+                                    </div>
+                                    <x-input-error class="mt-1.5" :messages="$errors->get('email')" />
+                                    <p x-show="fieldErrors['email']"
+                                        x-text="fieldErrors['email'] ? fieldErrors['email'][0] : ''"
+                                        class="mt-1.5 text-xs text-red-600 font-medium"></p>
+                                    <p class="text-[11px] text-gray-400 mt-1">
+                                        Alamat email resmi karyawan.
+                                    </p>
                                 </div>
-                                <x-input-error class="mt-1.5" :messages="$errors->get('email')" />
-                                <p x-show="fieldErrors['email']"
-                                    x-text="fieldErrors['email'] ? fieldErrors['email'][0] : ''"
-                                    class="mt-1.5 text-xs text-red-600 font-medium"></p>
-                                <p class="text-[11px] text-gray-400 mt-1">
-                                    Alamat email resmi karyawan. Email ini dikelola oleh tim HRD dan tidak dapat diubah oleh user/karyawan secara mandiri.
-                                </p>
+
+                                <div>
+                                    <div class="flex items-center justify-between">
+                                        <x-input-label for="phone" :value="__('No. Handphone / WhatsApp')" />
+                                        <span class="text-[10px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded flex items-center gap-1">
+                                            <i class="fa-solid fa-arrows-rotate text-[8px]"></i> Auto-sync User
+                                        </span>
+                                    </div>
+                                    <div class="relative mt-1">
+                                        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                                            <i class="fa-solid fa-phone text-sm"></i>
+                                        </div>
+                                        <x-text-input id="phone" name="phone" type="text"
+                                            class="block w-full pl-10 font-mono" :value="old('phone', $empData->phone ?? $empData->user?->phone)"
+                                            placeholder="Contoh: 081234567890" />
+                                    </div>
+                                    <x-input-error class="mt-1.5" :messages="$errors->get('phone')" />
+                                    <p x-show="fieldErrors['phone']"
+                                        x-text="fieldErrors['phone'] ? fieldErrors['phone'][0] : ''"
+                                        class="mt-1.5 text-xs text-red-600 font-medium"></p>
+                                    <p class="text-[11px] text-gray-400 mt-1">
+                                        Nomor kontak aktif. Otomatis disinkronkan ke akun user login.
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -164,7 +189,6 @@
                         <div class="sm:col-span-6">
                             <x-input-label for="gender" :value="__('Jenis Kelamin')" />
                             <x-select-input id="gender" name="gender" class="mt-1 block w-full"
-                                :noSelect2="true"
                                 :options="$genderOptions" :selected="old('gender', $empData->gender ?? 'male')" />
                             <x-input-error class="mt-1.5" :messages="$errors->get('gender')" />
                             <p x-show="fieldErrors['gender']"
@@ -176,7 +200,6 @@
                         <div class="sm:col-span-6">
                             <x-input-label for="citizenship" :value="__('Kewarganegaraan')" />
                             <x-select-input id="citizenship" name="citizenship" class="mt-1 block w-full"
-                                :noSelect2="true"
                                 :options="$citizenshipOptions" :selected="old('citizenship', $empData->citizenship ?? 'WNI')" />
                             <x-input-error class="mt-1.5" :messages="$errors->get('citizenship')" />
                             <p x-show="fieldErrors['citizenship']"
@@ -234,7 +257,6 @@
                         <div class="sm:col-span-6">
                             <x-input-label for="marital_status" :value="__('Status Perkawinan')" />
                             <x-select-input id="marital_status" name="marital_status"
-                                :noSelect2="true"
                                 class="mt-1 block w-full" :options="$maritalStatusOptions"
                                 :selected="old('marital_status', $empData->marital_status)"
                                 placeholder="Pilih Status..." />
@@ -248,7 +270,6 @@
                         <div class="sm:col-span-6">
                             <x-input-label for="religion" :value="__('Agama')" />
                             <x-select-input id="religion" name="religion" class="mt-1 block w-full"
-                                :noSelect2="true"
                                 :options="$religionOptions" :selected="old('religion', $empData->religion)"
                                 placeholder="Pilih Agama..." />
                             <x-input-error class="mt-1.5" :messages="$errors->get('religion')" />
@@ -261,7 +282,6 @@
                         <div class="sm:col-span-6">
                             <x-input-label for="blood_type" :value="__('Golongan Darah')" />
                             <x-select-input id="blood_type" name="blood_type" class="mt-1 block w-full"
-                                :noSelect2="true"
                                 :options="$bloodTypeOptions" :selected="old('blood_type', $empData->blood_type ?? '-')" />
                             <x-input-error class="mt-1.5" :messages="$errors->get('blood_type')" />
                             <p x-show="fieldErrors['blood_type']"
@@ -295,7 +315,6 @@
                         <div class="sm:col-span-6">
                             <x-input-label for="company_id" :value="__('Perusahaan (Company)')" />
                             <x-select-input id="company_id" name="company_id" class="mt-1 block w-full"
-                                :noSelect2="true"
                                 :options="$companyOptions" :selected="old('company_id', $empData->company_id)"
                                 placeholder="{{ __('Pilih Perusahaan') }}" />
                             <x-input-error class="mt-1.5" :messages="$errors->get('company_id')" />
@@ -308,7 +327,6 @@
                         <div class="sm:col-span-6">
                             <x-input-label for="jabatan_id" :value="__('Jabatan Karyawan')" :required="true" />
                             <x-select-input id="jabatan_id" name="jabatan_id" class="mt-1 block w-full"
-                                :noSelect2="true"
                                 :options="$jabatanOptions" :selected="old('jabatan_id', $empData->jabatan_id)"
                                 placeholder="{{ __('Pilih Jabatan') }}" required />
                             <x-input-error class="mt-1.5" :messages="$errors->get('jabatan_id')" />
@@ -320,10 +338,12 @@
                         {{-- Project --}}
                         <div class="sm:col-span-6">
                             <x-input-label for="project_id" :value="__('Project')" />
-                            <x-select-input id="project_id" name="project_id" class="mt-1 block w-full"
-                                :noSelect2="true"
-                                :options="$projectOptions" :selected="old('project_id', $empData->project_id)"
-                                placeholder="{{ __('Pilih Project (Opsional)') }}" />
+                            <div class="mt-1">
+                                <x-project-modal-picker id="project_id" name="project_id"
+                                    :selected="old('project_id', $empData->project_id)"
+                                    :projects="$projects ?? null"
+                                    placeholder="{{ __('Pilih Project (Opsional)') }}" />
+                            </div>
                             <x-input-error class="mt-1.5" :messages="$errors->get('project_id')" />
                             <p x-show="fieldErrors['project_id']"
                                 x-text="fieldErrors['project_id'] ? fieldErrors['project_id'][0] : ''"
@@ -334,7 +354,6 @@
                         <div class="sm:col-span-6">
                             <x-input-label for="status_ptkp" :value="__('Status PTKP (Pajak PPh 21)')" :required="true" />
                             <x-select-input id="status_ptkp" name="status_ptkp" class="mt-1 block w-full"
-                                :noSelect2="true"
                                 :options="$ptkpOptions" :selected="old('status_ptkp', $empData->status_ptkp ?? 'TK0')"
                                 placeholder="{{ __('Pilih Status PTKP') }}" required />
                             <x-input-error class="mt-1.5" :messages="$errors->get('status_ptkp')" />

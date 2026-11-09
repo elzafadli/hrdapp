@@ -15,6 +15,7 @@ class EmpData extends Model
     protected $fillable = [
         'user_id',
         'email',
+        'phone',
         'name',
         'nik_karyawan',
         'photo',
@@ -42,10 +43,30 @@ class EmpData extends Model
 
     protected static function booted()
     {
+        // Otomatis sinkronisasi no hp (phone) ke akun User terkait jika diperbarui
+        static::saved(function (EmpData $employee) {
+            $user = $employee->user ?? ($employee->user_id ? \App\Models\User::find($employee->user_id) : null);
+            if ($user && \Illuminate\Support\Facades\Schema::hasColumn('users', 'phone')) {
+                $targetPhone = $employee->phone ?? null;
+                if ($user->phone !== $targetPhone) {
+                    $user->phone = $targetPhone;
+                    $user->saveQuietly();
+                }
+            }
+        });
+
         static::deleting(function (EmpData $employee) {
             // Bersihkan data payroll_results terkait secara eksplisit untuk mencegah pelanggaran foreign key RESTRICT
             $employee->payrollResults()->delete();
         });
+    }
+
+    /**
+     * Dapatkan nomor HP karyawan atau fallback ke akun user.
+     */
+    public function getEffectivePhoneAttribute(): ?string
+    {
+        return $this->phone ?? $this->user?->phone;
     }
 
     /**

@@ -213,16 +213,13 @@
                         if (startEl) {
                             self.fpStart = flatpickr(startEl, {
                                 disableMobile: true,
+                                locale: (window.flatpickr && flatpickr.l10ns && flatpickr.l10ns.id) ? flatpickr.l10ns.id : 'default',
                                 dateFormat: "Y-m-d",
                                 altInput: true,
-                                altFormat: "l, d F Y",
-                                minDate: "today",
-                                disable: [
-                                    function(date) {
-                                        const dStr = flatpickr.formatDate(date, "Y-m-d");
-                                        return disabledList.includes(dStr);
-                                    }
-                                ],
+                                altFormat: "d F Y",
+                                altInputClass: "mt-1.5 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm bg-white cursor-pointer",
+                                minDate: "{{ \Carbon\Carbon::tomorrow()->toDateString() }}",
+                                disable: disabledList,
                                 onChange: function(selectedDates, dateStr) {
                                     self.startDate = dateStr;
                                 }

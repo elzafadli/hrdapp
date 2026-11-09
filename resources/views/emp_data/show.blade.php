@@ -128,6 +128,13 @@
                                         <i class="fa-regular fa-envelope text-[10px]"></i>
                                         <span>{{ $employee->effective_email ?? '-' }}</span>
                                     </div>
+
+                                    @if($employee->effective_phone ?? $employee->phone ?? $employee->user?->phone)
+                                    <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/20 font-mono text-[11px] border border-white/10">
+                                        <i class="fa-solid fa-phone text-[10px]"></i>
+                                        <span>{{ $employee->effective_phone ?? $employee->phone ?? $employee->user?->phone }}</span>
+                                    </div>
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -288,20 +295,39 @@
                                             </div>
                                         </div>
 
-                                        <div>
-                                            <div class="flex items-center justify-between">
-                                                <x-input-label :value="__('Email Resmi Karyawan')" />
-                                                <span class="text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded flex items-center gap-1">
-                                                    <i class="fa-solid fa-lock text-[9px]"></i> Dikelola HRD
-                                                </span>
-                                            </div>
-                                            <div class="relative mt-1">
-                                                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-                                                    <i class="fa-regular fa-envelope text-sm"></i>
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div>
+                                                <div class="flex items-center justify-between">
+                                                    <x-input-label :value="__('Email Resmi Karyawan')" />
+                                                    <span class="text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded flex items-center gap-1">
+                                                        <i class="fa-solid fa-lock text-[9px]"></i> Dikelola HRD
+                                                    </span>
                                                 </div>
-                                                <x-text-input type="text"
-                                                    class="block w-full pl-10 bg-slate-50 text-slate-800 cursor-not-allowed"
-                                                    :value="$employee->effective_email ?? '-'" disabled />
+                                                <div class="relative mt-1">
+                                                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                                                        <i class="fa-regular fa-envelope text-sm"></i>
+                                                    </div>
+                                                    <x-text-input type="text"
+                                                        class="block w-full pl-10 bg-slate-50 text-slate-800 cursor-not-allowed"
+                                                        :value="$employee->effective_email ?? '-'" disabled />
+                                                </div>
+                                            </div>
+
+                                            <div>
+                                                <div class="flex items-center justify-between">
+                                                    <x-input-label :value="__('No. Handphone / WhatsApp')" />
+                                                    <span class="text-[10px] font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-1.5 py-0.5 rounded flex items-center gap-1">
+                                                        <i class="fa-solid fa-arrows-rotate text-[8px]"></i> Sinkron User
+                                                    </span>
+                                                </div>
+                                                <div class="relative mt-1">
+                                                    <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                                                        <i class="fa-solid fa-phone text-sm"></i>
+                                                    </div>
+                                                    <x-text-input type="text"
+                                                        class="block w-full pl-10 font-mono bg-slate-50 text-slate-800 cursor-not-allowed"
+                                                        :value="$employee->effective_phone ?? $employee->phone ?? $employee->user?->phone ?? '-'" disabled />
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
