@@ -59,49 +59,22 @@
                     </p>
                 </div>
 
-                <!-- 2. Informasi Jadwal Kerja & Toleransi Keterlambatan -->
+                <!-- 2. Informasi Jadwal Kerja -->
                 @if(!empty($shift['is_work_day']))
-                    <div class="p-4 rounded-xl bg-slate-50/80 border border-slate-200/80 space-y-3">
-                        <div class="flex items-center justify-between gap-2 border-b border-slate-200/70 pb-2.5">
-                            <div class="flex items-center gap-2.5 min-w-0">
-                                <div class="w-8 h-8 rounded-lg bg-blue-100/70 text-blue-700 flex items-center justify-center text-xs shrink-0">
-                                    <i class="fa-solid fa-business-time"></i>
-                                </div>
-                                <div class="min-w-0">
-                                    <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Jadwal Shift Kerja</span>
-                                    <span class="text-xs font-bold text-slate-800 truncate block">{{ $shift['name'] ?? 'Reguler' }}</span>
-                                </div>
+                    <div class="p-3.5 rounded-xl bg-slate-50/80 border border-slate-200/80 flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-2.5 min-w-0">
+                            <div class="w-8 h-8 rounded-lg bg-blue-100/70 text-blue-700 flex items-center justify-center text-xs shrink-0">
+                                <i class="fa-solid fa-business-time"></i>
                             </div>
-                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
-                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span>
-                                Hari Kerja
-                            </span>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-2.5">
-                            <div class="p-2.5 rounded-xl bg-white border border-slate-200/80 shadow-xs">
-                                <span class="text-[10px] text-slate-400 font-medium block">Jam Masuk - Pulang</span>
-                                <span class="font-extrabold text-slate-800 font-mono text-xs sm:text-sm mt-0.5 block">
-                                    {{ $shift['start_time'] }} - {{ $shift['end_time'] }}
-                                </span>
-                            </div>
-                            <div class="p-2.5 rounded-xl bg-amber-50/80 border border-amber-200/90 shadow-xs">
-                                <span class="text-[10px] text-amber-700 font-semibold flex items-center gap-1">
-                                    <i class="fa-solid fa-clock-rotate-left text-[10px]"></i>
-                                    Toleransi Terlambat
-                                </span>
-                                <span class="font-extrabold text-amber-900 font-mono text-xs sm:text-sm mt-0.5 block">
-                                    s/d {{ $shift['late_tolerance_time'] ?? '-' }}
-                                </span>
+                            <div class="min-w-0">
+                                <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block">Jadwal Shift Kerja</span>
+                                <span class="text-xs font-bold text-slate-800 truncate block">{{ $shift['name'] ?? 'Reguler' }}</span>
                             </div>
                         </div>
-
-                        @if(!empty($shift['late_tolerance_time']))
-                            <div class="p-2.5 rounded-lg bg-blue-50/50 border border-blue-100/60 text-[11px] text-slate-600 flex items-start gap-2">
-                                <i class="fa-solid fa-circle-info text-blue-600 text-xs mt-0.5 shrink-0"></i>
-                                <span>Presensi masuk sebelum pukul <strong>{{ $shift['late_tolerance_time'] }}</strong> tercatat <strong>Tepat Waktu</strong>. Presensi setelahnya tercatat <strong>Terlambat</strong>.</span>
-                            </div>
-                        @endif
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 shrink-0">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span>
+                            Hari Kerja
+                        </span>
                     </div>
                 @else
                     <!-- Kondisi Hari Libur / Day Off -->
