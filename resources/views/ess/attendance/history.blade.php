@@ -131,15 +131,10 @@
                                                 <i class="fa-regular fa-calendar-xmark text-[10px]"></i> Libur Nasional
                                             </span>
                                         @elseif($isWork)
-                                            <div class="space-y-0.5">
-                                                <span class="inline-flex items-center gap-1.5 font-mono text-xs font-bold text-gray-800 bg-gray-100/80 px-2 py-0.5 rounded-md border border-gray-200">
-                                                    <i class="fa-regular fa-clock text-blue-500 text-[10px]"></i>
-                                                    {{ $start }} - {{ $end }}
-                                                </span>
-                                                <div class="text-[10px] text-amber-700 font-medium">
-                                                    Tol: s/d {{ $daySchedule && $daySchedule->late_tolerance_time ? substr($daySchedule->late_tolerance_time, 0, 5) : '08:30' }}
-                                                </div>
-                                            </div>
+                                            <span class="inline-flex items-center gap-1.5 font-mono text-xs font-bold text-gray-800 bg-gray-100/80 px-2 py-0.5 rounded-md border border-gray-200">
+                                                <i class="fa-regular fa-clock text-blue-500 text-[10px]"></i>
+                                                {{ $start }} - {{ $end }}
+                                            </span>
                                         @else
                                             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">
                                                 Day Off

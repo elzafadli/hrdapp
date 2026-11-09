@@ -82,39 +82,39 @@
                 <!-- 3. Info Lokasi & Radius Geolocation -->
                 <div class="space-y-3">
                     <!-- Lokasi GPS Sekarang -->
-                    <div class="p-4 rounded-xl bg-gray-50/80 border border-gray-200/80 flex items-center justify-between gap-3">
-                        <div class="flex items-center gap-3 overflow-hidden">
-                            <div class="w-9 h-9 rounded-xl bg-rose-600 text-white flex items-center justify-center text-sm shadow-sm shrink-0">
+                    <div class="p-3.5 sm:p-4 rounded-xl bg-gray-50/80 border border-gray-200/80 flex items-start justify-between gap-3">
+                        <div class="flex items-start gap-2.5 sm:gap-3 min-w-0 flex-1">
+                            <div class="w-9 h-9 rounded-xl bg-rose-600 text-white flex items-center justify-center text-sm shadow-2xs shrink-0 mt-0.5">
                                 <i class="fa-solid fa-location-dot"></i>
                             </div>
-                            <div class="truncate">
+                            <div class="min-w-0 flex-1">
                                 <span class="text-[11px] text-gray-400 block font-medium">Lokasi GPS Anda</span>
-                                <span class="text-xs font-bold text-gray-900 truncate block" x-text="locationText">Mendeteksi lokasi...</span>
-                                <span class="text-[10px] text-gray-500 font-mono" x-show="coordsText" x-text="coordsText"></span>
+                                <span class="text-xs font-bold text-gray-900 break-words leading-relaxed block" x-text="locationText">Mendeteksi lokasi...</span>
+                                <span class="text-[10px] text-gray-500 font-mono break-all block mt-0.5" x-show="coordsText" x-text="coordsText"></span>
                             </div>
                         </div>
                         <button type="button" @click="detectLocation()" 
-                            class="px-3 py-1.5 bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 rounded-xl text-xs font-semibold shrink-0 transition flex items-center gap-1.5 shadow-sm">
+                            class="px-2.5 sm:px-3 py-1.5 bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 rounded-xl text-xs font-semibold shrink-0 transition flex items-center gap-1.5 shadow-2xs mt-0.5 cursor-pointer">
                             <i class="fa-solid fa-arrows-rotate text-[11px] text-rose-600" :class="{ 'fa-spin': isDetecting }"></i>
-                            Perbarui
+                            <span>Perbarui</span>
                         </button>
                     </div>
 
                     <!-- Target Titik Kantor & Radius Geolocation -->
-                    <div class="p-4 rounded-xl bg-gray-50/90 border border-gray-200/80 space-y-3">
-                        <div class="flex items-center justify-between gap-2 border-b border-gray-200/70 pb-2.5">
-                            <div class="flex items-center gap-2">
-                                <i class="fa-solid fa-building text-rose-600 text-xs"></i>
-                                <div>
-                                    <span class="text-xs font-bold text-gray-800">{{ $officeSetting->office_name ?? 'Kantor Pusat' }}</span>
+                    <div class="p-3.5 sm:p-4 rounded-xl bg-gray-50/90 border border-gray-200/80 space-y-3">
+                        <div class="flex items-start sm:items-center justify-between gap-2 border-b border-gray-200/70 pb-2.5 flex-wrap sm:flex-nowrap">
+                            <div class="flex items-start gap-2 min-w-0 flex-1">
+                                <i class="fa-solid fa-building text-rose-600 text-xs mt-1 shrink-0"></i>
+                                <div class="min-w-0 flex-1">
+                                    <span class="text-xs font-bold text-gray-800 break-words block">{{ $officeSetting->office_name ?? 'Kantor Pusat' }}</span>
                                     @if(isset($officeSetting->project) && $officeSetting->project)
-                                        <span class="text-[10px] text-rose-600 font-semibold block">• Proyek: {{ $officeSetting->project->name }}</span>
+                                        <span class="text-[10px] text-rose-600 font-semibold break-words block">• Proyek: {{ $officeSetting->project->name }}</span>
                                     @elseif(isset($officeSetting->company) && $officeSetting->company)
-                                        <span class="text-[10px] text-gray-500 font-medium block">• {{ $officeSetting->company->name }}</span>
+                                        <span class="text-[10px] text-gray-500 font-medium break-words block">• {{ $officeSetting->company->name }}</span>
                                     @endif
                                 </div>
                             </div>
-                            <div class="flex items-center gap-1.5 text-xs text-gray-500 font-medium shrink-0">
+                            <div class="flex items-center gap-1.5 text-xs text-gray-500 font-medium shrink-0 ml-auto sm:ml-0">
                                 <i class="fa-solid fa-bullseye text-rose-600"></i>
                                 <span>Radius: <strong class="text-gray-800">{{ $officeSetting->radius_meters ?? 100 }} m</strong></span>
                             </div>
