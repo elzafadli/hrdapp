@@ -491,7 +491,7 @@
 
                                             {{-- Status Presensi (Tepat Waktu / Terlambat / Tidak Masuk / Izin Cuti) --}}
                                             <td class="px-4 py-3 text-center">
-                                                <template x-if="item.type === 'absent' || ((!item.check_in_time || item.check_in_time === '-') && item.type !== 'leave')">
+                                                <template x-if="item.type === 'absent'">
                                                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
                                                         <i class="fa-solid fa-user-xmark text-[10px]"></i> Tidak Masuk
                                                     </span>
@@ -501,12 +501,12 @@
                                                         <i class="fa-solid fa-file-lines text-[10px]"></i> <span x-text="item.attendance_status"></span>
                                                     </span>
                                                 </template>
-                                                <template x-if="item.type === 'on_time' || (!item.is_late && item.check_in_time && item.check_in_time !== '-')">
+                                                <template x-if="item.type === 'on_time'">
                                                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200">
                                                         <i class="fa-solid fa-check text-[10px]"></i> Tepat Waktu
                                                     </span>
                                                 </template>
-                                                <template x-if="item.type === 'clarified' || item.type === 'unclarified' || (item.is_late && item.check_in_time && item.check_in_time !== '-')">
+                                                <template x-if="item.type === 'clarified' || item.type === 'unclarified'">
                                                     <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
                                                         <i class="fa-solid fa-clock text-[10px]"></i> Terlambat
                                                     </span>
@@ -538,7 +538,7 @@
 
                                             {{-- Status Klarifikasi --}}
                                             <td class="px-4 py-3 text-center">
-                                                <template x-if="item.type === 'absent' || ((!item.check_in_time || item.check_in_time === '-') && item.type !== 'leave')">
+                                                <template x-if="item.type === 'absent'">
                                                     <span class="inline-block px-2 py-0.5 rounded text-[11px] text-rose-700 bg-rose-50 border border-rose-200 font-bold">
                                                         Alpa (Tanpa Izin)
                                                     </span>
@@ -546,7 +546,7 @@
                                                 <template x-if="item.type === 'leave'">
                                                     <span class="inline-block px-2 py-0.5 rounded text-[11px] text-teal-700 bg-teal-50 border border-teal-200 font-semibold" x-text="item.status"></span>
                                                 </template>
-                                                <template x-if="item.type === 'on_time' || (!item.is_late && item.check_in_time && item.check_in_time !== '-')">
+                                                <template x-if="item.type === 'on_time' || item.type === 'upcoming' || item.type === 'holiday_work'">
                                                     <span class="text-gray-300 italic font-mono text-[11px]">-</span>
                                                 </template>
                                                 <template x-if="item.type === 'clarified'">
