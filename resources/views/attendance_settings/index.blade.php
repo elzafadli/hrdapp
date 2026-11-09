@@ -233,7 +233,7 @@
                 <div class="fixed inset-0 bg-gray-900/60 backdrop-blur-xs transition-opacity" @click="closeModal()"></div>
 
                 <!-- Modal Content Card -->
-                <div class="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden transform transition-all w-full max-w-4xl z-10 my-8">
+                <div id="settingsModalCard" class="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden transform transition-all w-full max-w-4xl z-10 my-8">
                     <form :action="formAction" method="POST" @submit="isSubmitting = true">
                         @csrf
                         <template x-if="isEditMode">
@@ -252,7 +252,7 @@
                                     <p class="text-xs text-gray-500 mt-0.5">Atur penugasan kantor, perusahaan, proyek, dan koordinat GPS.</p>
                                 </div>
                             </div>
-                            <button type="button" @click="closeModal()" class="text-gray-400 hover:text-gray-600 p-2 rounded-xl transition">
+                            <button type="button" @click="closeModal()" class="text-gray-400 hover:text-gray-600 p-2 rounded-xl transition cursor-pointer">
                                 <i class="fa-solid fa-xmark text-base"></i>
                             </button>
                         </div>
@@ -273,29 +273,29 @@
                                         <x-input-error class="mt-1" :messages="$errors->get('office_name')" />
                                     </div>
 
-                                    <!-- Pilih Perusahaan (Company) -->
+                                    <!-- Pilih Perusahaan (Company) dengan Select2 -->
                                     <div>
                                         <x-input-label for="company_id" :value="__('Perusahaan (Company)')" />
-                                        <select id="company_id" name="company_id" x-model="form.company_id" @change="onCompanyChange()"
-                                            class="mt-1 block w-full rounded-xl border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500 text-xs">
-                                            <option value="">-- Semua Perusahaan (Global / Fallback) --</option>
-                                            @foreach($companies as $c)
-                                                <option value="{{ $c->id }}">{{ $c->name }}</option>
-                                            @endforeach
-                                        </select>
+                                        <div class="mt-1">
+                                            <select id="company_id" name="company_id"
+                                                class="select2 block w-full rounded-xl border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500 text-xs">
+                                                <option value="">-- Semua Perusahaan (Global / Fallback) --</option>
+                                                @foreach($companies as $c)
+                                                    <option value="{{ $c->id }}">{{ $c->code ? $c->code . ' - ' : '' }}{{ $c->name }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
                                         <p class="text-[11px] text-gray-400 mt-1">Kosongkan jika berlaku global untuk seluruh anak perusahaan.</p>
                                     </div>
 
-                                    <!-- Pilih Proyek (Project) -->
+                                    <!-- Pilih Proyek (Project) dengan Modal Picker -->
                                     <div>
                                         <x-input-label for="project_id" :value="__('Proyek (Project)')" />
-                                        <select id="project_id" name="project_id" x-model="form.project_id"
-                                            class="mt-1 block w-full rounded-xl border-gray-300 shadow-xs focus:border-blue-500 focus:ring-blue-500 text-xs">
-                                            <option value="">-- Semua Proyek (Kantor Pusat / Cabang) --</option>
-                                            <template x-for="proj in filteredProjects" :key="proj.id">
-                                                <option :value="proj.id" x-text="proj.name" :selected="form.project_id == proj.id"></option>
-                                            </template>
-                                        </select>
+                                        <div class="mt-1">
+                                            <x-project-modal-picker id="project_id" name="project_id"
+                                                placeholder="-- Semua Proyek (Kantor Pusat / Cabang) --"
+                                                :projects="$projects ?? null" />
+                                        </div>
                                         <p class="text-[11px] text-gray-400 mt-1">Pilih jika titik lokasi ini khusus untuk site proyek tertentu (Prioritas 1).</p>
                                     </div>
 
@@ -410,6 +410,37 @@
 
                     init() {
                         this.filterProjects();
+
+                        // Inisialisasi Select2 pada #company_id
+                        this.$nextTick(() => {
+                            if (window.jQuery && $.fn.select2) {
+                                $('#company_id').select2({
+                                    dropdownParent: $('#settingsModalCard'),
+                                    width: '100%',
+                                    placeholder: '-- Semua Perusahaan (Global / Fallback) --',
+                                    allowClear: true
+                                }).on('change', (e) => {
+                                    this.form.company_id = e.target.value;
+                                    window.dispatchEvent(new CustomEvent('set-company-filter', {
+                                        detail: { name: 'project_id', companyId: e.target.value }
+                                    }));
+                                });
+                            }
+                        });
+
+                        // Sinkronisasi event ketika project dipilih dari Project Modal Picker
+                        window.addEventListener('project-selected', (e) => {
+                            if (e.detail && (e.detail.name === 'project_id' || !e.detail.name)) {
+                                this.form.project_id = e.detail.id || '';
+                                // Jika project yang dipilih memiliki company dan company_id form masih kosong, auto-isi company
+                                if (e.detail.project && e.detail.project.company_id && !this.form.company_id) {
+                                    this.form.company_id = e.detail.project.company_id;
+                                    if (window.jQuery && $.fn.select2) {
+                                        $('#company_id').val(this.form.company_id).trigger('change.select2');
+                                    }
+                                }
+                            }
+                        });
                     },
 
                     filterProjects() {
@@ -422,11 +453,6 @@
 
                     onCompanyChange() {
                         this.filterProjects();
-                        // Jika project yang dipilih sebelumnya tidak ada di company baru, reset project_id
-                        const exists = this.filteredProjects.some(p => p.id == this.form.project_id);
-                        if (!exists) {
-                            this.form.project_id = '';
-                        }
                     },
 
                     openCreateModal() {
@@ -442,6 +468,11 @@
                             radius_meters: 150,
                             allow_outside_radius: true,
                         };
+                        if (window.jQuery && $.fn.select2) {
+                            $('#company_id').val('').trigger('change.select2');
+                        }
+                        window.dispatchEvent(new CustomEvent('set-project', { detail: { name: 'project_id', id: '' } }));
+                        window.dispatchEvent(new CustomEvent('set-company-filter', { detail: { name: 'project_id', companyId: '' } }));
                         this.filterProjects();
                         this.isModalOpen = true;
                         this.$nextTick(() => {
@@ -462,6 +493,11 @@
                             radius_meters: parseInt(setting.radius_meters) || 150,
                             allow_outside_radius: Boolean(setting.allow_outside_radius),
                         };
+                        if (window.jQuery && $.fn.select2) {
+                            $('#company_id').val(setting.company_id || '').trigger('change.select2');
+                        }
+                        window.dispatchEvent(new CustomEvent('set-project', { detail: { name: 'project_id', id: setting.project_id || '' } }));
+                        window.dispatchEvent(new CustomEvent('set-company-filter', { detail: { name: 'project_id', companyId: setting.company_id || '' } }));
                         this.filterProjects();
                         this.isModalOpen = true;
                         this.$nextTick(() => {

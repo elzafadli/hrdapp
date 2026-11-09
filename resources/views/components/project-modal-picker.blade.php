@@ -77,6 +77,8 @@
         defaultCompany: @js($companyId ? (string)$companyId : '')
     })"
     class="relative w-full"
+    @set-project.window="if (!$event.detail.name || $event.detail.name === '{{ $name }}') { selectById($event.detail.id); }"
+    @set-company-filter.window="if (!$event.detail.name || $event.detail.name === '{{ $name }}') { companyFilter = $event.detail.companyId || ''; }"
     x-cloak
 >
     {{-- Hidden form input holding project_id value --}}
@@ -532,6 +534,11 @@
                 this.selectedProject = project;
                 this.closeModal();
                 this.dispatchChangeEvent();
+            },
+
+            selectById(id) {
+                this.selectedId = id ? String(id) : '';
+                this.updateSelectedProject();
             },
 
             clearSelection() {
