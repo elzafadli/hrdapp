@@ -15,7 +15,6 @@ class PermitType extends Model
     protected $fillable = [
         'name',
         'code',
-        'max_days',
         'is_paid',
         'requires_attachment',
         'is_active',
@@ -23,7 +22,6 @@ class PermitType extends Model
     ];
 
     protected $casts = [
-        'max_days'            => 'decimal:1',
         'is_paid'             => 'boolean',
         'requires_attachment' => 'boolean',
         'is_active'           => 'boolean',

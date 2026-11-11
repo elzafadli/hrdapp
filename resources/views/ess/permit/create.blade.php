@@ -5,7 +5,6 @@
                 'id' => (int) $t->id,
                 'name' => (string) $t->name,
                 'code' => (string) $t->code,
-                'max_days' => $t->max_days ? (float) $t->max_days : null,
                 'is_paid' => (bool) $t->is_paid,
                 'requires_attachment' => (bool) $t->requires_attachment,
                 'description' => $t->description ?: 'Permohonan izin kerja.',
@@ -69,31 +68,6 @@
                             @change="onTypeChange()"
                             required />
                         <x-input-error class="mt-1.5" :messages="$errors->get('permit_type_id')" />
-
-                        <!-- Badge Metadata Tipe Izin Terpilih -->
-                        <template x-if="currentType">
-                            <div class="mt-2.5 p-3 rounded-xl bg-gray-50 border border-gray-200/80 flex flex-wrap items-center gap-2 text-xs">
-                                <span class="inline-flex items-center gap-1 font-semibold px-2 py-0.5 rounded-full"
-                                    :class="currentType.is_paid ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'">
-                                    <i class="fa-solid" :class="currentType.is_paid ? 'fa-coins' : 'fa-file-invoice-dollar'"></i>
-                                    <span x-text="currentType.is_paid ? 'Dibayar Penuh (Paid)' : 'Potong Gaji/Cuti (Unpaid)'"></span>
-                                </span>
-
-                                <template x-if="currentType.max_days">
-                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-semibold">
-                                        <i class="fa-regular fa-clock"></i>
-                                        <span>Maks. <strong x-text="currentType.max_days"></strong> Hari</span>
-                                    </span>
-                                </template>
-
-                                <template x-if="currentType.requires_attachment">
-                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 font-semibold">
-                                        <i class="fa-solid fa-paperclip"></i>
-                                        <span>Wajib Berkas Bukti</span>
-                                    </span>
-                                </template>
-                            </div>
-                        </template>
                     </div>
 
                     <!-- Pilihan Tipe Izin: Sehari Penuh vs Setengah Hari -->

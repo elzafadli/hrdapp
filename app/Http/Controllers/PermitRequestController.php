@@ -97,11 +97,7 @@ class PermitRequestController extends Controller
             ? PermitType::active()->get()
             : collect();
 
-        $typeOptions = $permitTypes->mapWithKeys(function ($t) {
-            $badge = $t->is_paid ? 'Dibayar' : 'Potong Gaji/Cuti';
-            $limit = $t->max_days ? " (Maks {$t->max_days} Hari)" : '';
-            return [$t->id => "{$t->name} [{$badge}]{$limit}"];
-        })->toArray();
+        $typeOptions = $permitTypes->pluck('name', 'id')->toArray();
 
         return view('ess.permit.create', compact('employee', 'disabledDates', 'permitTypes', 'typeOptions'));
     }
@@ -165,10 +161,6 @@ class PermitRequestController extends Controller
             return back()->withInput()->with('error', 'Tanggal yang Anda pilih seluruhnya adalah hari libur atau akhir pekan (0 hari kerja).');
         }
 
-        // Validasi Batas Maksimal Hari untuk Jenis Izin
-        if ($permitType->max_days && $totalDays > (float) $permitType->max_days) {
-            return back()->withInput()->with('error', "Durasi pengajuan izin ({$totalDays} hari) melebihi batas maksimal yang diperbolehkan untuk '{$permitType->name}' ({$permitType->max_days} hari).");
-        }
 
         // Validasi Bentrok Tanggal
         $allSelectedDates = array_merge($fullDayDates, $halfDayDates);

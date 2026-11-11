@@ -53,8 +53,6 @@
                             <tr>
                                 <th class="px-5 py-3 text-left">Nama Jenis Izin</th>
                                 <th class="px-5 py-3 text-left">Kode</th>
-                                <th class="px-5 py-3 text-center">Batas Maks. Hari</th>
-                                <th class="px-5 py-3 text-center">Skema Upah</th>
                                 <th class="px-5 py-3 text-center">Wajib Lampiran</th>
                                 <th class="px-5 py-3 text-center">Status</th>
                                 <th class="px-5 py-3 text-right">Aksi</th>
@@ -69,24 +67,6 @@
                                     </td>
                                     <td class="px-5 py-3.5 font-mono text-gray-600">
                                         {{ $type->code }}
-                                    </td>
-                                    <td class="px-5 py-3.5 text-center font-bold text-blue-700 text-sm">
-                                        @if($type->max_days)
-                                            {{ (float) $type->max_days }} <span class="text-xs font-normal text-gray-400">Hari</span>
-                                        @else
-                                            <span class="text-xs font-medium text-gray-400 italic">Bebas</span>
-                                        @endif
-                                    </td>
-                                    <td class="px-5 py-3.5 text-center">
-                                        @if($type->is_paid)
-                                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                                                <i class="fa-solid fa-coins text-[10px]"></i> Dibayar Penuh (Paid)
-                                            </span>
-                                        @else
-                                            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-                                                <i class="fa-solid fa-file-invoice-dollar text-[10px]"></i> Potong Gaji/Cuti (Unpaid)
-                                            </span>
-                                        @endif
                                     </td>
                                     <td class="px-5 py-3.5 text-center">
                                         @if($type->requires_attachment)
@@ -110,7 +90,7 @@
                                     </td>
                                     <td class="px-5 py-3.5 text-right whitespace-nowrap">
                                         <div class="inline-flex items-center gap-1.5">
-                                            <button type="button" data-item="{{ htmlspecialchars(json_encode($type), ENT_QUOTES, 'UTF-8') }}" onclick="editType(JSON.parse(this.dataset.item))"
+                                            <button type="button" onclick="editType({{ $type->id }})"
                                                 class="px-2.5 py-1 text-xs font-semibold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition" title="Edit Tipe Izin">
                                                 <i class="fa-solid fa-pen-to-square"></i> Edit
                                             </button>
@@ -133,7 +113,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="px-5 py-10 text-center text-gray-400">
+                                    <td colspan="5" class="px-5 py-10 text-center text-gray-400">
                                         <div class="flex flex-col items-center justify-center">
                                             <i class="fa-solid fa-clipboard-question text-3xl mb-2 text-gray-300"></i>
                                             <span class="font-medium">Belum ada jenis izin yang terdaftar.</span>
@@ -177,17 +157,10 @@
                                 <x-input-error class="mt-1" :messages="$errors->get('name')" />
                             </div>
 
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <x-input-label for="code" :value="__('Kode Unik')" :required="true" />
-                                    <x-text-input id="code" name="code" type="text" placeholder="personal, duty, late" class="mt-1 block w-full lowercase" required />
-                                    <x-input-error class="mt-1" :messages="$errors->get('code')" />
-                                </div>
-                                <div>
-                                    <x-input-label for="max_days" :value="__('Batas Maks. Hari (Opsional)')" />
-                                    <x-text-input id="max_days" name="max_days" type="number" step="0.5" min="0.5" placeholder="Kosongkan jika bebas" class="mt-1 block w-full" />
-                                    <x-input-error class="mt-1" :messages="$errors->get('max_days')" />
-                                </div>
+                            <div>
+                                <x-input-label for="code" :value="__('Kode Unik')" :required="true" />
+                                <x-text-input id="code" name="code" type="text" placeholder="personal, duty, late" class="mt-1 block w-full lowercase" required />
+                                <x-input-error class="mt-1" :messages="$errors->get('code')" />
                             </div>
 
                             <div>
@@ -195,12 +168,9 @@
                                 <textarea id="description" name="description" rows="2" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-xs text-xs" placeholder="Deskripsi atau petunjuk pengajuan izin ini..."></textarea>
                             </div>
 
-                            <div class="pt-2 space-y-2.5 border-t border-gray-100">
-                                <label class="flex items-center gap-2 cursor-pointer">
-                                    <input type="checkbox" id="is_paid" name="is_paid" value="1" checked class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4">
-                                    <span class="text-xs font-medium text-gray-700">Izin Dibayar Penuh (Paid / Dispensasi Resmi, tidak potong gaji)</span>
-                                </label>
+                            <input type="hidden" id="is_paid" name="is_paid" value="1">
 
+                            <div class="pt-2 space-y-2.5 border-t border-gray-100">
                                 <label class="flex items-center gap-2 cursor-pointer">
                                     <input type="checkbox" id="requires_attachment" name="requires_attachment" value="1" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 w-4 h-4">
                                     <span class="text-xs font-medium text-gray-700">Wajib melampirkan berkas bukti (surat tugas, undangan, kartu ujian, dll.)</span>
@@ -229,36 +199,56 @@
 
     @push('scripts')
         <script>
+            window.permitTypesData = @json($types->keyBy('id'));
+
             function openCreateModal() {
-                $('#typeForm').attr('action', "{{ route('permit-types.store') }}");
-                $('#formMethod').val('POST');
-                $('#modalTitle').text('Tambah Jenis Izin Baru');
-                $('#name').val('');
-                $('#code').val('');
-                $('#max_days').val('');
-                $('#description').val('');
-                $('#is_paid').prop('checked', true);
-                $('#requires_attachment').prop('checked', false);
-                $('#is_active').prop('checked', true);
-                $('#typeModal').removeClass('hidden');
+                const modal = document.getElementById('typeModal');
+                const form = document.getElementById('typeForm');
+                if (form) form.action = "{{ route('permit-types.store') }}";
+
+                const methodInput = document.getElementById('formMethod');
+                if (methodInput) methodInput.value = 'POST';
+
+                const title = document.getElementById('modalTitle');
+                if (title) title.textContent = 'Tambah Jenis Izin Baru';
+
+                if (document.getElementById('name')) document.getElementById('name').value = '';
+                if (document.getElementById('code')) document.getElementById('code').value = '';
+                if (document.getElementById('description')) document.getElementById('description').value = '';
+                if (document.getElementById('is_paid')) document.getElementById('is_paid').value = '1';
+                if (document.getElementById('requires_attachment')) document.getElementById('requires_attachment').checked = false;
+                if (document.getElementById('is_active')) document.getElementById('is_active').checked = true;
+
+                if (modal) modal.classList.remove('hidden');
             }
 
-            function editType(item) {
-                $('#typeForm').attr('action', "{{ url('permit-types') }}/" + item.id);
-                $('#formMethod').val('PUT');
-                $('#modalTitle').text('Edit Jenis Izin: ' + item.name);
-                $('#name').val(item.name);
-                $('#code').val(item.code);
-                $('#max_days').val(item.max_days ? parseFloat(item.max_days) : '');
-                $('#description').val(item.description || '');
-                $('#is_paid').prop('checked', !!item.is_paid);
-                $('#requires_attachment').prop('checked', !!item.requires_attachment);
-                $('#is_active').prop('checked', !!item.is_active);
-                $('#typeModal').removeClass('hidden');
+            function editType(id) {
+                const item = (window.permitTypesData || {})[id];
+                if (!item) return;
+
+                const modal = document.getElementById('typeModal');
+                const form = document.getElementById('typeForm');
+                if (form) form.action = "{{ url('permit-types') }}/" + item.id;
+
+                const methodInput = document.getElementById('formMethod');
+                if (methodInput) methodInput.value = 'PUT';
+
+                const title = document.getElementById('modalTitle');
+                if (title) title.textContent = 'Edit Jenis Izin: ' + item.name;
+
+                if (document.getElementById('name')) document.getElementById('name').value = item.name || '';
+                if (document.getElementById('code')) document.getElementById('code').value = item.code || '';
+                if (document.getElementById('description')) document.getElementById('description').value = item.description || '';
+                if (document.getElementById('is_paid')) document.getElementById('is_paid').value = item.is_paid ? '1' : '0';
+                if (document.getElementById('requires_attachment')) document.getElementById('requires_attachment').checked = !!item.requires_attachment;
+                if (document.getElementById('is_active')) document.getElementById('is_active').checked = !!item.is_active;
+
+                if (modal) modal.classList.remove('hidden');
             }
 
             function closeTypeModal() {
-                $('#typeModal').addClass('hidden');
+                const modal = document.getElementById('typeModal');
+                if (modal) modal.classList.add('hidden');
             }
         </script>
     @endpush

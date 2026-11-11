@@ -16,7 +16,6 @@ class PermitTypeSeeder extends Seeder
             [
                 'name'                => 'Izin Keperluan Pribadi',
                 'code'                => 'personal',
-                'max_days'            => 2.0,
                 'is_paid'             => false,
                 'requires_attachment' => false,
                 'is_active'           => true,
@@ -25,7 +24,6 @@ class PermitTypeSeeder extends Seeder
             [
                 'name'                => 'Izin Perjalanan Dinas / Tugas Luar',
                 'code'                => 'duty',
-                'max_days'            => 14.0,
                 'is_paid'             => true,
                 'requires_attachment' => true,
                 'is_active'           => true,
@@ -34,7 +32,6 @@ class PermitTypeSeeder extends Seeder
             [
                 'name'                => 'Izin Datang Terlambat',
                 'code'                => 'late_arrival',
-                'max_days'            => 1.0,
                 'is_paid'             => true,
                 'requires_attachment' => false,
                 'is_active'           => true,
@@ -43,7 +40,6 @@ class PermitTypeSeeder extends Seeder
             [
                 'name'                => 'Izin Pulang Lebih Awal',
                 'code'                => 'early_leave',
-                'max_days'            => 1.0,
                 'is_paid'             => true,
                 'requires_attachment' => false,
                 'is_active'           => true,
@@ -52,7 +48,6 @@ class PermitTypeSeeder extends Seeder
             [
                 'name'                => 'Izin Keluar Kantor Sementara',
                 'code'                => 'temporary_out',
-                'max_days'            => 1.0,
                 'is_paid'             => true,
                 'requires_attachment' => false,
                 'is_active'           => true,
@@ -61,7 +56,6 @@ class PermitTypeSeeder extends Seeder
             [
                 'name'                => 'Izin Dispensasi Resmi Negara',
                 'code'                => 'dispensation',
-                'max_days'            => 3.0,
                 'is_paid'             => true,
                 'requires_attachment' => true,
                 'is_active'           => true,
@@ -70,7 +64,6 @@ class PermitTypeSeeder extends Seeder
             [
                 'name'                => 'Izin Ujian / Studi / Akademik',
                 'code'                => 'exam_study',
-                'max_days'            => 2.0,
                 'is_paid'             => true,
                 'requires_attachment' => true,
                 'is_active'           => true,
@@ -79,7 +72,6 @@ class PermitTypeSeeder extends Seeder
             [
                 'name'                => 'Izin Takziah / Melayat',
                 'code'                => 'condolence',
-                'max_days'            => 1.0,
                 'is_paid'             => true,
                 'requires_attachment' => false,
                 'is_active'           => true,
@@ -88,7 +80,6 @@ class PermitTypeSeeder extends Seeder
             [
                 'name'                => 'Izin Sakit Ringan (Tanpa Surat Dokter)',
                 'code'                => 'sick_no_certificate',
-                'max_days'            => 1.0,
                 'is_paid'             => true,
                 'requires_attachment' => false,
                 'is_active'           => true,

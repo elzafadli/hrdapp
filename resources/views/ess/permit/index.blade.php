@@ -208,11 +208,6 @@
                                                     <span class="text-xs font-semibold text-blue-600">
                                                         {{ $req->permitType?->name ?? 'Izin Kerja' }}
                                                     </span>
-                                                    @if($req->permitType)
-                                                        <span class="text-[10px] px-1.5 py-0.2 rounded font-medium {{ $req->permitType->is_paid ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700' }}">
-                                                            {{ $req->permitType->is_paid ? 'Paid' : 'Unpaid' }}
-                                                        </span>
-                                                    @endif
                                                 </div>
                                             </td>
                                             <td class="px-4 py-3.5 text-xs text-gray-500">

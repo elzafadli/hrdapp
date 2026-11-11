@@ -25,7 +25,6 @@ class PermitTypeController extends Controller
         $validated = $request->validate([
             'name'                => 'required|string|max:150',
             'code'                => 'required|string|max:50|unique:permit_types,code',
-            'max_days'            => 'nullable|numeric|min:0.5',
             'is_paid'             => 'nullable|boolean',
             'requires_attachment' => 'nullable|boolean',
             'is_active'           => 'nullable|boolean',
@@ -51,7 +50,6 @@ class PermitTypeController extends Controller
         $validated = $request->validate([
             'name'                => 'required|string|max:150',
             'code'                => 'required|string|max:50|unique:permit_types,code,' . $permitType->id,
-            'max_days'            => 'nullable|numeric|min:0.5',
             'is_paid'             => 'nullable|boolean',
             'requires_attachment' => 'nullable|boolean',
             'is_active'           => 'nullable|boolean',

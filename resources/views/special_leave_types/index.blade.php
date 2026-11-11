@@ -110,7 +110,7 @@
                                     </td>
                                     <td class="px-5 py-3.5 text-right whitespace-nowrap">
                                         <div class="flex items-center justify-end gap-1.5">
-                                            <button type="button" data-item="{{ htmlspecialchars(json_encode($type), ENT_QUOTES, 'UTF-8') }}" onclick="editType(JSON.parse(this.dataset.item))"
+                                            <button type="button" onclick="editType({{ $type->id }})"
                                                 class="inline-flex items-center px-2.5 py-1.5 bg-yellow-50 hover:bg-yellow-100 text-yellow-800 border border-yellow-200 rounded-lg text-xs font-semibold transition"
                                                 title="Edit">
                                                 <i class="fa-solid fa-pen text-[10px] mr-1"></i> Edit
@@ -222,36 +222,64 @@
 
     @push('scripts')
         <script>
+            window.specialLeaveTypesData = @json($types->keyBy('id'));
+
             function openCreateModal() {
-                $('#typeForm').attr('action', "{{ route('special-leave-types.store') }}");
-                $('#formMethod').val('POST');
-                $('#modalTitle').text('Tambah Tipe Cuti Khusus Baru');
-                $('#name').val('');
-                $('#code').val('');
-                $('#days_allowed').val('2');
-                $('#gender_restriction').val('all');
-                $('#description').val('');
-                $('#requires_attachment').prop('checked', true);
-                $('#is_active').prop('checked', true);
-                $('#typeModal').removeClass('hidden');
+                const modal = document.getElementById('typeModal');
+                const form = document.getElementById('typeForm');
+                if (form) form.action = "{{ route('special-leave-types.store') }}";
+
+                const methodInput = document.getElementById('formMethod');
+                if (methodInput) methodInput.value = 'POST';
+
+                const title = document.getElementById('modalTitle');
+                if (title) title.textContent = 'Tambah Tipe Cuti Khusus Baru';
+
+                if (document.getElementById('name')) document.getElementById('name').value = '';
+                if (document.getElementById('code')) document.getElementById('code').value = '';
+                if (document.getElementById('days_allowed')) document.getElementById('days_allowed').value = '2';
+                if (document.getElementById('gender_restriction')) {
+                    document.getElementById('gender_restriction').value = 'all';
+                    if (window.jQuery) $('#gender_restriction').trigger('change');
+                }
+                if (document.getElementById('description')) document.getElementById('description').value = '';
+                if (document.getElementById('requires_attachment')) document.getElementById('requires_attachment').checked = true;
+                if (document.getElementById('is_active')) document.getElementById('is_active').checked = true;
+
+                if (modal) modal.classList.remove('hidden');
             }
 
-            function editType(item) {
-                $('#typeForm').attr('action', "{{ url('special-leave-types') }}/" + item.id);
-                $('#formMethod').val('PUT');
-                $('#modalTitle').text('Edit Tipe Cuti Khusus: ' + item.name);
-                $('#name').val(item.name);
-                $('#code').val(item.code);
-                $('#days_allowed').val(item.days_allowed);
-                $('#gender_restriction').val(item.gender_restriction);
-                $('#description').val(item.description || '');
-                $('#requires_attachment').prop('checked', !!item.requires_attachment);
-                $('#is_active').prop('checked', !!item.is_active);
-                $('#typeModal').removeClass('hidden');
+            function editType(id) {
+                const item = (window.specialLeaveTypesData || {})[id];
+                if (!item) return;
+
+                const modal = document.getElementById('typeModal');
+                const form = document.getElementById('typeForm');
+                if (form) form.action = "{{ url('special-leave-types') }}/" + item.id;
+
+                const methodInput = document.getElementById('formMethod');
+                if (methodInput) methodInput.value = 'PUT';
+
+                const title = document.getElementById('modalTitle');
+                if (title) title.textContent = 'Edit Tipe Cuti Khusus: ' + item.name;
+
+                if (document.getElementById('name')) document.getElementById('name').value = item.name || '';
+                if (document.getElementById('code')) document.getElementById('code').value = item.code || '';
+                if (document.getElementById('days_allowed')) document.getElementById('days_allowed').value = item.days_allowed || '';
+                if (document.getElementById('gender_restriction')) {
+                    document.getElementById('gender_restriction').value = item.gender_restriction || 'all';
+                    if (window.jQuery) $('#gender_restriction').trigger('change');
+                }
+                if (document.getElementById('description')) document.getElementById('description').value = item.description || '';
+                if (document.getElementById('requires_attachment')) document.getElementById('requires_attachment').checked = !!item.requires_attachment;
+                if (document.getElementById('is_active')) document.getElementById('is_active').checked = !!item.is_active;
+
+                if (modal) modal.classList.remove('hidden');
             }
 
             function closeTypeModal() {
-                $('#typeModal').addClass('hidden');
+                const modal = document.getElementById('typeModal');
+                if (modal) modal.classList.add('hidden');
             }
         </script>
     @endpush
