@@ -28,7 +28,7 @@
         }"
         class="py-6"
     >
-        <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 space-y-5">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
             {{-- GLOBAL APPROVE MODAL --}}
             <div
@@ -229,7 +229,7 @@
                 </div>
             </div>
 
-            {{-- Top Bar Navigasi Sesuai Tampilan Form Create --}}
+            {{-- Top Bar Navigasi --}}
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3">
                     <a href="{{ route('permit.index') }}"
@@ -276,237 +276,274 @@
                 </div>
             @endif
 
-            {{-- Card Utama: Data Detail Pengajuan --}}
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-5">
+            {{-- 2 Kolom: Kiri Form Data Pengajuan (Disabled), Kanan Alur Persetujuan & Jejak Audit --}}
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
-                <!-- Data Pemohon -->
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-xl bg-gray-50 border border-gray-100">
-                    <div>
-                        <span class="block text-xs text-gray-400 font-medium">Nama Pemohon</span>
-                        <span class="font-bold text-sm text-gray-800">{{ $leaveRequest->employee?->name ?? 'Karyawan' }}</span>
-                    </div>
-                    <div>
-                        <span class="block text-xs text-gray-400 font-medium">Jabatan</span>
-                        <span class="font-bold text-sm text-gray-800">{{ $leaveRequest->employee?->jabatan?->jabatan ?? '-' }}</span>
-                    </div>
-                    <div>
-                        <span class="block text-xs text-gray-400 font-medium">Waktu Pengajuan</span>
-                        <span class="font-semibold text-sm text-gray-700">{{ $leaveRequest->created_at->format('d M Y, H:i') }}</span>
-                    </div>
-                </div>
+                {{-- Kolom Kiri: Form Biasa versi Disabled Sesuai Tampilan Create --}}
+                <div class="lg:col-span-7 space-y-5">
+                    <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-5">
 
-                <!-- Ringkasan Periode Izin -->
-                <div class="space-y-2.5">
-                    <h3 class="font-bold text-gray-900 text-sm flex items-center gap-2">
-                        <i class="fa-solid fa-calendar-day text-blue-500"></i>
-                        Rincian Hari Izin
-                    </h3>
-                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                        <div class="p-3 bg-amber-50/60 rounded-xl border border-amber-100">
-                            <span class="text-xs text-amber-700 font-semibold block">Jenis Izin</span>
-                            <span class="text-sm font-extrabold text-amber-950 mt-1 block">
-                                {{ $leaveRequest->permitType?->name ?? 'Izin Kerja' }}
-                            </span>
+                        <!-- Data Pemohon Ringkas -->
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 rounded-xl bg-gray-50 border border-gray-100 text-xs">
+                            <div>
+                                <span class="block text-gray-400 font-medium">Nama Pemohon</span>
+                                <span class="font-bold text-gray-800 text-sm mt-0.5 block">{{ $leaveRequest->employee?->name ?? 'Karyawan' }}</span>
+                            </div>
+                            <div>
+                                <span class="block text-gray-400 font-medium">Jabatan</span>
+                                <span class="font-bold text-gray-800 text-sm mt-0.5 block">{{ $leaveRequest->employee?->jabatan?->jabatan ?? '-' }}</span>
+                            </div>
+                            <div>
+                                <span class="block text-gray-400 font-medium">Waktu Pengajuan</span>
+                                <span class="font-semibold text-gray-700 text-sm mt-0.5 block">{{ $leaveRequest->created_at->format('d M Y, H:i') }}</span>
+                            </div>
                         </div>
 
-                        <div class="p-3 bg-blue-50/60 rounded-xl border border-blue-100">
-                            <span class="text-xs text-blue-600 font-semibold block">Durasi Kerja</span>
-                            <span class="text-sm font-extrabold text-blue-900 mt-1 block">
-                                {{ $leaveRequest->half_day_count > 0 ? 'Setengah Hari' : 'Sehari Penuh' }}
-                            </span>
-                            @if($leaveRequest->half_day_count > 0)
-                                <span class="text-[11px] text-amber-700 block mt-0.5 font-medium">
-                                    ({{ $leaveRequest->half_day_type === 'first_half' ? 'Pagi s/d Siang' : 'Siang s/d Sore' }})
-                                </span>
-                            @else
-                                <span class="text-[11px] text-blue-700 block mt-0.5">Penuh Jam Kerja</span>
-                            @endif
+                        <!-- Form Field: Jenis Izin -->
+                        <div>
+                            <x-input-label for="permit_type_id" :value="__('Jenis Izin')" />
+                            <x-text-input id="permit_type_id" type="text"
+                                class="mt-1.5 block w-full bg-gray-50 text-gray-700 cursor-not-allowed border-gray-300"
+                                value="{{ $leaveRequest->permitType?->name ?? 'Izin Kerja' }}"
+                                disabled />
                         </div>
 
-                        <div class="p-3 bg-indigo-50/60 rounded-xl border border-indigo-100">
-                            <span class="text-xs text-indigo-600 font-semibold block">Rentang Tanggal</span>
-                            @php
-                                $startFormatted = $leaveRequest->full_day_start_date?->format('d/m/Y')
-                                    ?? $leaveRequest->half_day_start_date?->format('d/m/Y');
-                                $endFormatted = $leaveRequest->full_day_end_date?->format('d/m/Y')
-                                    ?? $leaveRequest->half_day_end_date?->format('d/m/Y');
-                            @endphp
-                            <span class="text-sm font-bold text-indigo-900 mt-1 block">
-                                {{ $startFormatted }}{{ $endFormatted && $endFormatted !== $startFormatted ? ' - ' . $endFormatted : '' }}
-                            </span>
-                            <span class="text-[11px] text-indigo-700 block mt-0.5">Sesuai tanggal terpilih</span>
+                        <!-- Form Field: Durasi Jam Kerja -->
+                        <div class="pt-2 border-t border-gray-100">
+                            <x-input-label :value="__('Durasi Jam Kerja')" />
+                            <div class="grid grid-cols-2 gap-3 mt-1.5">
+                                <div class="flex items-center justify-center p-3 rounded-xl border text-xs font-semibold select-none {{ $leaveRequest->half_day_count == 0 ? 'border-blue-600 bg-blue-50/60 text-blue-700 shadow-2xs' : 'border-gray-200 bg-gray-50 text-gray-400' }}">
+                                    <i class="fa-regular fa-calendar-days text-sm mr-2"></i>
+                                    Sehari Penuh
+                                </div>
+                                <div class="flex items-center justify-center p-3 rounded-xl border text-xs font-semibold select-none {{ $leaveRequest->half_day_count > 0 ? 'border-blue-600 bg-blue-50/60 text-blue-700 shadow-2xs' : 'border-gray-200 bg-gray-50 text-gray-400' }}">
+                                    <i class="fa-regular fa-clock text-sm mr-2"></i>
+                                    Setengah Hari
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="p-3 bg-emerald-50/60 rounded-xl border border-emerald-100">
-                            <span class="text-xs text-emerald-600 font-semibold block">Total Hari Kerja</span>
-                            <span class="text-lg font-extrabold text-emerald-900 mt-0.5 block">
-                                {{ (float) $leaveRequest->total_days }} <span class="text-xs font-medium">Hari</span>
-                            </span>
-                            <span class="text-[11px] text-emerald-700 block mt-0.5">Hari libur tidak dihitung</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Rincian Tanggal Efektif -->
-                @if($leaveRequest->dates->isNotEmpty())
-                    <div class="space-y-2 pt-2 border-t border-gray-100">
-                        <h4 class="text-xs font-bold text-gray-700 uppercase tracking-wider">Audit Tanggal Kerja Riil:</h4>
-                        <div class="flex flex-wrap gap-2">
-                            @foreach($leaveRequest->dates as $dt)
-                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200">
-                                    <i class="fa-regular fa-calendar-check text-[10px] text-gray-500"></i>
-                                    {{ $dt->date?->format('d M Y') }}
-                                    <span class="text-[10px] font-bold text-blue-600">({{ (float) $dt->deduction_value }} Hari)</span>
-                                </span>
-                            @endforeach
-                        </div>
-                    </div>
-                @endif
-
-                <!-- Alasan / Keterangan -->
-                <div class="p-4 rounded-xl bg-gray-50 border border-gray-100 space-y-1">
-                    <span class="text-xs text-gray-400 font-medium block">Alasan / Keterangan Izin</span>
-                    <p class="text-sm text-gray-800 whitespace-pre-line leading-relaxed">{{ $leaveRequest->reason ?? '-' }}</p>
-                </div>
-
-                <!-- Berkas Lampiran -->
-                @if($leaveRequest->files->isNotEmpty())
-                    <div class="space-y-2 pt-2 border-t border-gray-100">
-                        <h4 class="text-xs font-bold text-gray-700 uppercase tracking-wider">Berkas Lampiran Pendukung:</h4>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                            @foreach($leaveRequest->files as $file)
-                                <a href="{{ $file->url ?? Storage::url($file->file_path) }}" target="_blank"
-                                    class="flex items-center gap-2.5 p-3 rounded-xl border border-gray-200 hover:border-blue-300 hover:bg-blue-50/40 transition group">
-                                    <i class="fa-solid fa-paperclip text-gray-400 group-hover:text-blue-500"></i>
-                                    <div class="min-w-0 flex-1">
-                                        <p class="text-xs font-semibold text-gray-800 truncate group-hover:text-blue-600">{{ $file->file_name }}</p>
-                                        <p class="text-[10px] text-gray-400">{{ number_format($file->file_size / 1024, 1) }} KB</p>
-                                    </div>
-                                    <i class="fa-solid fa-arrow-up-right-from-square text-xs text-gray-300 group-hover:text-blue-500"></i>
-                                </a>
-                            @endforeach
-                        </div>
-                    </div>
-                @endif
-
-                <!-- Tombol Batalkan Pengajuan (Jika milik sendiri & masih pending) -->
-                @if($leaveRequest->status === 'pending' && $leaveRequest->emp_id === ($employee?->id ?? Auth::user()->employee?->id))
-                    <div class="pt-3 border-t border-gray-100 flex justify-end">
-                        <form action="{{ route('permit.cancel', $leaveRequest->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin membatalkan permohonan izin ini?');">
-                            @csrf
-                            <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-bold border border-rose-200 transition">
-                                <i class="fa-solid fa-trash-can"></i>
-                                Batalkan Pengajuan
-                            </button>
-                        </form>
-                    </div>
-                @endif
-
-            </div>
-
-            <!-- Tahapan Persetujuan Berjenjang (Approval Workflow) -->
-            @if($leaveRequest->approvals->isNotEmpty())
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-4">
-                    <h3 class="font-bold text-gray-900 text-sm flex items-center gap-2 pb-2 border-b border-gray-100">
-                        <i class="fa-solid fa-clipboard-check text-blue-600"></i>
-                        Tahapan Persetujuan Berjenjang
-                    </h3>
-
-                    <div class="space-y-3">
-                        @foreach($leaveRequest->approvals as $approval)
-                            @php
-                                $canApprove = $approval->canUserApprove(Auth::user(), $leaveRequest);
-                                $empApplicantName = $leaveRequest->employee?->name ?? 'Karyawan';
-                                $approveUrl = route('permit.approve', $approval->id);
-                                $rejectUrl = route('permit.reject', $approval->id);
-                            @endphp
-                            <div class="p-3.5 rounded-xl border {{ $approval->status === 'approved' ? 'border-emerald-200 bg-emerald-50/40' : ($approval->status === 'rejected' ? 'border-rose-200 bg-rose-50/40' : 'border-gray-200 bg-gray-50/50') }} space-y-2.5">
-                                <div class="flex items-center justify-between gap-2">
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-[11px] font-bold px-1.5 py-0.5 rounded bg-gray-200 text-gray-700">L{{ $approval->level }}</span>
-                                        <span class="font-bold text-xs text-gray-900">{{ $approval->jabatan_name }}</span>
-                                    </div>
-                                    <div>
-                                        @if($approval->status === 'approved')
-                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                                                <i class="fa-solid fa-circle-check text-[9px]"></i> Disetujui
-                                            </span>
-                                        @elseif($approval->status === 'rejected')
-                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800">
-                                                <i class="fa-solid fa-circle-xmark text-[9px]"></i> Ditolak
-                                            </span>
-                                        @else
-                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
-                                                <i class="fa-solid fa-clock text-[9px]"></i> Menunggu
-                                            </span>
-                                        @endif
-                                    </div>
+                        <!-- Form Field: Tanggal Izin & Shift -->
+                        @php
+                            $startFormatted = $leaveRequest->full_day_start_date?->format('d/m/Y')
+                                ?? $leaveRequest->half_day_start_date?->format('d/m/Y');
+                            $endFormatted = $leaveRequest->full_day_end_date?->format('d/m/Y')
+                                ?? $leaveRequest->half_day_end_date?->format('d/m/Y');
+                        @endphp
+                        <div class="pt-2 border-t border-gray-100 space-y-4">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div>
+                                    <x-input-label for="start_date"
+                                        :value="$leaveRequest->half_day_count > 0 ? __('Tanggal Izin Setengah Hari') : __('Tanggal Mulai Izin')" />
+                                    <x-text-input id="start_date" type="text"
+                                        class="mt-1.5 block w-full bg-gray-50 text-gray-700 cursor-not-allowed border-gray-300"
+                                        value="{{ $startFormatted }}"
+                                        disabled />
                                 </div>
 
-                                <p class="text-[11px] text-gray-500 leading-relaxed">
-                                    @if($approval->status === 'approved')
-                                        Disetujui oleh: <strong class="text-gray-800">{{ $approval->approver_name }}</strong> ({{ $approval->approver_jabatan_name }}) pada {{ $approval->action_at?->format('d M Y, H:i') }}
-                                    @elseif($approval->status === 'rejected')
-                                        @if($approval->approver_name)
-                                            Ditolak oleh: <strong class="text-rose-700">{{ $approval->approver_name }}</strong> ({{ $approval->approver_jabatan_name }})<br>Catatan: {{ $approval->notes }}
-                                        @else
-                                            <span class="text-rose-600 font-medium">{{ $approval->notes ?? 'Dibatalkan otomatis karena alur persetujuan ditolak.' }}</span>
-                                        @endif
-                                    @else
-                                        Menunggu persetujuan jabatan <strong>{{ $approval->jabatan_name }}</strong>.
-                                    @endif
-                                </p>
-
-                                <!-- Tombol Aksi Approver dengan Modal -->
-                                @if($canApprove)
-                                    <div class="pt-2 border-t border-gray-200/80">
-                                        <div class="grid grid-cols-2 gap-2">
-                                            <button type="button"
-                                                @click="openApproveModal({{ $approval->id }}, '{{ $approveUrl }}', '{{ $leaveRequest->request_number }}', '{{ addslashes($empApplicantName) }}')"
-                                                class="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-emerald-300 text-xs font-bold text-emerald-700 bg-white hover:bg-emerald-50 shadow-xs transition cursor-pointer">
-                                                <i class="fa-solid fa-check text-[11px]"></i> Setujui
-                                            </button>
-                                            <button type="button"
-                                                @click="openRejectModal({{ $approval->id }}, '{{ $rejectUrl }}', '{{ $leaveRequest->request_number }}', '{{ addslashes($empApplicantName) }}')"
-                                                class="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-rose-300 text-xs font-bold text-rose-700 bg-white hover:bg-rose-50 shadow-xs transition cursor-pointer">
-                                                <i class="fa-solid fa-xmark text-[11px]"></i> Tolak
-                                            </button>
-                                        </div>
+                                @if($leaveRequest->half_day_count == 0)
+                                    <div>
+                                        <x-input-label for="end_date" :value="__('Tanggal Selesai Izin')" />
+                                        <x-text-input id="end_date" type="text"
+                                            class="mt-1.5 block w-full bg-gray-50 text-gray-700 cursor-not-allowed border-gray-300"
+                                            value="{{ $endFormatted }}"
+                                            disabled />
+                                    </div>
+                                @else
+                                    <div>
+                                        <x-input-label for="half_day_type" :value="__('Waktu Shift')" />
+                                        <x-text-input id="half_day_type" type="text"
+                                            class="mt-1.5 block w-full bg-gray-50 text-gray-700 cursor-not-allowed border-gray-300"
+                                            value="{{ $leaveRequest->half_day_type === 'first_half' ? 'Setengah Hari Pertama (Pagi s/d Siang)' : 'Setengah Hari Kedua (Siang s/d Sore)' }}"
+                                            disabled />
                                     </div>
                                 @endif
                             </div>
-                        @endforeach
-                    </div>
-                </div>
-            @endif
+                        </div>
 
-            <!-- Riwayat Audit Log (Approval History) -->
-            @if($leaveRequest->approvalHistories->isNotEmpty())
-                <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 space-y-3">
-                    <h3 class="font-bold text-gray-800 text-sm flex items-center gap-2 pb-2 border-b border-gray-100">
-                        <i class="fa-solid fa-clock-rotate-left text-gray-500"></i>
-                        Riwayat Log Aktivitas & Jejak Audit
-                    </h3>
-                    <div class="divide-y divide-gray-100 text-xs">
-                        @foreach($leaveRequest->approvalHistories as $log)
-                            <div class="py-2.5 flex items-start justify-between gap-2">
-                                <div class="space-y-0.5 min-w-0">
-                                    <div class="font-semibold text-gray-900 truncate">
-                                        <span class="uppercase tracking-wider px-1.5 py-0.5 text-[10px] rounded {{ $log->action === 'approved' || $log->action === 'auto_completed' ? 'bg-emerald-100 text-emerald-800' : ($log->action === 'rejected' ? 'bg-rose-100 text-rose-800' : 'bg-gray-100 text-gray-700') }}">
-                                            {{ $log->action }}
-                                        </span>
-                                        <span class="ml-1 text-gray-700">{{ $log->user_name ?? 'Sistem' }}</span>@if($log->jabatan_name) <span class="text-gray-400 font-normal">({{ $log->jabatan_name }})</span>@endif
-                                    </div>
-                                    @if($log->notes)
-                                        <p class="text-gray-500 italic text-[11px] truncate">"{{ $log->notes }}"</p>
-                                    @endif
+                        <!-- Form Field: Rincian Hari Kerja Efektif & Audit Tanggal -->
+                        <div class="p-4 bg-blue-50/50 border border-blue-100 rounded-xl space-y-2.5">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2 text-xs font-semibold text-blue-900">
+                                    <i class="fa-solid fa-calendar-check text-blue-600"></i>
+                                    Total Hari Kerja:
                                 </div>
-                                <span class="text-gray-400 shrink-0 text-[10px] font-mono">{{ $log->created_at->format('d/m H:i') }}</span>
+                                <div class="text-sm font-extrabold text-blue-900">
+                                    {{ (float) $leaveRequest->total_days }} Hari
+                                    <span class="text-[11px] font-normal text-blue-700 ml-1">(Hari libur tidak dihitung)</span>
+                                </div>
                             </div>
-                        @endforeach
+                            @if($leaveRequest->dates->isNotEmpty())
+                                <div class="pt-2 border-t border-blue-100">
+                                    <span class="text-[11px] font-bold uppercase tracking-wider text-blue-700 block mb-1.5">Audit Tanggal Kerja Riil:</span>
+                                    <div class="flex flex-wrap gap-1.5">
+                                        @foreach($leaveRequest->dates as $dt)
+                                            <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-white text-gray-800 border border-blue-200 shadow-2xs">
+                                                <i class="fa-regular fa-calendar text-[10px] text-gray-400"></i>
+                                                {{ $dt->date?->format('d M Y') }}
+                                                <span class="text-[10px] font-bold text-blue-600">({{ (float) $dt->deduction_value }} Hari)</span>
+                                            </span>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
+                        </div>
+
+                        <!-- Form Field: Keterangan / Keperluan -->
+                        <div class="pt-2 border-t border-gray-100 space-y-1.5">
+                            <x-input-label for="reason" :value="__('Keterangan / Keperluan')" />
+                            <textarea id="reason" rows="3" disabled
+                                class="block w-full rounded-xl border-gray-300 bg-gray-50 text-sm text-gray-700 cursor-not-allowed leading-relaxed">{{ $leaveRequest->reason }}</textarea>
+                        </div>
+
+                        <!-- Form Field: Lampiran Bukti -->
+                        <div class="pt-2 border-t border-gray-100 space-y-2">
+                            <x-input-label :value="__('Lampiran Berkas Bukti')" />
+                            @if($leaveRequest->files->isNotEmpty())
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    @foreach($leaveRequest->files as $file)
+                                        <a href="{{ $file->url ?? Storage::url($file->file_path) }}" target="_blank"
+                                            class="flex items-center gap-2.5 p-3 rounded-xl border border-gray-200 hover:border-blue-300 hover:bg-blue-50/40 transition group bg-gray-50/50">
+                                            <i class="fa-solid fa-paperclip text-gray-400 group-hover:text-blue-500"></i>
+                                            <div class="min-w-0 flex-1">
+                                                <p class="text-xs font-semibold text-gray-800 truncate group-hover:text-blue-600">{{ $file->file_name }}</p>
+                                                <p class="text-[10px] text-gray-400">{{ number_format($file->file_size / 1024, 1) }} KB</p>
+                                            </div>
+                                            <i class="fa-solid fa-arrow-up-right-from-square text-xs text-gray-300 group-hover:text-blue-500"></i>
+                                        </a>
+                                    @endforeach
+                                </div>
+                            @else
+                                <p class="text-xs text-gray-400 italic">Tidak ada berkas lampiran.</p>
+                            @endif
+                        </div>
+
+                        <!-- Tombol Batalkan Pengajuan (Jika milik sendiri & masih pending) -->
+                        @if($leaveRequest->status === 'pending' && $leaveRequest->emp_id === ($employee?->id ?? Auth::user()->employee?->id))
+                            <div class="pt-3 border-t border-gray-100 flex justify-end">
+                                <form action="{{ route('permit.cancel', $leaveRequest->id) }}" method="POST" onsubmit="return confirm('Apakah Anda yakin ingin membatalkan permohonan izin ini?');">
+                                    @csrf
+                                    <button type="submit" class="inline-flex items-center gap-2 px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl text-xs font-bold border border-rose-200 transition">
+                                        <i class="fa-solid fa-trash-can"></i>
+                                        Batalkan Pengajuan
+                                    </button>
+                                </form>
+                            </div>
+                        @endif
+
                     </div>
                 </div>
-            @endif
+
+                {{-- Kolom Kanan: Tahapan Persetujuan Berjenjang & Riwayat Log Aktivitas --}}
+                <div class="lg:col-span-5 space-y-5">
+
+                    <!-- Tahapan Persetujuan Berjenjang (Approval Workflow) -->
+                    @if($leaveRequest->approvals->isNotEmpty())
+                        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 space-y-4">
+                            <h3 class="font-bold text-gray-900 text-sm flex items-center gap-2 pb-2 border-b border-gray-100">
+                                <i class="fa-solid fa-clipboard-check text-blue-600"></i>
+                                Tahapan Persetujuan Berjenjang
+                            </h3>
+
+                            <div class="space-y-3">
+                                @foreach($leaveRequest->approvals as $approval)
+                                    @php
+                                        $canApprove = $approval->canUserApprove(Auth::user(), $leaveRequest);
+                                        $empApplicantName = $leaveRequest->employee?->name ?? 'Karyawan';
+                                        $approveUrl = route('permit.approve', $approval->id);
+                                        $rejectUrl = route('permit.reject', $approval->id);
+                                    @endphp
+                                    <div class="p-3.5 rounded-xl border {{ $approval->status === 'approved' ? 'border-emerald-200 bg-emerald-50/40' : ($approval->status === 'rejected' ? 'border-rose-200 bg-rose-50/40' : 'border-gray-200 bg-gray-50/50') }} space-y-2.5">
+                                        <div class="flex items-center justify-between gap-2">
+                                            <div class="flex items-center gap-2">
+                                                <span class="text-[11px] font-bold px-1.5 py-0.5 rounded bg-gray-200 text-gray-700">L{{ $approval->level }}</span>
+                                                <span class="font-bold text-xs text-gray-900">{{ $approval->jabatan_name }}</span>
+                                            </div>
+                                            <div>
+                                                @if($approval->status === 'approved')
+                                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                                                        <i class="fa-solid fa-circle-check text-[9px]"></i> Disetujui
+                                                    </span>
+                                                @elseif($approval->status === 'rejected')
+                                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800">
+                                                        <i class="fa-solid fa-circle-xmark text-[9px]"></i> Ditolak
+                                                    </span>
+                                                @else
+                                                    <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                                                        <i class="fa-solid fa-clock text-[9px]"></i> Menunggu
+                                                    </span>
+                                                @endif
+                                            </div>
+                                        </div>
+
+                                        <p class="text-[11px] text-gray-500 leading-relaxed">
+                                            @if($approval->status === 'approved')
+                                                Disetujui oleh: <strong class="text-gray-800">{{ $approval->approver_name }}</strong> ({{ $approval->approver_jabatan_name }}) pada {{ $approval->action_at?->format('d M Y, H:i') }}
+                                            @elseif($approval->status === 'rejected')
+                                                @if($approval->approver_name)
+                                                    Ditolak oleh: <strong class="text-rose-700">{{ $approval->approver_name }}</strong> ({{ $approval->approver_jabatan_name }})<br>Catatan: {{ $approval->notes }}
+                                                @else
+                                                    <span class="text-rose-600 font-medium">{{ $approval->notes ?? 'Dibatalkan otomatis karena alur persetujuan ditolak.' }}</span>
+                                                @endif
+                                            @else
+                                                Menunggu persetujuan jabatan <strong>{{ $approval->jabatan_name }}</strong>.
+                                            @endif
+                                        </p>
+
+                                        <!-- Tombol Aksi Approver dengan Modal -->
+                                        @if($canApprove)
+                                            <div class="pt-2 border-t border-gray-200/80">
+                                                <div class="grid grid-cols-2 gap-2">
+                                                    <button type="button"
+                                                        @click="openApproveModal({{ $approval->id }}, '{{ $approveUrl }}', '{{ $leaveRequest->request_number }}', '{{ addslashes($empApplicantName) }}')"
+                                                        class="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-emerald-300 text-xs font-bold text-emerald-700 bg-white hover:bg-emerald-50 shadow-xs transition cursor-pointer">
+                                                        <i class="fa-solid fa-check text-[11px]"></i> Setujui
+                                                    </button>
+                                                    <button type="button"
+                                                        @click="openRejectModal({{ $approval->id }}, '{{ $rejectUrl }}', '{{ $leaveRequest->request_number }}', '{{ addslashes($empApplicantName) }}')"
+                                                        class="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-rose-300 text-xs font-bold text-rose-700 bg-white hover:bg-rose-50 shadow-xs transition cursor-pointer">
+                                                        <i class="fa-solid fa-xmark text-[11px]"></i> Tolak
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        @endif
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+
+                    <!-- Riwayat Audit Log (Approval History) -->
+                    @if($leaveRequest->approvalHistories->isNotEmpty())
+                        <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 space-y-3">
+                            <h3 class="font-bold text-gray-800 text-sm flex items-center gap-2 pb-2 border-b border-gray-100">
+                                <i class="fa-solid fa-clock-rotate-left text-gray-500"></i>
+                                Riwayat Log Aktivitas & Jejak Audit
+                            </h3>
+                            <div class="divide-y divide-gray-100 text-xs">
+                                @foreach($leaveRequest->approvalHistories as $log)
+                                    <div class="py-2.5 flex items-start justify-between gap-2">
+                                        <div class="space-y-0.5 min-w-0">
+                                            <div class="font-semibold text-gray-900 truncate">
+                                                <span class="uppercase tracking-wider px-1.5 py-0.5 text-[10px] rounded {{ $log->action === 'approved' || $log->action === 'auto_completed' ? 'bg-emerald-100 text-emerald-800' : ($log->action === 'rejected' ? 'bg-rose-100 text-rose-800' : 'bg-gray-100 text-gray-700') }}">
+                                                    {{ $log->action }}
+                                                </span>
+                                                <span class="ml-1 text-gray-700">{{ $log->user_name ?? 'Sistem' }}</span>@if($log->jabatan_name) <span class="text-gray-400 font-normal">({{ $log->jabatan_name }})</span>@endif
+                                            </div>
+                                            @if($log->notes)
+                                                <p class="text-gray-500 italic text-[11px] truncate">"{{ $log->notes }}"</p>
+                                            @endif
+                                        </div>
+                                        <span class="text-gray-400 shrink-0 text-[10px] font-mono">{{ $log->created_at->format('d/m H:i') }}</span>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+
+                </div>
+
+            </div>
 
         </div>
     </div>
