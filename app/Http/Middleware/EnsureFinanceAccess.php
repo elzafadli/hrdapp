@@ -10,7 +10,7 @@ class EnsureFinanceAccess
 {
     /**
      * Handle an incoming request.
-     * Batasi akses route hanya untuk jabatan: Finance, Admin Finance, dan Cashier.
+     * Batasi akses route hanya untuk jabatan: Finance dan Cashier.
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
@@ -23,7 +23,7 @@ class EnsureFinanceAccess
         }
 
         if (!$user->canAccessFinanceBackoffice()) {
-            abort(403, 'Akses ditolak. Menu ini hanya dapat diakses oleh jabatan Finance, Admin Finance, dan Cashier.');
+            abort(403, 'Akses ditolak. Menu ini hanya dapat diakses oleh jabatan Finance dan Cashier.');
         }
 
         return $next($request);

@@ -138,7 +138,6 @@ class User extends Authenticatable
 
         $allowedJabatan = [
             'finance',
-            'admin finance',
             'cashier',
         ];
 
@@ -148,7 +147,7 @@ class User extends Authenticatable
 
         // 3. Fallback periksa role akun user jika ada kecocokan
         $userRole = strtolower(trim(str_replace('_', ' ', $this->role ?? '')));
-        if (in_array($userRole, $allowedJabatan, true) || in_array(strtolower($this->role ?? ''), ['finance', 'admin_finance', 'cashier'], true)) {
+        if (in_array($userRole, $allowedJabatan, true)) {
             return true;
         }
 
