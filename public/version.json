@@ -1,0 +1,9 @@
+{
+  "app_name": "HrdApp",
+  "app_version": "1.0.1",
+  "build_date": "2026-11-26 20:50:00",
+  "pwa_cache_version": "v1",
+  "environment": "production",
+  "status": "online",
+  "notes": "PWA Mobile App Support & Attendance Selfie Camera Integration"
+}

@@ -289,6 +289,14 @@
                                                 </p>
                                             </div>
                                         </div>
+
+                                        <div class="p-2.5 rounded-xl bg-blue-50 border border-blue-200/80 text-blue-900 flex items-start gap-2">
+                                            <i class="fa-solid fa-mobile-screen-button text-blue-600 mt-0.5 text-sm shrink-0"></i>
+                                            <div>
+                                                <strong class="block text-blue-950 font-bold">Rekomendasi Presensi via HP (PWA):</strong>
+                                                <span class="text-blue-800">Buka link web ini di browser HP Anda (Chrome/Safari), lalu klik tombol <strong>"Pasang Aplikasi di HP"</strong> untuk pengalaman presensi selfie & GPS yang cepat tanpa kendala webcam laptop.</span>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <!-- Tombol Aksi Bantuan -->

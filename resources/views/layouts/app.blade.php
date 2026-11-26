@@ -9,6 +9,15 @@
 
     <title>{{ config('app.name', 'Laravel') }}</title>
 
+    <!-- PWA Settings -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="{{ config('app.name', 'HrdApp') }}">
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.png">
+
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
@@ -204,6 +213,110 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.inputmask/5.0.8/jquery.inputmask.min.js"></script>
     @stack('scripts')
+
+    <!-- PWA Install Prompt Banner (Khusus HP / Mobile Browser) -->
+    <div id="pwa-install-banner" class="hidden md:hidden fixed top-3 left-3 right-3 z-50 bg-white/95 backdrop-blur-md border border-blue-200 p-3.5 rounded-2xl shadow-xl transition-all duration-300">
+        <div class="flex items-start gap-3">
+            <img src="/icons/icon-96x96.png" alt="App Icon" class="w-11 h-11 rounded-xl shadow-xs shrink-0 mt-0.5">
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between">
+                    <h4 class="text-xs font-bold text-gray-900 leading-tight">Pasang Aplikasi di HP</h4>
+                    <button type="button" onclick="dismissPwaBanner()" class="text-gray-400 hover:text-gray-600 p-0.5 -mr-1">
+                        <i class="fa-solid fa-xmark text-sm"></i>
+                    </button>
+                </div>
+                <p class="text-[11px] text-gray-600 mt-1 leading-snug">
+                    Akses presensi selfie, GPS & fitur ESS langsung dari layar utama HP Anda tanpa buka browser.
+                </p>
+                <div class="mt-2.5 flex items-center gap-2">
+                    <button type="button" id="btn-pwa-install" onclick="triggerPwaInstall()"
+                        class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white text-xs font-bold rounded-xl shadow-xs transition inline-flex items-center gap-1.5">
+                        <i class="fa-solid fa-download text-[11px]"></i>
+                        <span>Install Sekarang</span>
+                    </button>
+                    <button type="button" onclick="dismissPwaBanner()" class="text-[11px] text-gray-500 hover:text-gray-700 px-2 py-1">
+                        Nanti Saja
+                    </button>
+                </div>
+                <!-- Petunjuk untuk iOS Safari -->
+                <div id="pwa-ios-instructions" class="hidden mt-2 p-2 rounded-xl bg-blue-50 border border-blue-100 text-[10px] text-blue-900 leading-relaxed">
+                    Untuk pengguna <strong>iPhone (Safari)</strong>: Tekan tombol <strong>Bagikan (Share)</strong> <i class="fa-solid fa-arrow-up-from-bracket mx-0.5"></i> di bagian bawah, lalu pilih <strong>"Tambahkan ke Layar Utama" (Add to Home Screen)</strong> ➕.
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PWA Service Worker & Install Logic -->
+    <script>
+        let deferredPrompt;
+        const pwaBanner = document.getElementById('pwa-install-banner');
+        const iosInstructions = document.getElementById('pwa-ios-instructions');
+        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+
+        // Register Service Worker with Auto Update Check
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then((reg) => {
+                        // Cek pembaruan berkas dari server secara berkala
+                        reg.update();
+                    })
+                    .catch((err) => {
+                        console.warn('PWA ServiceWorker registration failed:', err);
+                    });
+            });
+
+            // Refresh halaman otomatis jika service worker baru telah aktif
+            let refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (!refreshing) {
+                    refreshing = true;
+                    window.location.reload();
+                }
+            });
+        }
+
+        // Handle PWA Install Prompt for Android/Chrome
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            const dismissed = sessionStorage.getItem('pwa_banner_dismissed');
+            if (!isStandalone && !dismissed && pwaBanner) {
+                pwaBanner.classList.remove('hidden');
+            }
+        });
+
+        // Detect iOS Safari if not installed
+        const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        if (isIos && !isStandalone) {
+            const dismissed = sessionStorage.getItem('pwa_banner_dismissed');
+            if (!dismissed && pwaBanner) {
+                pwaBanner.classList.remove('hidden');
+                const btnInstall = document.getElementById('btn-pwa-install');
+                if (btnInstall) btnInstall.style.display = 'none';
+                if (iosInstructions) iosInstructions.classList.remove('hidden');
+            }
+        }
+
+        window.triggerPwaInstall = async function() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                deferredPrompt = null;
+                if (pwaBanner) pwaBanner.classList.add('hidden');
+            }
+        };
+
+        window.dismissPwaBanner = function() {
+            if (pwaBanner) pwaBanner.classList.add('hidden');
+            sessionStorage.setItem('pwa_banner_dismissed', 'true');
+        };
+
+        window.addEventListener('appinstalled', () => {
+            if (pwaBanner) pwaBanner.classList.add('hidden');
+            deferredPrompt = null;
+        });
+    </script>
 </body>
 
 </html>

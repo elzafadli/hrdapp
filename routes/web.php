@@ -188,4 +188,18 @@ Route::middleware('auth')->group(function () {
 
 Route::get('/git-pull', [\App\Http\Controllers\DeployController::class, 'pull']);
 
+Route::get('/version', function () {
+    $versionFile = public_path('version.json');
+    $data = file_exists($versionFile) ? json_decode(file_get_contents($versionFile), true) : [];
+    
+    return response()->json(array_merge([
+        'status'          => 'active',
+        'app_name'        => config('app.name'),
+        'environment'     => app()->environment(),
+        'laravel_version' => app()->version(),
+        'php_version'     => PHP_VERSION,
+        'server_time'     => now()->toDateTimeString(),
+    ], $data));
+})->name('version');
+
 require __DIR__ . '/auth.php';
