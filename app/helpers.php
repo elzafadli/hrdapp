@@ -202,8 +202,8 @@ if (!function_exists('is_user_approver')) {
             return false;
         }
 
-        // Superadmin & Admin selalu memiliki akses menu persetujuan
-        if (in_array(strtolower(trim((string) $user->role)), ['superadmin', 'admin'], true)) {
+        // Superadmin selalu memiliki akses menu persetujuan
+        if ($user->isSuperAdmin()) {
             return true;
         }
 

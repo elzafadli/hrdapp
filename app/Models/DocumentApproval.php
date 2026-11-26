@@ -163,7 +163,7 @@ class DocumentApproval extends Model
             return false;
         }
 
-        $isSuperAdmin = in_array(strtolower(trim((string) $user->role)), ['superadmin', 'admin'], true);
+        $isSuperAdmin = $user->isSuperAdmin();
 
         $employee = $user->employee;
         if (!$employee && !$user->relationLoaded('employee')) {

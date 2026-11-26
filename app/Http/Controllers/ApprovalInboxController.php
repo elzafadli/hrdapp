@@ -36,7 +36,7 @@ class ApprovalInboxController extends Controller
     {
         $employee = $this->getEmployee();
         $user     = Auth::user();
-        $isSuperAdmin = in_array(strtolower(trim((string) $user?->role)), ['superadmin', 'admin'], true);
+        $isSuperAdmin = $user?->isSuperAdmin() ?? false;
 
         // Modul filter
         $filterModule = $request->input('module', 'all');

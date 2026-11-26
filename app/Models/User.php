@@ -114,15 +114,15 @@ class User extends Authenticatable
 
     public function isSuperAdmin(): bool
     {
-        return in_array(strtolower(trim($this->role ?? '')), ['superadmin', 'admin'], true);
+        return strtolower(trim($this->role ?? '')) === 'superadmin';
     }
 
     /**
-     * Cek apakah user berhak mengakses menu Master Data & Payroll (Hanya Finance, Admin Finance, Cashier, dan Super Admin/Admin).
+     * Cek apakah user berhak mengakses menu Master Data & Payroll (Hanya Finance, Cashier, dan Super Admin).
      */
     public function canAccessFinanceBackoffice(): bool
     {
-        // 1. Super Admin & Admin selalu memiliki akses penuh ke backoffice / master data / payroll
+        // 1. Hanya Super Admin yang selalu memiliki akses penuh ke backoffice / master data / payroll
         if ($this->isSuperAdmin()) {
             return true;
         }
