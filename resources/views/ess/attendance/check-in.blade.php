@@ -225,9 +225,6 @@
                             </div>
                         </div>
 
-                        <!-- Hidden File Input for Desktop/Laptop Fallback -->
-                        <input type="file" x-ref="photoFileInput" id="photoFileInput" accept="image/*" class="hidden" @change="handleFileUpload($event)">
-
                         <!-- Viewport Kamera / Hasil Foto -->
                         <div class="rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50/70 p-3 overflow-hidden">
                             
@@ -295,16 +292,11 @@
                                     </div>
 
                                     <!-- Tombol Aksi Bantuan -->
-                                    <div class="pt-2 border-t border-gray-100 flex flex-wrap items-center gap-2">
+                                    <div class="pt-2 border-t border-gray-100 flex items-center gap-2">
                                         <button type="button" @click="startCamera()" 
                                             class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-[11px] shadow-xs transition">
                                             <i class="fa-solid fa-arrows-rotate text-[10px]"></i>
                                             Coba Nyalakan Lagi
-                                        </button>
-                                        <button type="button" @click="$refs.photoFileInput.click()" 
-                                            class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 rounded-lg font-semibold text-[11px] shadow-xs transition">
-                                            <i class="fa-solid fa-cloud-arrow-up text-blue-600 text-[10px]"></i>
-                                            Unggah Foto Selfie (Jika Laptop Tanpa Webcam)
                                         </button>
                                     </div>
                                 </div>
@@ -321,16 +313,11 @@
                                         Foto wajib diambil langsung secara real-time dari kamera perangkat Anda.
                                     </p>
                                 </div>
-                                <div class="flex flex-col items-center justify-center gap-2 pt-1">
+                                <div class="flex items-center justify-center pt-1">
                                     <button type="button" @click="startCamera()"
                                         class="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-sm transition">
                                         <i class="fa-solid fa-camera text-sm"></i>
                                         Nyalakan Kamera
-                                    </button>
-                                    <button type="button" @click="$refs.photoFileInput.click()"
-                                        class="text-[11px] text-gray-500 hover:text-blue-600 transition flex items-center gap-1">
-                                        <i class="fa-solid fa-upload text-[10px]"></i>
-                                        <span>Laptop tanpa webcam? Klik untuk unggah foto</span>
                                     </button>
                                 </div>
                             </div>
@@ -615,33 +602,6 @@
                     });
                 },
 
-                handleFileUpload(event) {
-                    const file = event.target.files ? event.target.files[0] : null;
-                    if (!file) return;
-
-                    if (!file.type.startsWith('image/')) {
-                        alert('Harap pilih file gambar (JPG, PNG, atau WEBP).');
-                        return;
-                    }
-
-                    if (file.size > 5 * 1024 * 1024) {
-                        alert('Ukuran foto terlalu besar. Maksimal 5 MB.');
-                        return;
-                    }
-
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        this.photoData = e.target.result;
-                        this.cameraError = '';
-                        this.showTroubleshoot = false;
-                        this.cameraActive = false;
-                        if (this.mediaStream) {
-                            this.stopCamera();
-                        }
-                    };
-                    reader.readAsDataURL(file);
-                },
-
                 attachCameraStream(stream) {
                     this.mediaStream = stream;
                     this.cameraActive = true;
@@ -684,8 +644,6 @@
 
                 retakePhoto() {
                     this.photoData = null;
-                    const fileInput = document.getElementById('photoFileInput');
-                    if (fileInput) fileInput.value = '';
                     this.startCamera();
                 },
 
