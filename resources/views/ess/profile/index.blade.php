@@ -1358,7 +1358,7 @@
                     <p class="text-xs text-gray-400 font-medium">HrdApp ESS & Attendance</p>
                     <a href="{{ route('version') }}" target="_blank" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 text-[11px] font-mono transition" title="Cek Versi & Status Update">
                         <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <span>v1.0.2 (Aktif)</span>
+                        <span>v1.0.3 (Aktif)</span>
                     </a>
                 </div>
 

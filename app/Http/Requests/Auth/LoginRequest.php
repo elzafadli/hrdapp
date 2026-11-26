@@ -77,8 +77,8 @@ class LoginRequest extends FormRequest
             ]);
         }
 
-        // 4. Lakukan Login
-        Auth::login($user, $this->boolean('remember'));
+        // 4. Lakukan Login (Selalu aktifkan remember me agar user di HP/PWA tetap login & tidak mudah logout)
+        Auth::login($user, true);
         RateLimiter::clear($this->throttleKey());
 
         // 5. Hubungkan user_id ke data employee jika belum terisi

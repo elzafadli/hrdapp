@@ -1,9 +1,9 @@
 {
   "app_name": "HrdApp",
-  "app_version": "1.0.2",
-  "build_date": "2026-11-26 20:56:00",
-  "pwa_cache_version": "v2",
+  "app_version": "1.0.3",
+  "build_date": "2026-11-26 21:46:00",
+  "pwa_cache_version": "v3",
   "environment": "production",
   "status": "online",
-  "notes": "Upgraded High-Quality 3D Glassmorphic PWA App Icon & Auto Cache Buster"
+  "notes": "30-Day Session Lifetime & Permanent Auto-Login for Mobile PWA"
 }

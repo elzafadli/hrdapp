@@ -391,7 +391,7 @@
     <div class="px-4 py-1.5 bg-slate-950/95 border-t border-slate-800/60 text-[10px] text-slate-500 flex items-center justify-between shrink-0">
         <span class="tracking-wider">HRD SYSTEM</span>
         <a href="{{ route('version') }}" target="_blank" class="font-mono text-slate-400 hover:text-blue-400 transition" title="Lihat Status Update & Versi">
-            v1.0.2
+            v1.0.3
         </a>
     </div>
 </aside>
