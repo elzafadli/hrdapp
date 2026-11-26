@@ -214,22 +214,100 @@
                                 <i class="fa-solid fa-camera text-blue-600"></i>
                                 Foto Selfie Masuk <span class="text-rose-500 font-bold">*Wajib Kamera</span>
                             </label>
-                            <span class="text-[11px] text-gray-400">Live Camera</span>
+                            <div class="flex items-center gap-2">
+                                <button type="button" @click="showTroubleshoot = !showTroubleshoot" 
+                                    class="text-[11px] text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1 font-medium transition">
+                                    <i class="fa-regular fa-circle-question"></i>
+                                    <span>Panduan Kamera Laptop</span>
+                                </button>
+                                <span class="text-gray-300">|</span>
+                                <span class="text-[11px] text-gray-400">Live Camera</span>
+                            </div>
                         </div>
+
+                        <!-- Hidden File Input for Desktop/Laptop Fallback -->
+                        <input type="file" x-ref="photoFileInput" id="photoFileInput" accept="image/*" class="hidden" @change="handleFileUpload($event)">
 
                         <!-- Viewport Kamera / Hasil Foto -->
                         <div class="rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50/70 p-3 overflow-hidden">
                             
-                            <!-- Banner Peringatan / Error Kamera -->
-                            <div x-show="cameraError" x-transition class="mb-3 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2.5" style="display: none;">
-                                <i class="fa-solid fa-triangle-exclamation text-rose-500 mt-0.5 text-sm shrink-0"></i>
-                                <div class="flex-1 leading-relaxed">
-                                    <span class="font-bold block">Kendala Akses Kamera</span>
-                                    <span x-text="cameraError"></span>
+                            <!-- Banner Peringatan & Panduan Kamera Khusus Desktop / Laptop -->
+                            <div x-show="cameraError || showTroubleshoot" x-transition class="mb-3 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-900 text-xs space-y-2.5" style="display: none;">
+                                <div class="flex items-start justify-between gap-2" x-show="cameraError">
+                                    <div class="flex items-start gap-2.5">
+                                        <i class="fa-solid fa-triangle-exclamation text-rose-500 mt-0.5 text-base shrink-0"></i>
+                                        <div>
+                                            <span class="font-bold block text-rose-800">Kendala Akses Kamera</span>
+                                            <span x-text="cameraError" class="text-rose-700"></span>
+                                        </div>
+                                    </div>
+                                    <button type="button" @click="cameraError = ''" class="text-rose-400 hover:text-rose-600 p-1">
+                                        <i class="fa-solid fa-xmark"></i>
+                                    </button>
                                 </div>
-                                <button type="button" @click="cameraError = ''" class="text-rose-400 hover:text-rose-600">
-                                    <i class="fa-solid fa-xmark"></i>
-                                </button>
+
+                                <!-- Box Panduan Solusi Khusus Laptop & Desktop -->
+                                <div class="bg-white/95 rounded-xl p-3 border border-rose-200/80 shadow-xs space-y-2.5 text-[11px] text-gray-700">
+                                    <div class="flex items-center justify-between border-b border-gray-100 pb-1.5">
+                                        <div class="flex items-center gap-1.5 font-bold text-gray-800 text-xs">
+                                            <i class="fa-solid fa-laptop text-blue-600"></i>
+                                            <span>Panduan Kamera untuk Pengguna Laptop / Komputer:</span>
+                                        </div>
+                                        <button type="button" @click="showTroubleshoot = false" class="text-gray-400 hover:text-gray-600 text-xs" x-show="!cameraError">
+                                            <i class="fa-solid fa-xmark"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="space-y-2 leading-relaxed">
+                                        <div class="flex items-start gap-2">
+                                            <span class="w-4 h-4 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center shrink-0 text-[10px]">1</span>
+                                            <div>
+                                                <strong class="text-gray-800">Cek Tombol Privasi / Fn Keyboard Laptop:</strong>
+                                                <p class="text-gray-600 mt-0.5">
+                                                    Sebagian besar laptop mematikan webcam via hardware. Cek tombol keyboard laptop Anda:
+                                                    <span class="font-semibold text-gray-800">Lenovo</span> (<kbd class="px-1 py-0.5 bg-gray-100 border border-gray-200 rounded text-[10px]">Fn+F8</kbd> / buka Lenovo Vantage lalu matikan Camera Privacy), 
+                                                    <span class="font-semibold text-gray-800">Asus</span> (<kbd class="px-1 py-0.5 bg-gray-100 border border-gray-200 rounded text-[10px]">Fn+F10</kbd>), 
+                                                    <span class="font-semibold text-gray-800">MSI</span> (<kbd class="px-1 py-0.5 bg-gray-100 border border-gray-200 rounded text-[10px]">Fn+F6</kbd>), 
+                                                    atau geser <strong>slider penutup fisik lensa webcam</strong> di atas layar.
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex items-start gap-2">
+                                            <span class="w-4 h-4 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center shrink-0 text-[10px]">2</span>
+                                            <div>
+                                                <strong class="text-gray-800">Cek Izin Kamera di Windows Settings:</strong>
+                                                <p class="text-gray-600 mt-0.5">
+                                                    Tekan <kbd class="px-1 py-0.5 bg-gray-100 border border-gray-200 rounded text-[10px]">Win + I</kbd> > pilih <strong>Privacy & security</strong> > klik <strong>Camera</strong>. Pastikan <em>Camera access</em> dan izin browser (Chrome / Edge) berstatus <strong>ON</strong>.
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div class="flex items-start gap-2">
+                                            <span class="w-4 h-4 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center shrink-0 text-[10px]">3</span>
+                                            <div>
+                                                <strong class="text-gray-800">Tes Aplikasi Kamera Bawaan Windows:</strong>
+                                                <p class="text-gray-600 mt-0.5">
+                                                    Buka menu Start, ketik <strong class="text-gray-800">"Camera"</strong> lalu Enter. Jika di sana tidak muncul gambar, berarti webcam masih dinonaktifkan di laptop.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Tombol Aksi Bantuan -->
+                                    <div class="pt-2 border-t border-gray-100 flex flex-wrap items-center gap-2">
+                                        <button type="button" @click="startCamera()" 
+                                            class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-bold text-[11px] shadow-xs transition">
+                                            <i class="fa-solid fa-arrows-rotate text-[10px]"></i>
+                                            Coba Nyalakan Lagi
+                                        </button>
+                                        <button type="button" @click="$refs.photoFileInput.click()" 
+                                            class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 rounded-lg font-semibold text-[11px] shadow-xs transition">
+                                            <i class="fa-solid fa-cloud-arrow-up text-blue-600 text-[10px]"></i>
+                                            Unggah Foto Selfie (Jika Laptop Tanpa Webcam)
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- 1. Kondisi Kamera Belum Dibuka & Belum Ada Foto -->
@@ -243,11 +321,16 @@
                                         Foto wajib diambil langsung secara real-time dari kamera perangkat Anda.
                                     </p>
                                 </div>
-                                <div class="flex items-center justify-center pt-1">
+                                <div class="flex flex-col items-center justify-center gap-2 pt-1">
                                     <button type="button" @click="startCamera()"
                                         class="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-sm transition">
                                         <i class="fa-solid fa-camera text-sm"></i>
                                         Nyalakan Kamera
+                                    </button>
+                                    <button type="button" @click="$refs.photoFileInput.click()"
+                                        class="text-[11px] text-gray-500 hover:text-blue-600 transition flex items-center gap-1">
+                                        <i class="fa-solid fa-upload text-[10px]"></i>
+                                        <span>Laptop tanpa webcam? Klik untuk unggah foto</span>
                                     </button>
                                 </div>
                             </div>
@@ -362,6 +445,8 @@
                 // Kamera & Foto Selfie
                 cameraActive: false,
                 cameraError: '',
+                cameraErrorType: '',
+                showTroubleshoot: false,
                 photoData: null,
                 mediaStream: null,
 
@@ -471,15 +556,20 @@
                 // Logika Kamera & Selfie
                 startCamera() {
                     this.cameraError = '';
+                    this.cameraErrorType = '';
 
                     // Periksa Secure Context (Kamera browser membutuhkan HTTPS atau localhost)
                     if (!window.isSecureContext && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
                         this.cameraError = 'Akses kamera browser memerlukan koneksi aman HTTPS atau localhost.';
+                        this.cameraErrorType = 'secure_context';
+                        this.showTroubleshoot = true;
                         return;
                     }
 
                     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
                         this.cameraError = 'Browser perangkat Anda tidak mendukung akses kamera langsung (getUserMedia).';
+                        this.cameraErrorType = 'not_supported';
+                        this.showTroubleshoot = true;
                         return;
                     }
 
@@ -507,22 +597,56 @@
                         .catch((fallbackErr) => {
                             console.error('Kamera gagal dibuka:', fallbackErr);
                             let errMsg = 'Tidak dapat mengakses kamera perangkat.';
+                            let errType = 'general';
                             if (fallbackErr.name === 'NotAllowedError' || fallbackErr.name === 'PermissionDeniedError') {
                                 errMsg = 'Izin kamera ditolak. Harap izinkan akses kamera di pengaturan browser/perangkat Anda.';
+                                errType = 'permission';
                             } else if (fallbackErr.name === 'NotFoundError' || fallbackErr.name === 'DevicesNotFoundError') {
-                                errMsg = 'Kamera tidak terdeteksi pada perangkat Anda.';
+                                errMsg = 'Kamera tidak terdeteksi pada perangkat/laptop Anda.';
+                                errType = 'not_found';
                             } else if (fallbackErr.name === 'NotReadableError' || fallbackErr.name === 'TrackStartError') {
-                                errMsg = 'Kamera sedang digunakan oleh aplikasi lain.';
+                                errMsg = 'Kamera sedang digunakan oleh aplikasi lain (seperti Zoom/Teams/Meet).';
+                                errType = 'in_use';
                             }
                             this.cameraError = errMsg;
+                            this.cameraErrorType = errType;
+                            this.showTroubleshoot = true;
                         });
                     });
+                },
+
+                handleFileUpload(event) {
+                    const file = event.target.files ? event.target.files[0] : null;
+                    if (!file) return;
+
+                    if (!file.type.startsWith('image/')) {
+                        alert('Harap pilih file gambar (JPG, PNG, atau WEBP).');
+                        return;
+                    }
+
+                    if (file.size > 5 * 1024 * 1024) {
+                        alert('Ukuran foto terlalu besar. Maksimal 5 MB.');
+                        return;
+                    }
+
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        this.photoData = e.target.result;
+                        this.cameraError = '';
+                        this.showTroubleshoot = false;
+                        this.cameraActive = false;
+                        if (this.mediaStream) {
+                            this.stopCamera();
+                        }
+                    };
+                    reader.readAsDataURL(file);
                 },
 
                 attachCameraStream(stream) {
                     this.mediaStream = stream;
                     this.cameraActive = true;
                     this.cameraError = '';
+                    this.showTroubleshoot = false;
                     this.$nextTick(() => {
                         const video = document.getElementById('cameraVideo');
                         if (video) {
@@ -560,6 +684,8 @@
 
                 retakePhoto() {
                     this.photoData = null;
+                    const fileInput = document.getElementById('photoFileInput');
+                    if (fileInput) fileInput.value = '';
                     this.startCamera();
                 },
 
